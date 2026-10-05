@@ -77,8 +77,17 @@ def test_get_pest_alerts_migori_fall_armyworm():
 
 
 @pytest.mark.django_db
-def test_run_advisory_pipeline_creates_draft_kachieng_01(officer):
-    """Full agent run for KACH-01 — must produce a DRAFT advisory."""
+def test_run_advisory_pipeline_creates_draft_kachieng_01(officer, monkeypatch):
+    """Full agent run for KACH-01 — must produce a DRAFT advisory.
+
+    Ollama is mocked out so the test runs fast and deterministic (no real
+    model call, no 300s timeout). The deterministic fallback template is
+    exercised instead.
+    """
+    # Mock Ollama to simulate "model unavailable" → fallback template runs
+    from apps.agents import graph as graph_module
+    monkeypatch.setattr(graph_module, "_try_ollama", lambda prompt: None)
+
     cluster = FarmerCluster.objects.filter(cluster_id="KACH-01").first()
     if cluster is None:
         from tests.factories.models import (
