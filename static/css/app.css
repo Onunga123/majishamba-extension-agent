@@ -1,0 +1,4 @@
+/* MajiShamba — minor custom styles on top of Tailwind CDN. */
+.majishamba-card { @apply bg-white border border-stone-200 rounded shadow p-4; }
+.majishamba-pill { @apply px-2 py-0.5 rounded text-xs font-medium; }
+pre { white-space: pre-wrap; }

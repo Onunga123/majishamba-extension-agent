@@ -1,0 +1,47 @@
+[
+  {"model": "clusters.household", "pk": 1, "fields": {"household_id": "KACH-01-HH-001", "cluster": 1, "head_of_household": "Synthetic — Head A", "phone_e164": "+254700111111", "notes": "Synthetic household — not a real person."}},
+  {"model": "clusters.household", "pk": 2, "fields": {"household_id": "KACH-01-HH-002", "cluster": 1, "head_of_household": "Synthetic — Head B", "phone_e164": "+254700111112"}},
+  {"model": "clusters.household", "pk": 3, "fields": {"household_id": "KACH-01-HH-003", "cluster": 1, "head_of_household": "Synthetic — Head C", "phone_e164": "+254700111113"}},
+  {"model": "clusters.household", "pk": 4, "fields": {"household_id": "KACH-01-HH-004", "cluster": 1, "head_of_household": "Synthetic — Head D"}},
+  {"model": "clusters.household", "pk": 5, "fields": {"household_id": "KACH-01-HH-005", "cluster": 1, "head_of_household": "Synthetic — Head E"}},
+
+  {"model": "clusters.household", "pk": 6, "fields": {"household_id": "KACH-02-HH-001", "cluster": 2, "head_of_household": "Synthetic — Head F"}},
+  {"model": "clusters.household", "pk": 7, "fields": {"household_id": "KACH-02-HH-002", "cluster": 2, "head_of_household": "Synthetic — Head G"}},
+  {"model": "clusters.household", "pk": 8, "fields": {"household_id": "KACH-02-HH-003", "cluster": 2, "head_of_household": "Synthetic — Head H"}},
+  {"model": "clusters.household", "pk": 9, "fields": {"household_id": "KACH-02-HH-004", "cluster": 2, "head_of_household": "Synthetic — Head I"}},
+  {"model": "clusters.household", "pk": 10, "fields": {"household_id": "KACH-02-HH-005", "cluster": 2, "head_of_household": "Synthetic — Head J"}},
+  {"model": "clusters.household", "pk": 11, "fields": {"household_id": "KACH-02-HH-006", "cluster": 2, "head_of_household": "Synthetic — Head K"}},
+
+  {"model": "clusters.household", "pk": 12, "fields": {"household_id": "KACH-03-HH-001", "cluster": 3, "head_of_household": "Synthetic — Head L", "notes": "Synthetic; no plot history loaded — used to test data-gap behaviour."}},
+  {"model": "clusters.household", "pk": 13, "fields": {"household_id": "KACH-03-HH-002", "cluster": 3, "head_of_household": "Synthetic — Head M"}},
+  {"model": "clusters.household", "pk": 14, "fields": {"household_id": "KACH-03-HH-003", "cluster": 3, "head_of_household": "Synthetic — Head N"}},
+
+  {"model": "plots.plot", "pk": 1, "fields": {"plot_id": "KACH-01-HH-001-P1", "household": 1, "area_ha": 0.6, "centroid_lat": -0.951, "centroid_lon": 34.431, "soil_type": "loam", "irrigation": false, "notes": "Synthetic plot. Lakeside low-lying field."}},
+  {"model": "plots.plot", "pk": 2, "fields": {"plot_id": "KACH-01-HH-002-P1", "household": 2, "area_ha": 0.8, "centroid_lat": -0.953, "centroid_lon": 34.433, "soil_type": "sandy", "irrigation": false}},
+  {"model": "plots.plot", "pk": 3, "fields": {"plot_id": "KACH-01-HH-003-P1", "household": 3, "area_ha": 0.5, "centroid_lat": -0.954, "centroid_lon": 34.430, "soil_type": "loam", "irrigation": false}},
+  {"model": "plots.plot", "pk": 4, "fields": {"plot_id": "KACH-01-HH-004-P1", "household": 4, "area_ha": 0.4, "centroid_lat": -0.950, "centroid_lon": 34.434, "soil_type": "clay", "irrigation": false}},
+  {"model": "plots.plot", "pk": 5, "fields": {"plot_id": "KACH-01-HH-005-P1", "household": 5, "area_ha": 0.7, "centroid_lat": -0.955, "centroid_lon": 34.432, "soil_type": "loam", "irrigation": false}},
+
+  {"model": "plots.plot", "pk": 6, "fields": {"plot_id": "KACH-02-HH-001-P1", "household": 6, "area_ha": 0.9, "centroid_lat": -0.970, "centroid_lon": 34.445, "soil_type": "loam", "irrigation": false}},
+  {"model": "plots.plot", "pk": 7, "fields": {"plot_id": "KACH-02-HH-002-P1", "household": 7, "area_ha": 0.5, "centroid_lat": -0.971, "centroid_lon": 34.446, "soil_type": "silt", "irrigation": true, "notes": "Synthetic. Small river-irrigated plot."}},
+  {"model": "plots.plot", "pk": 8, "fields": {"plot_id": "KACH-02-HH-003-P1", "household": 8, "area_ha": 0.6, "centroid_lat": -0.969, "centroid_lon": 34.444, "soil_type": "loam", "irrigation": false}},
+  {"model": "plots.plot", "pk": 9, "fields": {"plot_id": "KACH-02-HH-004-P1", "household": 9, "area_ha": 0.4, "centroid_lat": -0.968, "centroid_lon": 34.447, "soil_type": "sandy", "irrigation": false}},
+  {"model": "plots.plot", "pk": 10, "fields": {"plot_id": "KACH-02-HH-005-P1", "household": 10, "area_ha": 0.8, "centroid_lat": -0.972, "centroid_lon": 34.443, "soil_type": "clay", "irrigation": false}},
+
+  {"model": "plots.plot", "pk": 11, "fields": {"plot_id": "KACH-03-HH-002-P1", "household": 13, "area_ha": 0.4, "centroid_lat": -0.981, "centroid_lon": 34.458, "soil_type": "sandy", "irrigation": false}},
+  {"model": "plots.plot", "pk": 12, "fields": {"plot_id": "KACH-03-HH-003-P1", "household": 14, "area_ha": 0.3, "centroid_lat": -0.983, "centroid_lon": 34.459, "soil_type": "sandy", "irrigation": false}},
+
+  {"model": "plots.cropseasonrecord", "pk": 1, "fields": {"plot": 1, "season": "2023 short_rains", "crop": "maize", "planting_date": "2023-09-25", "harvest_date": "2024-01-15", "outcome": "success", "yield_band": "medium", "notes": "Synthetic. Good rains."}},
+  {"model": "plots.cropseasonrecord", "pk": 2, "fields": {"plot": 1, "season": "2024 short_rains", "crop": "maize", "planting_date": "2024-10-05", "harvest_date": null, "outcome": "partial_failure", "yield_band": "low", "notes": "Synthetic. False rainfall start; replant cost."}},
+  {"model": "plots.cropseasonrecord", "pk": 3, "fields": {"plot": 2, "season": "2023 short_rains", "crop": "maize", "planting_date": "2023-10-01", "harvest_date": "2024-01-20", "outcome": "success", "yield_band": "medium"}},
+  {"model": "plots.cropseasonrecord", "pk": 4, "fields": {"plot": 3, "season": "2023 short_rains", "crop": "maize", "planting_date": "2023-09-20", "harvest_date": "2024-01-10", "outcome": "success", "yield_band": "high"}},
+  {"model": "plots.cropseasonrecord", "pk": 5, "fields": {"plot": 4, "season": "2023 short_rains", "crop": "maize", "planting_date": "2023-10-10", "harvest_date": "2024-01-25", "outcome": "delayed_planting", "yield_band": "low"}},
+  {"model": "plots.cropseasonrecord", "pk": 6, "fields": {"plot": 5, "season": "2023 short_rains", "crop": "maize", "planting_date": "2023-09-28", "harvest_date": "2024-01-18", "outcome": "success", "yield_band": "medium"}},
+  {"model": "plots.cropseasonrecord", "pk": 7, "fields": {"plot": 6, "season": "2023 short_rains", "crop": "maize", "planting_date": "2023-09-30", "harvest_date": "2024-01-22", "outcome": "success", "yield_band": "medium"}},
+  {"model": "plots.cropseasonrecord", "pk": 8, "fields": {"plot": 7, "season": "2023 short_rains", "crop": "maize", "planting_date": "2023-10-08", "harvest_date": "2024-01-26", "outcome": "success", "yield_band": "high", "notes": "Synthetic. Irrigated plot."}},
+  {"model": "plots.cropseasonrecord", "pk": 9, "fields": {"plot": 8, "season": "2023 short_rains", "crop": "maize", "planting_date": "2023-10-02", "harvest_date": "2024-01-19", "outcome": "success", "yield_band": "medium"}},
+  {"model": "plots.cropseasonrecord", "pk": 10, "fields": {"plot": 9, "season": "2023 short_rains", "crop": "maize", "planting_date": "2023-10-15", "harvest_date": "2024-02-01", "outcome": "partial_failure", "yield_band": "low", "notes": "Synthetic. Late planting due to false rainfall start."}},
+  {"model": "plots.cropseasonrecord", "pk": 11, "fields": {"plot": 10, "season": "2023 short_rains", "crop": "maize", "planting_date": "2023-09-22", "harvest_date": "2024-01-12", "outcome": "success", "yield_band": "high"}},
+  {"model": "plots.cropseasonrecord", "pk": 12, "fields": {"plot": 11, "season": "2022 short_rains", "crop": "maize", "planting_date": "2022-10-01", "harvest_date": "2023-01-15", "outcome": "success", "yield_band": "medium", "notes": "Synthetic. No 2023 record loaded."}},
+  {"model": "plots.cropseasonrecord", "pk": 13, "fields": {"plot": 12, "season": "2022 short_rains", "crop": "maize", "planting_date": "2022-10-05", "harvest_date": "2023-01-20", "outcome": "success", "yield_band": "medium"}}
+]

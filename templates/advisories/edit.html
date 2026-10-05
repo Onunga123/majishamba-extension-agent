@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Edit advisory #{{ advisory.id }} — MajiShamba{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
+  <h1 class="text-lg font-semibold mb-3">Edit advisory #{{ advisory.id }}</h1>
+  <form method="post" class="space-y-3">
+    {% csrf_token %}
+    {% for field in form %}
+      <div>
+        <label class="block text-sm font-medium">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<div class="text-red-700 text-xs">{{ field.errors }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <button type="submit" class="bg-emerald-700 text-white px-3 py-1 rounded text-sm">Save</button>
+    <a href="{% url 'advisories:detail' advisory.id %}" class="ml-2 text-stone-600 text-sm">Cancel</a>
+  </form>
+</div>
+{% endblock %}

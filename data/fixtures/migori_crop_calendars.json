@@ -1,0 +1,62 @@
+[
+  {
+    "model": "calendars.cropcalendar",
+    "pk": 1,
+    "fields": {
+      "crop": "maize",
+      "zone": 1,
+      "zone_label": "Migori-Low-Mid",
+      "season": "short_rains",
+      "planting_window_start": "2025-09-15",
+      "planting_window_end": "2025-10-20",
+      "activities": [
+        {"week": "W-2", "activity": "Land preparation and minimum tillage", "source": "KALRO Migori maize calendar 2025"},
+        {"week": "W-1", "activity": "Source certified seed (H614, PH4, WH505) and basal fertilizer (DAP/NPK)", "source": "KALRO Migori maize calendar 2025"},
+        {"week": "W0",  "activity": "Plant on first confirmed rainfall onset (3 consecutive rainy days >= 5 mm/day)", "source": "KALRO Migori maize calendar 2025"},
+        {"week": "W2",  "activity": "First weeding + scouting for fall armyworm"},
+        {"week": "W6",  "activity": "Top-dress (CAN/urea) after first weeding"},
+        {"week": "W12", "activity": "Second weeding; monitor for storage pests as harvest approaches"}
+      ],
+      "source": "KALRO Migori maize calendar 2025 (synthetic sample)",
+      "source_url": "https://www.kalro.org/",
+      "source_date": "2025-03-01"
+    }
+  },
+  {
+    "model": "calendars.cropcalendar",
+    "pk": 2,
+    "fields": {
+      "crop": "maize",
+      "zone": 1,
+      "zone_label": "Migori-Low-Mid",
+      "season": "long_rains",
+      "planting_window_start": "2025-03-15",
+      "planting_window_end": "2025-04-30",
+      "activities": [
+        {"week": "W-2", "activity": "Land preparation"},
+        {"week": "W0",  "activity": "Plant with confirmed rainfall onset"}
+      ],
+      "source": "KALRO Migori maize calendar 2025 (synthetic sample)",
+      "source_url": "https://www.kalro.org/",
+      "source_date": "2025-03-01"
+    }
+  },
+  {
+    "model": "calendars.cropcalendar",
+    "pk": 3,
+    "fields": {
+      "crop": "maize",
+      "zone": 1,
+      "zone_label": "Migori-Low-Mid-Stale",
+      "season": "short_rains",
+      "planting_window_start": "2022-09-15",
+      "planting_window_end": "2022-10-20",
+      "activities": [
+        {"week": "W0", "activity": "(Outdated calendar entry — used to test stale source detection.)"}
+      ],
+      "source": "Older Migori maize calendar 2022 (synthetic sample — used to test stale-source flagging)",
+      "source_url": "",
+      "source_date": "2022-03-01"
+    }
+  }
+]

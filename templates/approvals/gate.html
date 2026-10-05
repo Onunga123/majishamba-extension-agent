@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Approve advisory #{{ advisory.id }} — MajiShamba{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
+  <h1 class="text-lg font-semibold mb-2">Officer approval gate — Advisory #{{ advisory.id }} ({{ advisory.cluster.cluster_id }})</h1>
+  <p class="text-sm text-stone-600 mb-3">
+    The agent has produced a DRAFT advisory. As a named Nyatike extension officer you must
+    approve, reject, defer, or request more evidence before any follow-up task can be created.
+    The agent cannot send messages, place orders, or issue credit flags.
+  </p>
+  <div class="bg-stone-100 p-3 rounded text-sm mb-3">
+    <p><strong>Summary:</strong> {{ advisory.summary }}</p>
+    <p class="mt-1"><strong>Recommendation:</strong> {{ advisory.get_recommendation_type_display }}</p>
+    <p class="mt-1"><strong>Mode:</strong> <code>{{ advisory.generation_mode }}</code> · <strong>Model:</strong> <code>{{ advisory.model_name|default:"fallback_template" }}</code></p>
+  </div>
+  <form method="post" class="space-y-3">
+    {% csrf_token %}
+    {% for field in form %}
+      <div>
+        <label class="block text-sm font-medium">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<div class="text-red-700 text-xs">{{ field.errors }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="border-t border-stone-200 pt-3">
+      <label class="flex items-center text-sm">
+        <input type="checkbox" name="create_followup" class="mr-2">
+        On approval, also create a follow-up task
+      </label>
+      <div class="grid grid-cols-2 gap-2 mt-2">
+        <div>
+          <label class="text-xs block">Task type</label>
+          <select name="task_type" class="w-full border border-stone-300 rounded px-2 py-1 text-sm">
+            <option value="field_visit">Field visit to Kachieng cluster</option>
+            <option value="cluster_meeting">Cluster meeting</option>
+            <option value="re_evidence">Re-collect evidence</option>
+            <option value="print_advisory">Print advisory for delivery</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs block">Deadline (YYYY-MM-DD)</label>
+          <input name="deadline" type="date" class="w-full border border-stone-300 rounded px-2 py-1 text-sm">
+        </div>
+      </div>
+    </div>
+    <button type="submit" class="bg-emerald-700 text-white px-3 py-1 rounded text-sm hover:bg-emerald-800">Submit decision</button>
+    <a href="{% url 'advisories:detail' advisory.id %}" class="ml-2 text-stone-600 text-sm">Cancel</a>
+  </form>
+</div>
+{% endblock %}

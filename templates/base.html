@@ -1,0 +1,66 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}MajiShamba — Nyatike Extension Office{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css">
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="bg-stone-50 text-stone-800 min-h-screen flex flex-col">
+  <header class="bg-emerald-800 text-white shadow">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div>
+        <a href="{% url 'dashboard:home' %}" class="font-bold text-lg tracking-tight">
+          MajiShamba <span class="text-emerald-200">/ Extension Agent</span>
+        </a>
+        <span class="ml-2 text-emerald-200 text-xs hidden sm:inline">
+          Nyatike Sub-County Agricultural Office · Kachieng Ward · Migori County
+        </span>
+      </div>
+      <nav class="space-x-3 text-sm">
+        <a href="{% url 'dashboard:home' %}" class="hover:underline">Dashboard</a>
+        <a href="{% url 'dashboard:map' %}" class="hover:underline">Map</a>
+        <a href="{% url 'advisories:list' %}" class="hover:underline">Advisories</a>
+        <a href="{% url 'tasks:list' %}" class="hover:underline">Tasks</a>
+        <a href="{% url 'audit:list' %}" class="hover:underline">Audit</a>
+        <a href="{% url 'agents:graph' %}" class="hover:underline">Agent</a>
+        {% if user.is_authenticated %}
+          <span class="text-emerald-200">|</span>
+          <span class="text-emerald-100">{{ user.display_name }} ({{ user.get_role_display }})</span>
+          <a href="{% url 'accounts:logout' %}" class="hover:underline">Logout</a>
+        {% else %}
+          <a href="{% url 'accounts:login' %}" class="hover:underline">Login</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
+    {% if messages %}
+      <div class="mb-4 space-y-1">
+        {% for m in messages %}
+          <div class="px-3 py-2 rounded text-sm
+                      {% if m.tags == 'error' %}bg-red-100 text-red-800 border border-red-300
+                      {% elif m.tags == 'success' %}bg-emerald-100 text-emerald-800 border border-emerald-300
+                      {% else %}bg-stone-100 text-stone-700 border border-stone-300{% endif %}">
+            {{ m }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="bg-stone-900 text-stone-300 text-xs">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between gap-1">
+      <span>MajiShamba Extension Agent — MIT licence · Climate-smart advisory for Kachieng Ward.</span>
+      <span class="text-stone-400">Synthetic household &amp; plot data only — no real household records used.</span>
+    </div>
+  </footer>
+</body>
+</html>

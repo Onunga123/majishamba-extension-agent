@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — MajiShamba{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+  <div class="lg:col-span-2 bg-white p-4 rounded shadow border border-stone-200">
+    <div class="flex items-center justify-between mb-3">
+      <h1 class="text-lg font-semibold">Kachieng Ward — cluster dashboard</h1>
+      <span class="text-xs text-stone-500">{{ office_name }}</span>
+    </div>
+    <table class="w-full text-sm">
+      <thead class="bg-stone-100">
+        <tr>
+          <th class="text-left px-2 py-1">Cluster</th>
+          <th class="text-left px-2 py-1">Households</th>
+          <th class="text-left px-2 py-1">Plots</th>
+          <th class="text-left px-2 py-1">Drafts</th>
+          <th class="text-left px-2 py-1">Approved</th>
+          <th class="px-2 py-1">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for cs in cluster_stats %}
+        <tr class="border-t border-stone-200">
+          <td class="px-2 py-1 font-mono">{{ cs.cluster.cluster_id }}</td>
+          <td class="px-2 py-1">{{ cs.household_count }}</td>
+          <td class="px-2 py-1">{{ cs.plot_count }}</td>
+          <td class="px-2 py-1">{{ cs.draft_count }}</td>
+          <td class="px-2 py-1">{{ cs.approved_count }}</td>
+          <td class="px-2 py-1 text-right">
+            <a href="{% url 'advisories:request' %}" class="text-emerald-700 hover:underline">Request advisory</a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+    <h2 class="font-semibold mt-6 mb-2">Recent advisories</h2>
+    <table class="w-full text-sm">
+      <thead class="bg-stone-100">
+        <tr><th class="text-left px-2 py-1">ID</th><th class="text-left px-2 py-1">Cluster</th>
+            <th class="text-left px-2 py-1">Type</th><th class="text-left px-2 py-1">Status</th>
+            <th class="text-left px-2 py-1">Mode</th><th class="px-2 py-1">View</th></tr>
+      </thead>
+      <tbody>
+      {% for a in recent_advisories %}
+        <tr class="border-t border-stone-200">
+          <td class="px-2 py-1 font-mono">#{{ a.id }}</td>
+          <td class="px-2 py-1 font-mono">{{ a.cluster.cluster_id }}</td>
+          <td class="px-2 py-1">{{ a.get_recommendation_type_display }}</td>
+          <td class="px-2 py-1">
+            <span class="px-2 py-0.5 text-xs rounded
+              {% if a.status == 'approved' %}bg-emerald-100 text-emerald-800
+              {% elif a.status == 'rejected' %}bg-red-100 text-red-800
+              {% elif a.status == 'draft' %}bg-stone-100 text-stone-800
+              {% else %}bg-amber-100 text-amber-800{% endif %}">
+              {{ a.get_status_display }}
+            </span>
+          </td>
+          <td class="px-2 py-1 text-xs">{{ a.generation_mode }}</td>
+          <td class="px-2 py-1 text-right"><a href="{% url 'advisories:detail' a.id %}" class="text-emerald-700 hover:underline">open</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="px-2 py-3 text-stone-500 italic">No advisories yet — request one above.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="bg-white p-4 rounded shadow border border-stone-200">
+    <h2 class="font-semibold mb-2">Latest weather signal</h2>
+    {% if weather_summary %}
+      <div class="text-sm">
+        <p>{{ weather_summary.area_label }} — {{ weather_summary.get_period_display }}</p>
+        <p>Rainfall: {{ weather_summary.rainfall_mm }} mm</p>
+        <p>Onset: {{ weather_summary.onset_status }}</p>
+        <p class="text-xs text-stone-500">Source: {{ weather_summary.source }} ({{ weather_summary.source_date }})</p>
+      </div>
+    {% else %}
+      <p class="text-sm text-stone-500">No weather signal loaded.</p>
+    {% endif %}
+
+    <h2 class="font-semibold mt-5 mb-2">Latest pest alert</h2>
+    {% if pest_summary %}
+      <div class="text-sm">
+        <p>{{ pest_summary.pest }} ({{ pest_summary.get_severity_display }})</p>
+        <p class="text-xs text-stone-500">Source: {{ pest_summary.source }} ({{ pest_summary.source_date }})</p>
+      </div>
+    {% else %}
+      <p class="text-sm text-stone-500">No pest alert loaded.</p>
+    {% endif %}
+
+    <h2 class="font-semibold mt-5 mb-2">Pending follow-up tasks</h2>
+    {% if pending_tasks %}
+      <ul class="text-sm list-disc ml-5">
+      {% for t in pending_tasks %}
+        <li>{{ t.get_task_type_display }} — due {{ t.deadline|default:"(no deadline)" }}
+            — cluster {{ t.approved_advisory.cluster.cluster_id }}</li>
+      {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-sm text-stone-500">None.</p>
+    {% endif %}
+
+    <h2 class="font-semibold mt-5 mb-2">Recent audit events</h2>
+    <ul class="text-xs space-y-1 max-h-40 overflow-y-auto">
+    {% for e in recent_events %}
+      <li class="text-stone-700">
+        <span class="font-mono">{{ e.created_at|date:"H:i:s" }}</span>
+        <span class="font-medium">{{ e.action }}</span>
+        {% if e.tool_name %}<span class="text-stone-500">[{{ e.tool_name }}]</span>{% endif %}
+      </li>
+    {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+Migori Low-to-Mid Altitude, Short Rains, Maize — Sample Calendar (Synthetic Placeholder)
+======================================================================================
+
+This file is a placeholder for the borrowed filesystem MCP server demo.
+In a real deployment, this directory would hold approved KALRO / Migori County
+crop-calendar PDFs. The MajiShamba agent reads calendars from the database via
+the get_crop_calendar MCP tool, NOT from this file. This file exists only so the
+borrowed filesystem MCP server has something to list/read during the demo.
+
+Planting window: September 15 – October 20 (short rains)
+Onset rule: 3 consecutive rainy days with ≥ 5 mm/day
+Recommended varieties: H614, PH4, WH505
+Basal fertilizer: DAP or NPK
+Top-dress: CAN or urea after first weeding
+Pest scouting: fall armyworm from 2-3 leaf stage
+
+Source: synthetic placeholder inspired by KALRO Migori maize calendars.

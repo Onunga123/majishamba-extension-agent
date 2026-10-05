@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Follow-up tasks — MajiShamba{% endblock %}
+{% block content %}
+<div class="bg-white p-4 rounded shadow border border-stone-200">
+  <h1 class="text-lg font-semibold mb-2">Follow-up tasks — Kachieng Ward</h1>
+  <p class="text-sm text-stone-600 mb-3">Tasks are only created after officer approval of an advisory.</p>
+  <table class="w-full text-sm">
+    <thead class="bg-stone-100">
+      <tr>
+        <th class="text-left px-2 py-1">ID</th>
+        <th class="text-left px-2 py-1">Advisory</th>
+        <th class="text-left px-2 py-1">Owner</th>
+        <th class="text-left px-2 py-1">Type</th>
+        <th class="text-left px-2 py-1">Deadline</th>
+        <th class="text-left px-2 py-1">Status</th>
+        <th class="text-left px-2 py-1">Ward</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for t in tasks %}
+      <tr class="border-t border-stone-200">
+        <td class="px-2 py-1 font-mono">#{{ t.id }}</td>
+        <td class="px-2 py-1 font-mono">#{{ t.approved_advisory_id }}</td>
+        <td class="px-2 py-1">{{ t.owner|default:"—" }}</td>
+        <td class="px-2 py-1">{{ t.get_task_type_display }}</td>
+        <td class="px-2 py-1">{{ t.deadline|default:"(none)" }}</td>
+        <td class="px-2 py-1">{{ t.get_status_display }}</td>
+        <td class="px-2 py-1">{{ t.ward }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="7" class="px-2 py-3 text-stone-500 italic">No tasks yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

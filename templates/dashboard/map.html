@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Map — MajiShamba{% endblock %}
+{% block content %}
+<div class="bg-white p-4 rounded shadow border border-stone-200">
+  <h1 class="text-lg font-semibold mb-2">Kachieng Ward — cluster map</h1>
+  <div id="map" class="w-full h-[480px] rounded border border-stone-300"></div>
+</div>
+<script>
+  const clusters = [
+    {% for c in clusters %}
+    {
+      "id": "{{ c.cluster_id }}",
+      "name": "{{ c.name|escapejs }}",
+      "lat": {{ c.centroid_lat|default_if_none:"-0.965" }},
+      "lon": {{ c.centroid_lon|default_if_none:"34.445" }},
+      "households": {{ c.households.count }},
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+  const map = new maplibregl.Map({
+    container: "map",
+    style: { version: 8, sources: {}, layers: [] , glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf"},
+    center: [34.445, -0.965],
+    zoom: 11,
+  });
+  // Add a simple raster background from OpenStreetMap (no API key needed)
+  map.on("load", () => {
+    map.addSource("osm", {
+      type: "raster",
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      attribution: "© OpenStreetMap contributors",
+    });
+    map.addLayer({ id: "osm", type: "raster", source: "osm" });
+    clusters.forEach(c => {
+      new maplibregl.Marker({ color: "#047857" })
+        .setLngLat([c.lon, c.lat])
+        .setPopup(new maplibregl.Popup().setHTML(
+          `<strong>${c.id}</strong><br>${c.name}<br>${c.households} households`))
+        .addTo(map);
+    });
+  });
+</script>
+{% endblock %}

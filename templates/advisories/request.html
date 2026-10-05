@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Request advisory — MajiShamba{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
+  <h1 class="text-lg font-semibold mb-2">Request advisory for a Kachieng cluster</h1>
+  <p class="text-sm text-stone-600 mb-4">
+    Selecting a cluster runs the LangGraph agent. The agent calls the custom MCP tools
+    (plot history, crop calendar, Nyatike weather, Migori pest alerts, Migori Town market
+    prices), drafts an advisory with Qwen2.5-7B-Instruct via Ollama (or falls back to a
+    deterministic template), validates the output, and saves it as <strong>DRAFT</strong>.
+    Nothing is sent automatically — the officer reviews and approves in the next step.
+  </p>
+  {% if error %}
+    <div class="bg-red-50 border border-red-300 text-red-800 text-sm p-3 rounded mb-3">
+      <strong>Agent error:</strong> {{ error }}
+      {% if trace %}<pre class="text-xs mt-2 bg-white p-2 rounded border border-red-200">{{ trace|join:"\n" }}</pre>{% endif %}
+    </div>
+  {% endif %}
+  <form method="post" class="space-y-3">
+    {% csrf_token %}
+    <div>
+      <label class="block text-sm font-medium">Cluster</label>
+      <select name="cluster_id" class="w-full border border-stone-300 rounded px-3 py-2">
+        {% for c in clusters %}
+          <option value="{{ c.cluster_id }}">{{ c.cluster_id }} — {{ c.name }} ({{ c.ward.name }} ward)</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="bg-emerald-700 text-white px-3 py-1 rounded text-sm hover:bg-emerald-800">Run agent</button>
+  </form>
+</div>
+{% endblock %}

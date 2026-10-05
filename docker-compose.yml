@@ -1,0 +1,31 @@
+# Optional docker-compose for MajiShamba Extension Agent
+# The README + Makefile work WITHOUT Docker. Use this only if you prefer containers.
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: majishamba
+      POSTGRES_USER: majishamba
+      POSTGRES_PASSWORD: majishamba
+    ports:
+      - "5432:5432"
+    volumes:
+      - majishamba_pg:/var/lib/postgresql/data
+
+  valkey:
+    image: valkey/valkey:7-alpine
+    ports:
+      - "6379:6379"
+
+  ollama:
+    image: ollama/ollama:0.3
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    # Run `docker exec -it <ollama_container> ollama pull qwen2.5:7b-instruct` after start.
+
+volumes:
+  majishamba_pg:
+  ollama_models:

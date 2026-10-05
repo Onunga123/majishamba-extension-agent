@@ -1,0 +1,53 @@
+[
+  {
+    "model": "weather.weathersignal",
+    "pk": 1,
+    "fields": {
+      "sub_county": 1,
+      "area_label": "Nyatike (Kachieng area)",
+      "period": "last_30_days",
+      "rainfall_mm": 78,
+      "forecast_summary": "Last 30 days: rainfall was below long-term mean for Nyatike. Light showers mid-month; no confirmed onset yet.",
+      "onset_status": "onset_delayed",
+      "confidence": "medium",
+      "source": "KMD / CHIRPS-derived synthetic summary for Nyatike",
+      "source_url": "https://meteo.go.ke/",
+      "source_date": "2025-09-25",
+      "retrieved_at": "2025-09-26T08:00:00+03:00"
+    }
+  },
+  {
+    "model": "weather.weathersignal",
+    "pk": 2,
+    "fields": {
+      "sub_county": 1,
+      "area_label": "Nyatike (Kachieng area)",
+      "period": "10_day_forecast",
+      "rainfall_mm": null,
+      "forecast_summary": "10-day forecast: moderate rainfall expected by day 4–6; signal not strong enough to confirm onset. Officer to verify local onset in Kachieng fields.",
+      "onset_status": "unknown",
+      "confidence": "medium",
+      "source": "KMD short-range forecast (synthetic summary)",
+      "source_url": "https://meteo.go.ke/",
+      "source_date": "2025-09-26",
+      "retrieved_at": "2025-09-26T08:00:00+03:00"
+    }
+  },
+  {
+    "model": "weather.weathersignal",
+    "pk": 3,
+    "fields": {
+      "sub_county": 1,
+      "area_label": "Nyatike (Kachieng area)",
+      "period": "last_30_days",
+      "rainfall_mm": 120,
+      "forecast_summary": "Conflicting source: estimates above-average rainfall over last 30 days for Nyatike.",
+      "onset_status": "onset_confirmed",
+      "confidence": "low",
+      "source": "TAMSAT-derived synthetic summary (conflict test)",
+      "source_url": "https://www.tamsat.org.uk/",
+      "source_date": "2025-09-26",
+      "retrieved_at": "2025-09-26T08:00:00+03:00"
+    }
+  }
+]

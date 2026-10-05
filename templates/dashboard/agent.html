@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Agent graph — MajiShamba{% endblock %}
+{% block content %}
+<div class="bg-white p-4 rounded shadow border border-stone-200">
+  <h1 class="text-lg font-semibold mb-2">LangGraph agent — workflow</h1>
+  <pre class="bg-stone-900 text-stone-100 p-3 rounded text-xs overflow-x-auto">
+  validate_request
+        │ (errors → officer_approval_gate)
+        ▼
+  fetch_plot_history
+        ▼
+  fetch_crop_calendar
+        ▼
+  fetch_weather
+        ▼
+  fetch_pest_alerts
+        ▼
+  fetch_market_prices
+        ▼
+  validate_evidence
+        ▼
+  draft_advisory            ◀──┐ (retry once if Qwen output invalid)
+        │                      │
+        ▼                      │
+  validate_output_schema ──────┘
+        │ valid → save_draft
+        │ invalid → officer_approval_gate (terminal)
+        ▼
+  save_draft
+        │
+        ▼
+  officer_approval_gate  ◀── stops here; officer reviews in Django UI
+        │
+        ▼
+       END
+
+  After approval (Django UI), create_follow_up_task_after_approval runs
+  ONLY if a valid OfficerApproval(decision=APPROVED) record exists.
+  </pre>
+
+  <h2 class="font-semibold mt-4 mb-1">Nodes</h2>
+  <ul class="text-sm list-disc ml-5">
+    {% for n in nodes %}<li><code>{{ n }}</code></li>{% endfor %}
+  </ul>
+
+  <h2 class="font-semibold mt-4 mb-1">Custom MCP tools used</h2>
+  <ul class="text-sm list-disc ml-5">
+    <li><code>get_cluster_plot_history</code> — read-only</li>
+    <li><code>get_crop_calendar</code> — read-only</li>
+    <li><code>get_weather_and_rainfall_context</code> — read-only</li>
+    <li><code>get_pest_alerts</code> — read-only</li>
+    <li><code>get_market_price_context</code> — read-only</li>
+    <li><code>validate_advisory_evidence</code> — read-only</li>
+    <li><code>create_draft_advisory_record</code> — <strong>action</strong></li>
+    <li><code>create_follow_up_task_after_approval</code> — <strong>action, approval-gated</strong></li>
+  </ul>
+
+  <h2 class="font-semibold mt-4 mb-1">Borrowed MCP server</h2>
+  <p class="text-sm">Official filesystem MCP server, restricted to <code>docs/calendars/</code> in development
+  for loading approved crop-calendar PDFs.</p>
+</div>
+{% endblock %}

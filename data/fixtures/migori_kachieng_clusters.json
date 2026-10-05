@@ -1,0 +1,87 @@
+[
+  {
+    "model": "geography.county",
+    "pk": 1,
+    "fields": {"name": "Migori", "code": "MG-20"}
+  },
+  {
+    "model": "geography.subcounty",
+    "pk": 1,
+    "fields": {"county": 1, "name": "Nyatike", "code": "NYA-01"}
+  },
+  {
+    "model": "geography.ward",
+    "pk": 1,
+    "fields": {
+      "sub_county": 1,
+      "name": "Kachieng",
+      "code": "KACH",
+      "centroid_lat": -0.965,
+      "centroid_lon": 34.445
+    }
+  },
+  {
+    "model": "geography.agroclimaticzone",
+    "pk": 1,
+    "fields": {
+      "name": "Migori Low-to-Mid Altitude Bimodal",
+      "code": "Migori-Low-Mid",
+      "description": "Low-to-mid altitude, bimodal rainfall (long rains Mar–Jul, short rains Sep–Dec). Typical annual rainfall 800–1400 mm. Maize is the dominant staple."
+    }
+  },
+  {
+    "model": "geography.extensionoffice",
+    "pk": 1,
+    "fields": {
+      "name": "Nyatike Sub-County Agricultural Office",
+      "sub_county": 1,
+      "ward": 1,
+      "contact": "+254 700 000 000 (synthetic)"
+    }
+  },
+  {
+    "model": "clusters.farmercluster",
+    "pk": 1,
+    "fields": {
+      "cluster_id": "KACH-01",
+      "name": "Kachieng North Cluster",
+      "ward": 1,
+      "office": 1,
+      "representative": "Synthetic rep — Kamau M.",
+      "contact": "+254 700 111 111 (synthetic)",
+      "centroid_lat": -0.952,
+      "centroid_lon": 34.432,
+      "notes": "Synthetic cluster for demo. Lower-lying fields close to the lake plain."
+    }
+  },
+  {
+    "model": "clusters.farmercluster",
+    "pk": 2,
+    "fields": {
+      "cluster_id": "KACH-02",
+      "name": "Kachieng Central Cluster",
+      "ward": 1,
+      "office": 1,
+      "representative": "Synthetic rep — Achieng O.",
+      "contact": "+254 700 222 222 (synthetic)",
+      "centroid_lat": -0.970,
+      "centroid_lon": 34.445,
+      "notes": "Synthetic cluster for demo. Mid-altitude mixed plots."
+    }
+  },
+  {
+    "model": "clusters.farmercluster",
+    "pk": 3,
+    "fields": {
+      "cluster_id": "KACH-03",
+      "name": "Kachieng South Cluster",
+      "ward": 1,
+      "office": 1,
+      "representative": "Synthetic rep — Otieno P.",
+      "contact": "+254 700 333 333 (synthetic)",
+      "centroid_lat": -0.982,
+      "centroid_lon": 34.458,
+      "notes": "Synthetic cluster for demo. Includes plots with missing recent season records (data gap test)."
+    }
+  }
+]
