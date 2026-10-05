@@ -200,12 +200,40 @@ def validate_evidence(state: AgentState) -> AgentState:
 
 
 def _build_prompt(state: AgentState) -> str:
-    """Compose the advisory drafting prompt with citations."""
+    """Compose the advisory drafting prompt with citations.
+
+    Kept compact so the model has fewer input tokens to process — important
+    when running on CPU where generation is ~2 tokens/second.
+    """
     ph = state.get("plot_history", []) or []
     cc = state.get("crop_calendar", {}) or {}
     wx = state.get("weather", {}) or {}
     pa = state.get("pest_alerts", []) or []
     mp = state.get("market_prices", []) or []
+    # Compact evidence summaries (truncate aggressively to keep prompt small)
+    plot_summary = (
+        f"{len(ph)} plots; "
+        + "; ".join(
+            f"{p.get('plot_id','?')}: {len(p.get('seasons',[]))} seasons" for p in ph[:5]
+        )
+    ) if ph else "No plot records"
+    cc_summary = (
+        f"window {cc.get('planting_window_start','?')} to {cc.get('planting_window_end','?')} "
+        f"(source: {cc.get('source','?')} {cc.get('source_date','?')})"
+    ) if cc else "No calendar"
+    wx30 = wx.get("last_30_days", {}) or {}
+    wx10 = wx.get("10_day_forecast", {}) or {}
+    wx_summary = (
+        f"last30: {wx30.get('rainfall_mm','?')}mm onset={wx30.get('onset_status','?')} (src: {wx30.get('source','?')}); "
+        f"forecast: {wx10.get('forecast_summary','?')[:120]} (src: {wx10.get('source','?')})"
+    )
+    pest_summary = "; ".join(
+        f"{a.get('pest','?')}({a.get('severity','?')})" for a in pa[:3]
+    ) or "No pest alerts"
+    market_summary = (
+        f"{mp[0].get('price_kes_per_90kg','?')} KES/90kg trend={mp[0].get('trend','?')} (src: {mp[0].get('source','?')})"
+        if mp else "No market data"
+    )
     return f"""You are a climate-smart agriculture assistant for the Nyatike Sub-County Agricultural Office,
 serving smallholder farmer clusters in Kachieng Ward, Migori County, Kenya.
 Draft an OFFICER-FACING advisory for cluster {state.get('cluster_id')} for the SHORT RAINS maize season.
@@ -214,18 +242,17 @@ Use ONLY the following evidence. Do not invent data.
 Respond in strict JSON with fields:
 recommendation_type (one of: plant, delay, verify_locally, pest_monitoring, data_gap),
 summary (<=240 chars),
-body (3-6 paragraphs, with [Source: ...] citations in each paragraph where relevant),
+body (3-5 paragraphs, with [Source: ...] citations in each paragraph where relevant),
 confidence (low/medium/high),
 limitations,
 evidence (array of {{source_type, source_ref, claim, source_url}}).
 
 EVIDENCE:
-- Plot history: {json.dumps(ph, default=str)[:2000]}
-- Crop calendar: {json.dumps(cc, default=str)[:1500]}
-- Weather (last 30 days): {json.dumps(wx.get('last_30_days', {}), default=str)[:1000]}
-- Weather (10-day forecast): {json.dumps(wx.get('10_day_forecast', {}), default=str)[:1000]}
-- Pest alerts: {json.dumps(pa, default=str)[:1500]}
-- Market prices: {json.dumps(mp, default=str)[:1000]}
+- Plot history: {plot_summary}
+- Crop calendar: {cc_summary}
+- Weather: {wx_summary}
+- Pest alerts: {pest_summary}
+- Market prices: {market_summary}
 
 Output the JSON object only. Do not add prose outside the JSON."""
 
@@ -252,17 +279,30 @@ def _try_ollama(prompt: str) -> dict[str, Any] | None:
 
     host = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
     model = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b-instruct")
-    timeout_s = int(os.environ.get("MAJISHAMBA_OLLAMA_TIMEOUT", "120"))
+    timeout_s = int(os.environ.get("MAJISHAMBA_OLLAMA_TIMEOUT", "300"))
+    num_predict = int(os.environ.get("MAJISHAMBA_OLLAMA_NUM_PREDICT", "400"))
+    keep_alive = os.environ.get("MAJISHAMBA_OLLAMA_KEEP_ALIVE", "10m")
     started = time.time()
     try:
         client = ollama.Client(host=host, timeout=timeout_s)
-        resp = client.generate(model=model, prompt=prompt, stream=False, options={"temperature": 0.2, "num_predict": 700})
+        resp = client.generate(
+            model=model,
+            prompt=prompt,
+            stream=False,
+            keep_alive=keep_alive,
+            options={
+                "temperature": 0.2,
+                "num_predict": num_predict,
+                "top_p": 0.9,
+            },
+        )
         text = (resp.get("response") if isinstance(resp, dict) else getattr(resp, "response", "")) or ""
         return {
             "text": _strip_code_fence(text),
             "model": model,
             "host": host,
             "elapsed_s": round(time.time() - started, 1),
+            "num_predict": num_predict,
         }
     except Exception as exc:
         logger.warning("Ollama call failed (%s); will fall back to template.", exc)
