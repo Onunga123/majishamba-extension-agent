@@ -27,7 +27,6 @@
         <a href="{% url 'advisories:list' %}" class="hover:underline">Advisories</a>
         <a href="{% url 'tasks:list' %}" class="hover:underline">Tasks</a>
         <a href="{% url 'audit:list' %}" class="hover:underline">Audit</a>
-        <a href="{% url 'agents:graph' %}" class="hover:underline">Agent</a>
         {% if user.is_authenticated %}
           <span class="text-emerald-200">|</span>
           <span class="text-emerald-100">{{ user.display_name }} ({{ user.get_role_display }})</span>
@@ -58,7 +57,11 @@
 
   <footer class="bg-stone-900 text-stone-300 text-xs">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between gap-1">
-      <span>MajiShamba Extension Agent — MIT licence · Climate-smart advisory for Kachieng Ward.</span>
+      <span>MajiShamba Extension Agent — MIT licence · Climate-smart advisory for Kachieng Ward.
+        {% if user.is_authenticated and user.is_staff %}
+          · <a href="{% url 'agents:graph' %}" class="text-stone-400 hover:text-stone-200 underline">Agent graph (dev only)</a>
+        {% endif %}
+      </span>
       <span class="text-stone-400">Synthetic household &amp; plot data only — no real household records used.</span>
     </div>
   </footer>

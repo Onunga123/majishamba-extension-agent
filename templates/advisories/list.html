@@ -25,11 +25,11 @@
         <td class="px-2 py-1 font-mono">{{ a.cluster.cluster_id }}</td>
         <td class="px-2 py-1">{{ a.get_recommendation_type_display }}</td>
         <td class="px-2 py-1">
-          <span class="px-2 py-0.5 text-xs rounded
+          <span class="px-2 py-0.5 text-xs rounded font-medium
             {% if a.status == 'approved' %}bg-emerald-100 text-emerald-800
             {% elif a.status == 'rejected' %}bg-red-100 text-red-800
-            {% elif a.status == 'draft' %}bg-stone-100 text-stone-800
-            {% else %}bg-amber-100 text-amber-800{% endif %}">
+            {% elif a.status == 'draft' %}bg-amber-100 text-amber-900
+            {% else %}bg-stone-100 text-stone-700{% endif %}">
             {{ a.get_status_display }}
           </span>
         </td>

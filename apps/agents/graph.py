@@ -461,7 +461,9 @@ def draft_advisory(state: AgentState) -> AgentState:
     """Draft an advisory using Qwen2.5-7B-Instruct via Ollama; fall back to template."""
     prompt = _build_prompt(state)
     prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:16]
+    started = time.time()
     out = _try_ollama(prompt)
+    elapsed_s = round(time.time() - started, 2)
     if out and out["text"]:
         return {
             **state,
@@ -470,7 +472,7 @@ def draft_advisory(state: AgentState) -> AgentState:
             "model_metadata": {
                 "model": out["model"],
                 "host": out["host"],
-                "elapsed_s": out["elapsed_s"],
+                "elapsed_s": elapsed_s,
                 "prompt_hash": prompt_hash,
             },
         }
@@ -480,7 +482,7 @@ def draft_advisory(state: AgentState) -> AgentState:
         **state,
         "raw_model_output": fallback_json,
         "generation_mode": "fallback_template",
-        "model_metadata": {"model": "fallback_template", "prompt_hash": prompt_hash},
+        "model_metadata": {"model": "fallback_template", "elapsed_s": elapsed_s, "prompt_hash": prompt_hash},
     }
 
 
@@ -590,14 +592,21 @@ def use_fallback_template(state: AgentState) -> AgentState:
     """Replace raw_model_output with the deterministic fallback template and
     clear validation errors so save_draft can proceed.
     """
+    started = time.time()
     fallback_json = _fallback_template(state)
+    elapsed_s = round(time.time() - started, 2)
     new_warnings = list(state.get("warnings") or [])
     new_warnings.append("Model output failed validation; switched to deterministic fallback.")
+    prior_meta = state.get("model_metadata") or {}
     return {
         **state,
         "raw_model_output": fallback_json,
         "generation_mode": "fallback_template",
-        "model_metadata": {"model": "fallback_template", "prompt_hash": (state.get("model_metadata") or {}).get("prompt_hash", "")},
+        "model_metadata": {
+            "model": "fallback_template",
+            "prompt_hash": prior_meta.get("prompt_hash", ""),
+            "elapsed_s": elapsed_s,
+        },
         "errors": [],
         "warnings": new_warnings,
     }

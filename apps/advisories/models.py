@@ -39,6 +39,10 @@ class Advisory(models.Model):
     model_name = models.CharField(max_length=120, blank=True)
     model_run_id = models.CharField(max_length=120, blank=True)
     model_prompt_hash = models.CharField(max_length=64, blank=True)
+    generation_seconds = models.FloatField(
+        null=True, blank=True,
+        help_text="Wall-clock seconds spent in the draft_advisory node (model call or fallback).",
+    )
     generation_mode = models.CharField(
         max_length=40,
         default="fallback_template",

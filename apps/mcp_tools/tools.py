@@ -312,6 +312,7 @@ def create_draft_advisory_record(
         model_name=model_metadata.get("model", ""),
         model_run_id=model_metadata.get("prompt_hash", ""),
         model_prompt_hash=model_metadata.get("prompt_hash", ""),
+        generation_seconds=model_metadata.get("elapsed_s"),
         generation_mode=model_metadata.get("model", "").startswith("qwen") and "ollama_qwen" or "fallback_template",
         created_by_id=actor_id,
     )
