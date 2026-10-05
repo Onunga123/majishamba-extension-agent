@@ -77,17 +77,14 @@ def test_get_pest_alerts_migori_fall_armyworm():
 
 
 @pytest.mark.django_db
-def test_run_advisory_pipeline_creates_draft_kachieng_01(officer, monkeypatch):
+def test_run_advisory_pipeline_creates_draft_kachieng_01(officer):
     """Full agent run for KACH-01 — must produce a DRAFT advisory.
 
-    Ollama is mocked out so the test runs fast and deterministic (no real
-    model call, no 300s timeout). The deterministic fallback template is
-    exercised instead.
+    Ollama is auto-skipped via the conftest autouse fixture (sets
+    MAJISHAMBA_SKIP_OLLAMA=1 and patches SKIP_OLLAMA), so this test runs
+    fast and deterministic — no real model call, no 300s timeout.
+    The deterministic fallback template is exercised instead.
     """
-    # Mock Ollama to simulate "model unavailable" → fallback template runs
-    from apps.agents import graph as graph_module
-    monkeypatch.setattr(graph_module, "_try_ollama", lambda prompt: None)
-
     cluster = FarmerCluster.objects.filter(cluster_id="KACH-01").first()
     if cluster is None:
         from tests.factories.models import (
@@ -179,8 +176,13 @@ def test_prompt_injection_is_sanitised_in_tool_inputs():
 
 
 @pytest.mark.django_db
-def test_deterministic_fallback_runs_when_ollama_missing(monkeypatch):
-    """Test 10 — fallback template is used when Ollama is unavailable."""
+def test_deterministic_fallback_runs_when_ollama_missing():
+    """Test 10 — fallback template is used when Ollama is unavailable.
+
+    The conftest autouse fixture sets MAJISHAMBA_SKIP_OLLAMA=1 and patches
+    SKIP_OLLAMA in apps.agents.graph, so _try_ollama returns None and the
+    draft_advisory node uses the deterministic template.
+    """
     from apps.agents.graph import draft_advisory, AgentState  # type: ignore
     state: AgentState = {
         "cluster_id": "KACH-01",
@@ -194,16 +196,6 @@ def test_deterministic_fallback_runs_when_ollama_missing(monkeypatch):
         "errors": [],
         "warnings": [],
     }
-    # Force ollama import to fail
-    import builtins
-    real_import = builtins.__import__
-
-    def fake_import(name, *args, **kwargs):
-        if name == "ollama":
-            raise ImportError("blocked in test")
-        return real_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", fake_import)
     out = draft_advisory(state)  # type: ignore[arg-type]
     assert out["generation_mode"] == "fallback_template"
     assert json.loads(out["raw_model_output"])["recommendation_type"] in {
@@ -215,6 +207,57 @@ def test_deterministic_fallback_runs_when_ollama_missing(monkeypatch):
 def test_advisory_list_view_requires_login(anonymous_client):
     resp = anonymous_client.get("/advisories/")
     assert resp.status_code in {302, 301}
+
+
+@pytest.mark.django_db
+def test_borrowed_filesystem_mcp_node_runs_and_is_logged(officer):
+    """The borrowed MCP server node must execute during a full pipeline run
+    and produce an AuditEvent row with tool_name='borrowed_filesystem_mcp'.
+    """
+    # Ensure sample_calendar.txt exists (it ships with the repo).
+    from django.conf import settings as django_settings
+    calendar_path = django_settings.MAJISHAMBA["BORROWED_FILESYSTEM_MCP_ROOT"] + "/sample_calendar.txt"
+    import os
+    assert os.path.exists(calendar_path), f"borrowed MCP sample calendar missing at {calendar_path}"
+
+    # Ensure KACH-01 cluster exists (the fixture may or may not be loaded).
+    cluster = FarmerCluster.objects.filter(cluster_id="KACH-01").first()
+    if cluster is None:
+        from tests.factories.models import (
+            CountyFactory, SubCountyFactory, WardFactory, FarmerClusterFactory, HouseholdFactory, PlotFactory, CropSeasonRecordFactory,
+        )
+        from apps.calendars.models import CropCalendar
+        import datetime as dt
+        county = CountyFactory()
+        sub = SubCountyFactory(county=county)
+        ward = WardFactory(sub_county=sub)
+        cluster = FarmerClusterFactory(cluster_id="KACH-01", ward=ward)
+        hh = HouseholdFactory(cluster=cluster, household_id="KACH-01-HH-001")
+        plot = PlotFactory(household=hh)
+        CropSeasonRecordFactory(plot=plot, season="2024 short_rains", outcome="success")
+        CropCalendar.objects.create(
+            crop="maize", zone_label="Migori-Low-Mid", season="short_rains",
+            planting_window_start=dt.date(2025, 9, 15),
+            planting_window_end=dt.date(2025, 10, 20),
+            activities=[{"week": "W0", "activity": "Plant"}],
+            source="KALRO test", source_date=dt.date(2025, 3, 1),
+        )
+
+    # Run the full pipeline (Ollama auto-skipped).
+    from apps.audit.models import AuditEvent
+    before = AuditEvent.objects.filter(tool_name="borrowed_filesystem_mcp").count()
+    result = run_advisory_pipeline(
+        cluster_id="KACH-01",
+        ward="Kachieng",
+        sub_county="Nyatike",
+        county="Migori",
+        actor=officer,
+    )
+    assert "advisory_id" in result, f"agent failed: {result}"
+    after = AuditEvent.objects.filter(tool_name="borrowed_filesystem_mcp").count()
+    assert after >= before + 1, "borrowed MCP node did not log an audit event"
+    ev = AuditEvent.objects.filter(tool_name="borrowed_filesystem_mcp").order_by("-created_at").first()
+    assert "sample_calendar.txt" in str(ev.inputs_summary) or "path" in str(ev.inputs_summary)
 
 
 @pytest.mark.django_db

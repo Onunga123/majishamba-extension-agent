@@ -19,13 +19,26 @@ MajiShamba helps the Nyatike Sub-County Agricultural Extension Officer turn weat
 
 ## Get running in one command
 
+### Linux / macOS / WSL / Git Bash
+
 ```bash
 git clone <your-repo-url> majishamba
 cd majishamba
 make demo
 ```
 
-`make demo` will:
+### Windows PowerShell (no `make` required)
+
+```powershell
+git clone <your-repo-url> majishamba
+cd majishamba
+.\scripts\run_demo.ps1
+```
+
+> **Note:** `make demo` requires bash (Git Bash on Windows, WSL, or macOS/Linux).
+> For native Windows PowerShell, use `scripts\run_demo.ps1` instead — it does the same thing.
+
+Both commands will:
 1. Create a Python 3.11+ virtualenv at `.venv/`.
 2. Install dependencies (Django, LangGraph, MCP Python SDK, Ollama client, Pydantic, etc.).
 3. Apply migrations (defaults to **SQLite** so the demo runs without PostgreSQL/PostGIS).
@@ -96,8 +109,8 @@ Open http://127.0.0.1:8000 and log in as `nyatike_officer / majishamba-demo-2025
 | Borrowed MCP server | Official filesystem MCP server (restricted to `docs/calendars/`) |
 | Open-weights model | Qwen2.5-7B-Instruct via Ollama |
 | Fallback | Deterministic template generator when model is unavailable |
-| Queue/cache | Valkey (Redis-compatible); local-memory fallback in demo |
-| Background jobs | Django-RQ |
+| Queue/cache | Valkey (Redis-compatible) — **production only**; demo uses local-memory fallback |
+| Background jobs | Django-RQ — **production only**; demo runs jobs inline |
 | Tests | pytest + pytest-django; Playwright for browser |
 | Quality | Ruff, Black, mypy |
 | Security scans | pip-audit, Semgrep CE, Gitleaks (external) |

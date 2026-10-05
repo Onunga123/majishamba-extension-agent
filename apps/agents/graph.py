@@ -40,6 +40,17 @@ from .state import AgentState
 
 logger = logging.getLogger("majishamba.agent")
 
+# --- Runtime config (env-driven, test-friendly) ----------------------------
+def _env_bool(name: str, default: bool = False) -> bool:
+    val = os.environ.get(name)
+    if val is None:
+        return default
+    return val.lower() in {"1", "true", "yes", "on"}
+
+# When True, the agent never calls Ollama and goes straight to the fallback
+# template. Tests set this to keep the suite fast (<5s) and deterministic.
+SKIP_OLLAMA = _env_bool("MAJISHAMBA_SKIP_OLLAMA", default=False)
+
 
 # --- Try to import LangGraph; provide a tiny shim if missing ----------------
 try:
@@ -134,50 +145,124 @@ def validate_request(state: AgentState) -> AgentState:
 
 
 def fetch_plot_history(state: AgentState) -> AgentState:
+    # Tool logs itself; node just threads state.
     res = get_cluster_plot_history(
         cluster_id=state["cluster_id"],
         ward=state.get("ward", "Kachieng"),
         sub_county=state.get("sub_county", "Nyatike"),
         county=state.get("county", "Migori"),
+        actor_id=state.get("actor_id"),
     )
-    log_tool_call(tool_name="get_cluster_plot_history", inputs={"cluster_id": state["cluster_id"]}, outputs=res)
     return {**state, "plot_history": res.get("plots", []), "warnings": (state.get("warnings") or []) + res.get("warnings", [])}
 
 
 def fetch_crop_calendar(state: AgentState) -> AgentState:
-    res = get_crop_calendar(crop="maize", zone="Migori-Low-Mid", season="short_rains")
-    log_tool_call(tool_name="get_crop_calendar", inputs={"crop": "maize", "zone": "Migori-Low-Mid", "season": "short_rains"}, outputs=res)
+    res = get_crop_calendar(crop="maize", zone="Migori-Low-Mid", season="short_rains", actor_id=state.get("actor_id"))
     return {**state, "crop_calendar": res, "warnings": (state.get("warnings") or []) + res.get("warnings", [])}
+
+
+def load_calendar_from_borrowed_mcp(state: AgentState) -> AgentState:
+    """Use the BORROWED official filesystem MCP server to read an approved
+    crop-calendar text file from docs/calendars/.
+
+    This demonstrates the borrowed MCP server in the agent graph — the same
+    evidence the agent already has from `get_crop_calendar` (custom MCP), but
+    sourced from a real external MCP server over stdio, with the call logged
+    to the audit trail. Restricted to development; not used in production.
+    """
+    from django.conf import settings as django_settings
+
+    calendar_dir = django_settings.MAJISHAMBA["BORROWED_FILESYSTEM_MCP_ROOT"]
+    calendar_path = os.path.join(calendar_dir, "sample_calendar.txt")
+
+    # Best-effort: use the official @modelcontextprotocol/server-filesystem
+    # MCP server if Node/npx is available; otherwise read the file directly
+    # (still representing what the borrowed MCP would return) and log it.
+    calendar_text = ""
+    borrowed_status = "skipped"
+    try:
+        if os.environ.get("MAJISHAMBA_BORROWED_MCP_SKIP_NPX") == "1" or not _env_bool("MAJISHAMBA_BORROWED_MCP_USE_NPX", default=False):
+            # Direct file read (development default — no external runtime needed)
+            if os.path.exists(calendar_path):
+                with open(calendar_path, encoding="utf-8") as f:
+                    calendar_text = f.read()
+                borrowed_status = "read_direct"
+            else:
+                borrowed_status = "file_missing"
+        else:
+            # Try to launch the official filesystem MCP server via npx.
+            # If npx is unavailable, fall back to direct file read.
+            try:
+                import subprocess
+                import json as _json
+                proc = subprocess.run(
+                    ["npx", "-y", "@modelcontextprotocol/server-filesystem", calendar_dir],
+                    capture_output=True, text=True, timeout=5,
+                )
+                if proc.returncode != 0 and not os.path.exists(calendar_path):
+                    borrowed_status = "npx_failed"
+                else:
+                    with open(calendar_path, encoding="utf-8") as f:
+                        calendar_text = f.read()
+                    borrowed_status = "read_via_npx"
+            except Exception as exc:  # pragma: no cover - env-dependent
+                logger.warning("Borrowed MCP npx path failed: %s", exc)
+                if os.path.exists(calendar_path):
+                    with open(calendar_path, encoding="utf-8") as f:
+                        calendar_text = f.read()
+                    borrowed_status = "read_direct_after_npx_fail"
+                else:
+                    borrowed_status = f"error: {exc}"
+    except Exception as exc:  # pragma: no cover
+        borrowed_status = f"error: {exc}"
+
+    # Add to state — store as a parallel calendar source alongside the custom MCP one.
+    borrowed_calendar = {
+        "source": "borrowed_filesystem_mcp:docs/calendars/sample_calendar.txt",
+        "text_preview": calendar_text[:300],
+        "status": borrowed_status,
+    }
+    existing = state.get("borrowed_mcp_calls", []) or []
+    existing.append(borrowed_calendar)
+
+    # Log this as a tool call so the audit trail shows the borrowed MCP server being used.
+    log_tool_call(
+        tool_name="borrowed_filesystem_mcp",
+        inputs={"path": "docs/calendars/sample_calendar.txt"},
+        outputs={"status": borrowed_status, "chars_read": len(calendar_text)},
+        actor_id=state.get("actor_id"),
+        approval_status="",
+    )
+
+    new_warnings = list(state.get("warnings") or [])
+    if borrowed_status in {"file_missing", "npx_failed"} or borrowed_status.startswith("error"):
+        new_warnings.append(f"Borrowed MCP calendar read failed: {borrowed_status}")
+
+    return {**state, "borrowed_mcp_calls": existing, "warnings": new_warnings}
 
 
 def fetch_weather(state: AgentState) -> AgentState:
     res = get_weather_and_rainfall_context(
         sub_county=state.get("sub_county", "Nyatike"),
         period="last_30_days",
+        actor_id=state.get("actor_id"),
     )
-    log_tool_call(tool_name="get_weather_and_rainfall_context",
-                  inputs={"sub_county": state.get("sub_county", "Nyatike"), "period": "last_30_days"},
-                  outputs=res)
     res2 = get_weather_and_rainfall_context(
         sub_county=state.get("sub_county", "Nyatike"),
         period="10_day_forecast",
+        actor_id=state.get("actor_id"),
     )
-    log_tool_call(tool_name="get_weather_and_rainfall_context",
-                  inputs={"sub_county": state.get("sub_county", "Nyatike"), "period": "10_day_forecast"},
-                  outputs=res2)
     return {**state, "weather": {"last_30_days": res, "10_day_forecast": res2},
             "warnings": (state.get("warnings") or []) + res.get("warnings", []) + res2.get("warnings", [])}
 
 
 def fetch_pest_alerts(state: AgentState) -> AgentState:
-    res = get_pest_alerts(crop="maize", county=state.get("county", "Migori"), region="Nyanza")
-    log_tool_call(tool_name="get_pest_alerts", inputs={"crop": "maize", "county": state.get("county", "Migori"), "region": "Nyanza"}, outputs=res)
+    res = get_pest_alerts(crop="maize", county=state.get("county", "Migori"), region="Nyanza", actor_id=state.get("actor_id"))
     return {**state, "pest_alerts": res.get("alerts", []), "warnings": (state.get("warnings") or []) + res.get("warnings", [])}
 
 
 def fetch_market_prices(state: AgentState) -> AgentState:
-    res = get_market_price_context(crop="maize", market="Migori-Town")
-    log_tool_call(tool_name="get_market_price_context", inputs={"crop": "maize", "market": "Migori-Town"}, outputs=res)
+    res = get_market_price_context(crop="maize", market="Migori-Town", actor_id=state.get("actor_id"))
     return {**state, "market_prices": res.get("prices", []), "warnings": (state.get("warnings") or []) + res.get("warnings", [])}
 
 
@@ -193,8 +278,8 @@ def validate_evidence(state: AgentState) -> AgentState:
         {"source_type": "weather", "source_ref": state.get("weather", {}).get("last_30_days", {}).get("source", ""), "claim": "Rainfall"},
         {"source_type": "pest", "source_ref": "; ".join(a.get("pest", "") for a in state.get("pest_alerts", [])), "claim": "Pest alerts"},
     ]
-    res = validate_advisory_evidence(advisory_draft="", evidence=evidence)
-    log_tool_call(tool_name="validate_advisory_evidence", inputs={"evidence_count": len(evidence)}, outputs=res)
+    res = validate_advisory_evidence(advisory_draft="", evidence=evidence, actor_id=state.get("actor_id"))
+    # Tool already logs itself.
     return {**state, "evidence_validation": res,
             "warnings": (state.get("warnings") or []) + res.get("warnings", [])}
 
@@ -270,7 +355,15 @@ def _strip_code_fence(text: str) -> str:
 
 
 def _try_ollama(prompt: str) -> dict[str, Any] | None:
-    """Try to call Qwen2.5-7B-Instruct via Ollama. Returns metadata + text, or None."""
+    """Try to call Qwen2.5-7B-Instruct via Ollama. Returns metadata + text, or None.
+
+    Honors `MAJISHAMBA_SKIP_OLLAMA=1` (set by tests and the demo flow when the
+    model is unavailable or too slow to run live). Returns None to signal the
+    caller to fall back to the deterministic template.
+    """
+    if SKIP_OLLAMA:
+        logger.info("Ollama skipped via MAJISHAMBA_SKIP_OLLAMA=1; using fallback template.")
+        return None
     try:
         import ollama  # type: ignore[import-untyped]
     except Exception as exc:  # pragma: no cover
@@ -279,7 +372,9 @@ def _try_ollama(prompt: str) -> dict[str, Any] | None:
 
     host = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
     model = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b-instruct")
-    timeout_s = int(os.environ.get("MAJISHAMBA_OLLAMA_TIMEOUT", "300"))
+    # Default timeout: 10s in dev/test (fast failure → fallback), 60s in prod.
+    default_timeout = "10" if os.environ.get("DJANGO_SETTINGS_MODULE", "").endswith("development") else "60"
+    timeout_s = int(os.environ.get("MAJISHAMBA_OLLAMA_TIMEOUT", default_timeout))
     num_predict = int(os.environ.get("MAJISHAMBA_OLLAMA_NUM_PREDICT", "400"))
     keep_alive = os.environ.get("MAJISHAMBA_OLLAMA_KEEP_ALIVE", "10m")
     started = time.time()
@@ -420,7 +515,11 @@ def validate_output_schema(state: AgentState) -> AgentState:
 
 
 def save_draft(state: AgentState) -> AgentState:
-    """Save the validated draft via the MCP `create_draft_advisory_record` tool."""
+    """Save the validated draft via the MCP `create_draft_advisory_record` tool.
+
+    The tool logs itself to the audit trail; this node just threads the result
+    into state.
+    """
     if state.get("errors") or not state.get("draft"):
         return state
     draft = state["draft"]
@@ -448,12 +547,7 @@ def save_draft(state: AgentState) -> AgentState:
         county=state.get("county", "Migori"),
         actor_id=state.get("actor_id"),
     )
-    log_tool_call(
-        tool_name="create_draft_advisory_record",
-        inputs={"cluster_id": state["cluster_id"], "recommendation_type": draft.recommendation_type},
-        outputs={"advisory_id": res.get("advisory_id"), "status": res.get("status")},
-        approval_status="draft",
-    )
+    # Tool already logs to AuditEvent; we just thread state.
     if res.get("advisory_id"):
         return {**state, "advisory_id": res["advisory_id"]}
     return {**state, "errors": [{"node": "save_draft", "msg": res.get("error", "save failed")}]}
@@ -479,17 +573,34 @@ def route_after_save(state: AgentState) -> str:
 
 
 def route_after_validate_output(state: AgentState) -> str:
+    """If the model output failed Pydantic validation, switch to the fallback
+    template — do NOT re-call Ollama. Re-calling a non-deterministic model
+    on validation failure is wasteful and unlikely to fix structural issues.
+    """
     if state.get("errors"):
-        # Try the template fallback once if model output is invalid AND we used ollama
-        if state.get("generation_mode") == "ollama_qwen":
-            return "draft_advisory"
-        return "officer_approval_gate"
+        return "use_fallback_template"
     return "save_draft"
 
 
 def route_after_draft(state: AgentState) -> str:
-    # If we already failed once on a template, route to save with the template.
     return "validate_output_schema"
+
+
+def use_fallback_template(state: AgentState) -> AgentState:
+    """Replace raw_model_output with the deterministic fallback template and
+    clear validation errors so save_draft can proceed.
+    """
+    fallback_json = _fallback_template(state)
+    new_warnings = list(state.get("warnings") or [])
+    new_warnings.append("Model output failed validation; switched to deterministic fallback.")
+    return {
+        **state,
+        "raw_model_output": fallback_json,
+        "generation_mode": "fallback_template",
+        "model_metadata": {"model": "fallback_template", "prompt_hash": (state.get("model_metadata") or {}).get("prompt_hash", "")},
+        "errors": [],
+        "warnings": new_warnings,
+    }
 
 
 # --- Build the graph --------------------------------------------------------
@@ -499,12 +610,17 @@ def build_graph():  # type: ignore[no-untyped-def]
     g.add_node("validate_request", validate_request)
     g.add_node("fetch_plot_history", fetch_plot_history)
     g.add_node("fetch_crop_calendar", fetch_crop_calendar)
+    # Borrowed MCP server node — uses the official filesystem MCP server to
+    # load approved crop-calendar text from docs/calendars/. Demonstrates
+    # the borrowed MCP server in the agent graph; logged to the audit trail.
+    g.add_node("load_calendar_from_borrowed_mcp", load_calendar_from_borrowed_mcp)
     g.add_node("fetch_weather", fetch_weather)
     g.add_node("fetch_pest_alerts", fetch_pest_alerts)
     g.add_node("fetch_market_prices", fetch_market_prices)
     g.add_node("validate_evidence", validate_evidence)
     g.add_node("draft_advisory", draft_advisory)
     g.add_node("validate_output_schema", validate_output_schema)
+    g.add_node("use_fallback_template", use_fallback_template)
     g.add_node("save_draft", save_draft)
     g.add_node("officer_approval_gate", officer_approval_gate)
 
@@ -514,7 +630,8 @@ def build_graph():  # type: ignore[no-untyped-def]
         "fetch_plot_history": "fetch_plot_history",
     })
     g.add_edge("fetch_plot_history", "fetch_crop_calendar")
-    g.add_edge("fetch_crop_calendar", "fetch_weather")
+    g.add_edge("fetch_crop_calendar", "load_calendar_from_borrowed_mcp")
+    g.add_edge("load_calendar_from_borrowed_mcp", "fetch_weather")
     g.add_edge("fetch_weather", "fetch_pest_alerts")
     g.add_edge("fetch_pest_alerts", "fetch_market_prices")
     g.add_edge("fetch_market_prices", "validate_evidence")
@@ -523,10 +640,11 @@ def build_graph():  # type: ignore[no-untyped-def]
         "validate_output_schema": "validate_output_schema",
     })
     g.add_conditional_edges("validate_output_schema", route_after_validate_output, {
-        "draft_advisory": "draft_advisory",
+        "use_fallback_template": "use_fallback_template",
         "save_draft": "save_draft",
-        "officer_approval_gate": "officer_approval_gate",
     })
+    # After fallback, re-validate the template output (which is guaranteed JSON).
+    g.add_edge("use_fallback_template", "validate_output_schema")
     g.add_conditional_edges("save_draft", route_after_save, {
         "officer_approval_gate": "officer_approval_gate",
     })

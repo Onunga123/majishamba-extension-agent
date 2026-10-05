@@ -43,6 +43,7 @@ def _summarise(value: Any, max_len: int = 800) -> Any:
 def log_audit_event(
     *,
     actor: Any = None,
+    actor_id: int | None = None,
     action: str,
     target: Any = None,
     metadata: dict[str, Any] | None = None,
@@ -54,9 +55,12 @@ def log_audit_event(
     """Write a single AuditEvent row + structured log line.
 
     Always succeeds (failures only log); never raises to the caller.
+    `actor_id` (int) takes precedence over `actor` (model instance) so callers
+    that only have the id (e.g. agent state) don't need to fetch the User row.
     """
     target_type, target_id = _model_name(target)
-    actor_id = getattr(actor, "id", None) if actor else None
+    if actor_id is None and actor is not None:
+        actor_id = getattr(actor, "id", None)
     try:
         event = AuditEvent.objects.create(
             actor_id=actor_id,
@@ -93,11 +97,17 @@ def log_tool_call(
     inputs: dict[str, Any],
     outputs: Any,
     actor: Any = None,
+    actor_id: int | None = None,
     approval_status: str = "",
 ) -> AuditEvent:
-    """Helper for MCP tools to log every call."""
+    """Helper for MCP tools to log every call.
+
+    Pass `actor_id` (int) when the caller has only the user id (e.g. agent state).
+    Pass `actor` (User instance) when calling from a view with the request user.
+    """
     return log_audit_event(
         actor=actor,
+        actor_id=actor_id,
         action=f"tool_call:{tool_name}",
         target=None,
         tool_name=tool_name,

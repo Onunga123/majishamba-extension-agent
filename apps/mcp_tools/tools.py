@@ -53,6 +53,7 @@ def _sanitize_inputs(inputs: dict[str, Any]) -> dict[str, Any]:
 
 def get_cluster_plot_history(
     *, cluster_id: str, ward: str = "Kachieng", sub_county: str = "Nyatike", county: str = "Migori",
+    actor_id: int | None = None,
 ) -> dict[str, Any]:
     """List plots and crop season records for a Kachieng cluster."""
     inputs = {"cluster_id": cluster_id, "ward": ward, "sub_county": sub_county, "county": county}
@@ -62,7 +63,7 @@ def get_cluster_plot_history(
         cluster = FarmerCluster.objects.select_related("ward__sub_county__county").get(cluster_id=cluster_id)
     except FarmerCluster.DoesNotExist:
         warnings.append(f"Cluster {cluster_id} not found.")
-        log_tool_call(tool_name="get_cluster_plot_history", inputs=inputs, outputs={"warnings": warnings})
+        log_tool_call(tool_name="get_cluster_plot_history", inputs=inputs, outputs={"warnings": warnings}, actor_id=actor_id)
         return {"cluster_id": cluster_id, "plots": [], "warnings": warnings}
 
     plots_qs = Plot.objects.filter(household__cluster=cluster).prefetch_related("season_records")
@@ -98,13 +99,13 @@ def get_cluster_plot_history(
         "plots": plot_list,
         "warnings": warnings,
     }
-    log_tool_call(tool_name="get_cluster_plot_history", inputs=inputs, outputs={"count": len(plot_list), "warnings": warnings})
+    log_tool_call(tool_name="get_cluster_plot_history", inputs=inputs, outputs={"count": len(plot_list), "warnings": warnings}, actor_id=actor_id)
     return out
 
 
 # --- Tool 2: get_crop_calendar ------------------------------------------
 
-def get_crop_calendar(*, crop: str = "maize", zone: str = "Migori-Low-Mid", season: str = "short_rains") -> dict[str, Any]:
+def get_crop_calendar(*, crop: str = "maize", zone: str = "Migori-Low-Mid", season: str = "short_rains", actor_id: int | None = None) -> dict[str, Any]:
     inputs = _sanitize_inputs({"crop": crop, "zone": zone, "season": season})
     warnings: list[str] = []
     cc = (
@@ -117,7 +118,7 @@ def get_crop_calendar(*, crop: str = "maize", zone: str = "Migori-Low-Mid", seas
         cc = CropCalendar.objects.filter(crop=crop, season=season).order_by("-source_date").first()
     if not cc:
         warnings.append(f"No crop calendar for crop={crop}, zone={zone}, season={season}.")
-        log_tool_call(tool_name="get_crop_calendar", inputs=inputs, outputs={"warnings": warnings})
+        log_tool_call(tool_name="get_crop_calendar", inputs=inputs, outputs={"warnings": warnings}, actor_id=actor_id)
         return {"crop": crop, "zone": zone, "season": season, "warnings": warnings}
 
     is_stale = cc.is_stale()
@@ -137,13 +138,13 @@ def get_crop_calendar(*, crop: str = "maize", zone: str = "Migori-Low-Mid", seas
         "is_stale": is_stale,
         "warnings": warnings,
     }
-    log_tool_call(tool_name="get_crop_calendar", inputs=inputs, outputs={"source": out["source"], "is_stale": is_stale})
+    log_tool_call(tool_name="get_crop_calendar", inputs=inputs, outputs={"source": out["source"], "is_stale": is_stale}, actor_id=actor_id)
     return out
 
 
 # --- Tool 3: get_weather_and_rainfall_context ---------------------------
 
-def get_weather_and_rainfall_context(*, sub_county: str = "Nyatike", period: str = "last_30_days") -> dict[str, Any]:
+def get_weather_and_rainfall_context(*, sub_county: str = "Nyatike", period: str = "last_30_days", actor_id: int | None = None) -> dict[str, Any]:
     inputs = _sanitize_inputs({"sub_county": sub_county, "period": period})
     warnings: list[str] = []
     qs = WeatherSignal.objects.filter(area_label__icontains=sub_county, period=period).order_by("-source_date", "-retrieved_at")
@@ -153,7 +154,7 @@ def get_weather_and_rainfall_context(*, sub_county: str = "Nyatike", period: str
         sig = WeatherSignal.objects.filter(period=period).order_by("-source_date").first()
     if not sig:
         warnings.append(f"No weather signal for sub_county={sub_county}, period={period}.")
-        log_tool_call(tool_name="get_weather_and_rainfall_context", inputs=inputs, outputs={"warnings": warnings})
+        log_tool_call(tool_name="get_weather_and_rainfall_context", inputs=inputs, outputs={"warnings": warnings}, actor_id=actor_id)
         return {"sub_county": sub_county, "period": period, "warnings": warnings}
 
     fresh = sig.is_fresh()
@@ -176,13 +177,13 @@ def get_weather_and_rainfall_context(*, sub_county: str = "Nyatike", period: str
         "is_fresh": fresh,
         "warnings": warnings,
     }
-    log_tool_call(tool_name="get_weather_and_rainfall_context", inputs=inputs, outputs={"source": out["source"], "is_fresh": fresh})
+    log_tool_call(tool_name="get_weather_and_rainfall_context", inputs=inputs, outputs={"source": out["source"], "is_fresh": fresh}, actor_id=actor_id)
     return out
 
 
 # --- Tool 4: get_pest_alerts --------------------------------------------
 
-def get_pest_alerts(*, crop: str = "maize", county: str = "Migori", region: str = "Nyanza") -> dict[str, Any]:
+def get_pest_alerts(*, crop: str = "maize", county: str = "Migori", region: str = "Nyanza", actor_id: int | None = None) -> dict[str, Any]:
     inputs = _sanitize_inputs({"crop": crop, "county": county, "region": region})
     qs = PestAlert.objects.filter(crop=crop, county__iexact=county).order_by("-source_date")
     alerts = list(qs[:5])
@@ -206,13 +207,13 @@ def get_pest_alerts(*, crop: str = "maize", county: str = "Migori", region: str 
         ],
         "warnings": warnings,
     }
-    log_tool_call(tool_name="get_pest_alerts", inputs=inputs, outputs={"count": len(alerts)})
+    log_tool_call(tool_name="get_pest_alerts", inputs=inputs, outputs={"count": len(alerts)}, actor_id=actor_id)
     return out
 
 
 # --- Tool 5: get_market_price_context -----------------------------------
 
-def get_market_price_context(*, crop: str = "maize", market: str = "Migori-Town") -> dict[str, Any]:
+def get_market_price_context(*, crop: str = "maize", market: str = "Migori-Town", actor_id: int | None = None) -> dict[str, Any]:
     inputs = _sanitize_inputs({"crop": crop, "market": market})
     qs = MarketPriceSignal.objects.filter(crop=crop, market__iexact=market).order_by("-observation_date")
     prices = list(qs[:5])
@@ -235,13 +236,13 @@ def get_market_price_context(*, crop: str = "maize", market: str = "Migori-Town"
         ],
         "warnings": warnings,
     }
-    log_tool_call(tool_name="get_market_price_context", inputs=inputs, outputs={"count": len(prices), "trend": trend})
+    log_tool_call(tool_name="get_market_price_context", inputs=inputs, outputs={"count": len(prices), "trend": trend}, actor_id=actor_id)
     return out
 
 
 # --- Tool 6: validate_advisory_evidence ---------------------------------
 
-def validate_advisory_evidence(*, advisory_draft: str, evidence: list[dict]) -> dict[str, Any]:
+def validate_advisory_evidence(*, advisory_draft: str, evidence: list[dict], actor_id: int | None = None) -> dict[str, Any]:
     inputs = _sanitize_inputs({"draft_chars": len(advisory_draft), "evidence_count": len(evidence)})
     warnings: list[str] = []
     required = {"plot_history", "crop_calendar", "weather"}
@@ -264,7 +265,7 @@ def validate_advisory_evidence(*, advisory_draft: str, evidence: list[dict]) -> 
         "stale_sources": stale,
         "warnings": warnings,
     }
-    log_tool_call(tool_name="validate_advisory_evidence", inputs=inputs, outputs={"valid": valid, "warnings": warnings})
+    log_tool_call(tool_name="validate_advisory_evidence", inputs=inputs, outputs={"valid": valid, "warnings": warnings}, actor_id=actor_id)
     return out
 
 
@@ -294,7 +295,7 @@ def create_draft_advisory_record(
         cluster = FarmerCluster.objects.get(cluster_id=cluster_id)
     except FarmerCluster.DoesNotExist:
         out = {"error": f"Cluster {cluster_id} not found."}
-        log_tool_call(tool_name="create_draft_advisory_record", inputs=inputs, outputs=out, approval_status="rejected")
+        log_tool_call(tool_name="create_draft_advisory_record", inputs=inputs, outputs=out, approval_status="rejected", actor_id=actor_id)
         return out
 
     advisory = Advisory.objects.create(
@@ -329,6 +330,7 @@ def create_draft_advisory_record(
         inputs=inputs,
         outputs=out,
         approval_status="draft",
+        actor_id=actor_id,
     )
     return out
 
@@ -344,7 +346,11 @@ def create_follow_up_task_after_approval(
     ward: str = "Kachieng",
     actor=None,
 ) -> dict[str, Any]:
-    """Approval-gated action tool. Delegates to apps.tasks.service."""
+    """Approval-gated action tool. Delegates to apps.tasks.service.
+
+    `actor` here is the User instance from the request; the underlying
+    service enforces the approval gate by checking OfficerApproval(decision=APPROVED).
+    """
     inputs = _sanitize_inputs({
         "approved_advisory_id": approved_advisory_id,
         "officer_id": officer_id,
@@ -368,6 +374,7 @@ def create_follow_up_task_after_approval(
         inputs=inputs,
         outputs=out,
         approval_status=approval_status,
+        actor=actor,  # log_tool_call accepts the User instance too
     )
     return out
 

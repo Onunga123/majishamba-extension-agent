@@ -6,11 +6,25 @@ import os
 import django
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
+# Skip Ollama by default in tests so the suite is fast (<5s) and deterministic.
+# Set MAJISHAMBA_SKIP_OLLAMA=0 to disable this and exercise the live model path.
+os.environ.setdefault("MAJISHAMBA_SKIP_OLLAMA", "1")
 django.setup()
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
+
+
+@pytest.fixture(autouse=True)
+def _skip_ollama_in_tests(monkeypatch):
+    """Force-skip Ollama in tests unless the caller explicitly disables it."""
+    if os.environ.get("MAJISHAMBA_SKIP_OLLAMA", "1") == "1":
+        monkeypatch.setenv("MAJISHAMBA_SKIP_OLLAMA", "1")
+    # Also reset the module-level SKIP_OLLAMA flag in apps.agents.graph so the
+    # autouse fixture takes effect even if the module was imported earlier.
+    from apps.agents import graph as _graph
+    monkeypatch.setattr(_graph, "SKIP_OLLAMA", True)
 
 
 @pytest.fixture

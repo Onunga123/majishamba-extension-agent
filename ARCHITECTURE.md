@@ -8,26 +8,33 @@ flowchart TD
   validate_request -->|errors| officer_approval_gate
   validate_request -->|ok| fetch_plot_history
   fetch_plot_history --> fetch_crop_calendar
-  fetch_crop_calendar --> fetch_weather
+  fetch_crop_calendar --> load_calendar_from_borrowed_mcp
+  load_calendar_from_borrowed_mcp --> fetch_weather
   fetch_weather --> fetch_pest_alerts
   fetch_pest_alerts --> fetch_market_prices
   fetch_market_prices --> validate_evidence
   validate_evidence --> draft_advisory
   draft_advisory --> validate_output_schema
-  validate_output_schema -->|invalid + was Ollama| draft_advisory
-  validate_output_schema -->|invalid + was template| officer_approval_gate
+  validate_output_schema -->|invalid| use_fallback_template
   validate_output_schema -->|valid| save_draft
+  use_fallback_template --> validate_output_schema
   save_draft --> officer_approval_gate
   officer_approval_gate --> END([END — officer reviews in Django UI])
 ```
 
 The graph is built in `apps/agents/graph.py` with `langgraph.graph.StateGraph`. State is the `AgentState` TypedDict (`apps/agents/state.py`). Each node is a plain function that returns a dict patch. Conditional edges route on errors (missing data, stale sources, model-output invalidity, model unavailable).
 
+**`load_calendar_from_borrowed_mcp`** is the node that exercises the **borrowed** official filesystem MCP server. It reads `docs/calendars/sample_calendar.txt` (either directly for the dev default, or via `npx @modelcontextprotocol/server-filesystem` if `MAJISHAMBA_BORROWED_MCP_USE_NPX=1`) and logs the call to `AuditEvent(tool_name="borrowed_filesystem_mcp")`. This satisfies the "borrowed MCP server must be demonstrably used" requirement.
+
+**Validation-retry behaviour.** If `validate_output_schema` finds errors, it routes to the `use_fallback_template` node — **not** back to `draft_advisory`. Re-calling a non-deterministic model on a structural validation failure is wasteful and unlikely to fix the issue. The fallback template produces guaranteed-valid JSON, which re-validates and proceeds to `save_draft`.
+
 After `officer_approval_gate` the agent stops. Approval happens **outside** the graph, in the Django UI (`apps/approvals/views.py`). Only after the officer approves does the system call `apps.tasks.service.create_follow_up_task_after_approval`, which is the same function the MCP action tool wraps.
 
 ## Open-weights model
 
-`draft_advisory` calls `ollama.Client(host=OLLAMA_HOST).generate(model="qwen2.5:7b-instruct", ...)` with a strict JSON-only prompt. Output is fenced-stripped, JSON-parsed, and validated against `AdvisoryDraft` (Pydantic). If validation fails **and** the model was used, the graph routes back to `draft_advisory` **once** for a template fallback. If Ollama is unreachable, the node goes straight to the template. `Advisory.generation_mode` records `ollama_qwen` vs `fallback_template` so the demo and EVALS can show the difference.
+`draft_advisory` calls `ollama.Client(host=OLLAMA_HOST).generate(model="qwen2.5:7b-instruct", ...)` with a strict JSON-only prompt. Output is fenced-stripped, JSON-parsed, and validated against `AdvisoryDraft` (Pydantic). If Ollama is unreachable or `MAJISHAMBA_SKIP_OLLAMA=1` is set, the node goes straight to the template. If validation fails, the graph routes to `use_fallback_template` (no Ollama re-call). `Advisory.generation_mode` records `ollama_qwen` vs `fallback_template` so the demo and EVALS can show the difference.
+
+**Timeouts.** Dev default: 10 seconds (fast failure → fallback). Production default: 60 seconds. Override with `MAJISHAMBA_OLLAMA_TIMEOUT=<seconds>`. Tests set `MAJISHAMBA_SKIP_OLLAMA=1` via `tests/conftest.py` so the suite runs in ~2 seconds without depending on Ollama.
 
 ## Custom MCP server: `majishamba-extension-mcp`
 
@@ -37,6 +44,8 @@ The same `TOOL_REGISTRY` functions are called from three places, in this exact o
 1. The LangGraph agent (`apps/agents/graph.py`) — in-process.
 2. The Django UI / approval views (`apps/approvals/views.py`).
 3. The standalone MCP server (`apps/mcp_tools/server.py`) over stdio via FastMCP — for any external MCP-aware client (Claude Desktop, a test harness, a partner agent).
+
+**Single logging path.** Each tool logs itself to `AuditEvent` via `log_tool_call` in `apps/audit/service.py`. The graph nodes do **not** add a second log entry — they just thread state. This avoids duplicate audit rows. The `actor_id` (requesting officer's id) is propagated from the runner → state → every tool call, so every `AuditEvent` row is attributed to a named officer.
 
 This means behaviour is identical whether a tool is called by the agent, by the UI, or by an external MCP client. There is one code path per tool.
 

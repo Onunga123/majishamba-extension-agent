@@ -67,7 +67,7 @@ dev = [
 ]
 
 [project.scripts]
-majishamba-mcp = "majishamba_mcp.server:main"
+majishamba-mcp = "apps.mcp_tools.server:main"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.development"

@@ -84,6 +84,9 @@ A real pilot might add:
 - Two-person rule for approvals (officer proposes, supervisor approves).
 - Time-limited approvals (auto-expire after N days).
 - Approval templates (e.g. "approve with minor edits only").
-- SMS notification to the officer when a DRAFT is ready.
+- <!-- OUT OF SCOPE FOR MVP: SMS notification to the officer when a DRAFT is ready.
+     The MVP intentionally does NOT send any outbound messages — the officer
+     must visit the dashboard to discover DRAFTs. This is a deliberate design
+     choice to keep the human-in-the-loop invariant strict. -->
 
 These are out of scope for the challenge build but the code structure (a single `OfficerApproval` table, a single approval view, a single audit log) supports them.
