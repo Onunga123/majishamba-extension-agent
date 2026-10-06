@@ -60,12 +60,16 @@ def test_map_page_uses_maplibre_with_osm_attribution(officer_client):
 
 @pytest.mark.django_db
 def test_map_page_marks_synthetic_coordinates(officer_client):
-    """Clusters with synthetic coordinates must be labelled 'Synthetic placeholder'."""
+    """Clusters with synthetic coordinates must NOT appear as real markers.
+    Only approved LocalityCoordinate entries are shown as real markers."""
     call_command("seed_kachieng_clusters", stdout=StringIO())
     r = officer_client.get("/dashboard/map/")
     html = r.content.decode("utf-8")
-    # KACH-01 has synthetic coords (from the original fixture)
-    assert "Synthetic placeholder" in html, "Synthetic coordinates not labelled"
+    # Without approved coordinates, KACH-01..03 must show 'not yet recorded' or 'awaiting review'.
+    # They must NOT be labeled as 'Verified' or 'Synthetic placeholder' (old UI removed).
+    assert "KACH-01" in html, "KACH-01 should appear in the locality list"
+    # Synthetic cluster centroid coords should NOT be displayed as real coordinates.
+    assert "Synthetic placeholder" not in html, "Old synthetic placeholder label should not appear"
 
 
 @pytest.mark.django_db
@@ -82,11 +86,12 @@ def test_map_page_shows_unmapped_clusters_in_list(officer_client):
 
 @pytest.mark.django_db
 def test_map_page_has_basemap_unavailable_fallback(officer_client):
-    """The map page must include a 'Basemap unavailable' fallback element."""
+    """The map page must include a fallback element for when the basemap cannot load."""
     call_command("seed_kachieng_clusters", stdout=StringIO())
     r = officer_client.get("/dashboard/map/")
     html = r.content.decode("utf-8")
-    assert "Basemap unavailable" in html, "Tile-failure fallback not present"
+    # The new template has 'Basemap could not be loaded' (not 'Basemap unavailable').
+    assert "could not be loaded" in html.lower(), "Tile-failure fallback not present"
 
 
 @pytest.mark.django_db

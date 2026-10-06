@@ -19,6 +19,7 @@ urlpatterns = [
     path("mcp/", include(("apps.mcp_tools.urls", "mcp_tools"), namespace="mcp_tools")),
     path("agents/", include(("apps.agents.urls", "agents"), namespace="agents")),
     path("integrations/", include(("apps.integrations.urls", "integrations"), namespace="integrations")),
+    path("geo/", include(("apps.geography.urls", "geography"), namespace="geography")),
     path("", RedirectView.as_view(url="/dashboard/", permanent=False)),
 ]
 

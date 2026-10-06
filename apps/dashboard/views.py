@@ -141,13 +141,57 @@ class DashboardHomeView(LoginRequiredMixin, View):
 
 class ClusterMapView(LoginRequiredMixin, View):
     def get(self, request):
-        clusters = list(FarmerCluster.objects.select_related("ward__sub_county__county").all())
+        clusters = list(FarmerCluster.objects.select_related("ward__sub_county__county", "locality_coordinate").all())
+        # Build GeoJSON-like features for the map JS.
+        # Only approved LocalityCoordinate entries get real coordinates.
+        mapped_count = 0
+        unmapped_count = 0
+        localities_for_template: list[dict] = []
+        for c in clusters:
+            has_coord = (
+                hasattr(c, "locality_coordinate")
+                and c.locality_coordinate.verification_status == "approved"
+                and c.locality_coordinate.coordinate_type != "synthetic"
+            )
+            if has_coord:
+                lc = c.locality_coordinate
+                localities_for_template.append({
+                    "cluster_id": c.cluster_id,
+                    "name": c.name,
+                    "locality": c.locality or lc.locality_name,
+                    "lat": lc.latitude,
+                    "lon": lc.longitude,  # NOTE: this is longitude, used as [lng, lat] in GeoJSON
+                    "coordinate_type": lc.coordinate_type,
+                    "coordinate_source": lc.coordinate_source,
+                    "source_url": lc.source_url,
+                    "households": c.households.count(),
+                    "verified_by": lc.verified_by,
+                    "has_real_coords": True,
+                })
+                mapped_count += 1
+            else:
+                localities_for_template.append({
+                    "cluster_id": c.cluster_id,
+                    "name": c.name,
+                    "locality": c.locality or "",
+                    "lat": None,
+                    "lon": None,
+                    "households": c.households.count(),
+                    "has_real_coords": False,
+                    "notes": "Coordinates not yet recorded" if not hasattr(c, "locality_coordinate") else f"Awaiting review (status: {c.locality_coordinate.verification_status})",
+                })
+                unmapped_count += 1
         cfg = settings.MAJISHAMBA
         return render(request, "dashboard/map.html", {
             "clusters": clusters,
+            "localities": localities_for_template,
+            "mapped_count": mapped_count,
+            "unmapped_count": unmapped_count,
+            "total_count": len(clusters),
             "tile_url": cfg.get("MAP_BASEMAP_TILES", "https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
             "attribution": cfg.get("MAP_BASEMAP_ATTRIBUTION", "© OpenStreetMap contributors"),
             "max_zoom": cfg.get("MAP_MAX_ZOOM", 19),
+            "can_request_advisory": bool(request.user.is_authenticated and request.user.is_officer()),
         })
 
 

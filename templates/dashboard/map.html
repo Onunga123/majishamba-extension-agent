@@ -2,46 +2,97 @@
 {% block title %}Map — Kachieng AI Agent{% endblock %}
 {% block content %}
 <div class="bg-white p-4 rounded shadow border border-stone-200">
-  <h1 class="text-lg font-semibold mb-2">Kachieng Ward — locality map</h1>
+  <div class="flex items-center justify-between mb-2">
+    <h1 class="text-lg font-semibold">Kachieng Ward — locality map</h1>
+    <div class="text-sm text-stone-500">
+      <span class="inline-block w-3 h-3 rounded-full bg-emerald-600 mr-1"></span> Mapped ({{ mapped_count }})
+      <span class="inline-block w-3 h-3 rounded-full bg-stone-400 ml-3 mr-1"></span> Unmapped ({{ unmapped_count }})
+      <span class="ml-3">Total: {{ total_count }}</span>
+    </div>
+  </div>
   <p class="text-sm text-stone-600 mb-3">
-    14 locality-based farmer clusters in Kachieng Ward, Nyatike Sub-County, Migori County.
-    Locality names confirmed by the project owner, who is from the area.
+    Real geographic basemap and locality reference points.
     Farmer groups, household records and plot histories are synthetic.
+    Locality names confirmed by the project owner, who is from the area.
   </p>
 
-  <div id="map" class="w-full h-[480px] rounded border border-stone-300" aria-label="Cluster map"></div>
-  <div id="map-fallback" class="hidden p-4 bg-amber-50 border border-amber-300 text-amber-900 rounded mt-2">
-    <strong>Basemap unavailable.</strong>
-    The OpenStreetMap raster tile service is currently unreachable.
-    The cluster list and advisory workflows are still usable from the dashboard.
+  {# Map container with explicit height #}
+  <div id="map-container" style="height: 500px; width: 100%;" class="rounded border border-stone-300 relative">
+    <div id="map" class="absolute inset-0 rounded"></div>
+    <div id="map-loading" class="absolute inset-0 flex items-center justify-center bg-stone-100 rounded">
+      <p class="text-stone-500 text-sm">Loading map…</p>
+    </div>
+    <div id="map-fallback" class="hidden absolute inset-0 flex items-center justify-center bg-amber-50 border border-amber-300 rounded p-4">
+      <div class="text-center">
+        <strong class="text-amber-900">Basemap could not be loaded.</strong>
+        <p class="text-sm text-amber-800 mt-1">The locality list and advisory workflows are still usable.</p>
+      </div>
+    </div>
+    <div id="map-nogl" class="hidden absolute inset-0 flex items-center justify-center bg-red-50 border border-red-300 rounded p-4">
+      <div class="text-center">
+        <strong class="text-red-900">Your browser does not support this map renderer.</strong>
+        <p class="text-sm text-red-800 mt-1">The locality list below is still usable.</p>
+      </div>
+    </div>
   </div>
 
-  <h2 class="font-semibold mt-5 mb-2">Cluster localities</h2>
-  <table class="w-full text-sm">
+  {# Legend #}
+  <div class="flex items-center gap-4 mt-2 text-xs text-stone-500">
+    <span>🟢 Owner-confirmed reference point</span>
+    <span>© OpenStreetMap contributors (basemap + coordinates)</span>
+  </div>
+
+  {# Locality list — always usable, even if the map fails #}
+  <h2 class="font-semibold mt-5 mb-2">Locality list ({{ total_count }} localities)</h2>
+  <input type="text" id="locality-search" placeholder="Filter by ID, name, or locality…"
+         class="w-full border border-stone-300 rounded px-3 py-2 text-sm mb-2">
+  <table class="w-full text-sm" id="locality-table">
     <thead class="bg-stone-100">
       <tr>
         <th class="text-left px-2 py-1">Cluster ID</th>
         <th class="text-left px-2 py-1">Name</th>
         <th class="text-left px-2 py-1">Locality</th>
-        <th class="text-left px-2 py-1">Households</th>
         <th class="text-left px-2 py-1">Coordinates</th>
+        <th class="text-left px-2 py-1">Source</th>
+        <th class="px-2 py-1">Actions</th>
       </tr>
     </thead>
     <tbody>
-    {% for c in clusters %}
-      <tr class="border-t border-stone-200">
-        <td class="px-2 py-1 font-mono">{{ c.cluster_id }}</td>
-        <td class="px-2 py-1">{{ c.name }}</td>
-        <td class="px-2 py-1">{{ c.locality|default:"—" }}</td>
-        <td class="px-2 py-1">{{ c.households.count }}</td>
+    {% for loc in localities %}
+      <tr class="border-t border-stone-200 locality-row"
+          data-cluster-id="{{ loc.cluster_id|lower }}"
+          data-search="{{ loc.cluster_id|lower }} {{ loc.name|lower }} {{ loc.locality|lower }}"
+          {% if loc.has_real_coords %}
+          data-lat="{{ loc.lat }}"
+          data-lon="{{ loc.lon }}"
+          {% endif %}>
+        <td class="px-2 py-1 font-mono">{{ loc.cluster_id }}</td>
+        <td class="px-2 py-1">{{ loc.name }}</td>
+        <td class="px-2 py-1">{{ loc.locality|default:"—" }}</td>
         <td class="px-2 py-1 text-xs">
-          {% if c.coordinates_verified %}
-            Verified
-          {% elif c.centroid_lat %}
-            <span class="text-amber-700" title="Synthetic placeholder, not actual village position">Synthetic placeholder</span>
+          {% if loc.has_real_coords %}
+            <span class="text-emerald-700">{{ loc.lat|floatformat:4 }}, {{ loc.lon|floatformat:4 }}</span>
+            <br><span class="text-xs text-stone-400">{{ loc.coordinate_type }}</span>
           {% else %}
-            <span class="text-stone-500 italic">Coordinates not yet recorded</span>
+            <span class="text-stone-500 italic">{{ loc.notes|default:"Coordinates not yet recorded" }}</span>
           {% endif %}
+        </td>
+        <td class="px-2 py-1 text-xs">
+          {% if loc.has_real_coords %}
+            {{ loc.coordinate_source }}
+            {% if loc.source_url %}<br><a href="{{ loc.source_url }}" target="_blank" rel="noopener" class="text-emerald-700 hover:underline">View OSM ↗</a>{% endif %}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        <td class="px-2 py-1 text-xs">
+          {% if loc.has_real_coords %}
+            <button type="button" class="text-emerald-700 hover:underline focus-map" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}">📍 Focus</button>
+          {% endif %}
+          {% if can_request_advisory %}
+            <a href="{% url 'advisories:request' %}" class="text-emerald-700 hover:underline ml-1">Advisory</a>
+          {% endif %}
+          <a href="/clusters/{{ loc.cluster_id }}/" class="text-stone-600 hover:underline ml-1">Details</a>
         </td>
       </tr>
     {% endfor %}
@@ -50,116 +101,165 @@
 
   <p class="text-xs text-stone-500 mt-4">
     Basemap: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>.
-    Public OSM raster tiles are used for low-traffic local MVP only — not a guaranteed unlimited
-    production hosting service. For production, configure <code>KACHIENG_MAP_TILES</code> to a
-    self-hosted or commercial tile server.
+    Public OSM raster tiles are used for low-traffic local MVP only. For production, configure
+    <code>KACHIENG_MAP_TILES</code> to a self-hosted or commercial tile server.
   </p>
 </div>
 
 <script>
-  // Cluster data passed from the view. We never invent coordinates client-side.
-  const allClusters = [
-    {% for c in clusters %}
+(function() {
+  // Locality data from the view — already filtered: only approved coords have lat/lon.
+  const localities = [
+    {% for loc in localities %}
     {
-      "id": "{{ c.cluster_id }}",
-      "name": "{{ c.name|escapejs }}",
-      "locality": "{{ c.locality|escapejs }}",
-      "lat": {{ c.centroid_lat|default_if_none:"null" }},
-      "lon": {{ c.centroid_lon|default_if_none:"null" }},
-      "households": {{ c.households.count }},
-      "coordinates_verified": {% if c.coordinates_verified %}true{% else %}false{% endif %},
+      cluster_id: "{{ loc.cluster_id }}",
+      name: "{{ loc.name|escapejs }}",
+      locality: "{{ loc.locality|escapejs }}",
+      lat: {% if loc.has_real_coords %}{{ loc.lat }}{% else %}null{% endif %},
+      lon: {% if loc.has_real_coords %}{{ loc.lon }}{% else %}null{% endif %},
+      coordinate_type: "{{ loc.coordinate_type|default:''|escapejs }}",
+      coordinate_source: "{{ loc.coordinate_source|default:''|escapejs }}",
+      source_url: "{{ loc.source_url|default:''|escapejs }}",
+      households: {{ loc.households }},
+      verified_by: "{{ loc.verified_by|default:''|escapejs }}",
+      has_real_coords: {% if loc.has_real_coords %}true{% else %}false{% endif %},
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
   ];
-  // Only clusters with actual coordinates get a marker. We do NOT default
-  // missing coords to the ward centroid — that would invent a position.
-  const mappableClusters = allClusters.filter(c => c.lat !== null && c.lon !== null);
 
   const tileUrl = "{{ tile_url|escapejs }}";
   const attribution = "{{ attribution|escapejs }}";
+  const maxZoom = {{ max_zoom|default:19 }};
 
-  let mapFailed = false;
-  function showFallback() {
-    if (mapFailed) return;
-    mapFailed = true;
-    document.getElementById("map").style.display = "none";
-    document.getElementById("map-fallback").classList.remove("hidden");
+  const mappable = localities.filter(l => l.lat !== null && l.lon !== null);
+
+  // Check WebGL support
+  function hasWebGL() {
+    try {
+      const canvas = document.createElement('canvas');
+      return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+    } catch(e) { return false; }
   }
 
+  if (!hasWebGL()) {
+    document.getElementById('map-loading').classList.add('hidden');
+    document.getElementById('map-nogl').classList.remove('hidden');
+    return;
+  }
+
+  if (typeof maplibregl === 'undefined') {
+    document.getElementById('map-loading').classList.add('hidden');
+    document.getElementById('map-fallback').classList.remove('hidden');
+    return;
+  }
+
+  let map;
   try {
-    const map = new maplibregl.Map({
-      container: "map",
+    map = new maplibregl.Map({
+      container: 'map',
       style: {
         version: 8,
-        sources: {},
-        layers: [],
-        glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+        sources: {
+          'osm': {
+            type: 'raster',
+            tiles: [tileUrl],
+            tileSize: 256,
+            attribution: attribution,
+            maxzoom: maxZoom,
+          },
+        },
+        layers: [{
+          id: 'osm',
+          type: 'raster',
+          source: 'osm',
+        }],
       },
-      center: mappableClusters.length > 0 ? [mappableClusters[0].lon, mappableClusters[0].lat] : [34.445, -0.965],
-      zoom: 11,
+      center: mappable.length > 0 ? [mappable[0].lon, mappable[0].lat] : [34.445, -0.965],
+      zoom: mappable.length > 0 ? 11 : 8,
+      maxZoom: maxZoom,
     });
 
-    map.on("error", (e) => {
-      // Suppress noisy non-fatal tile errors; only show fallback on persistent failure.
-      // MapLibre fires per-tile errors; we don't want to flash fallback on one bad tile.
-    });
+    // Hide loading once map is ready
+    map.on('load', () => {
+      document.getElementById('map-loading').classList.add('hidden');
 
-    map.on("load", () => {
-      try {
-        map.addSource("osm", {
-          type: "raster",
-          tiles: [tileUrl],
-          tileSize: 256,
-          attribution: attribution,
-          maxzoom: 19,
-        });
-        map.addLayer({ id: "osm", type: "raster", source: "osm" });
-      } catch (err) {
-        console.error("Failed to add OSM source:", err);
-        showFallback();
-        return;
-      }
-
-      if (mappableClusters.length === 0) {
-        // No verified coords — show a centerpoint marker on the ward centroid
-        // with a clear note that no clusters are mappable.
-        new maplibregl.Popup({ closeOnClick: false })
-          .setLngLat([34.445, -0.965])
-          .setHTML("<em>No clusters have verified coordinates yet. See the locality table below.</em>")
-          .addTo(map);
-        return;
-      }
-
-      // Fit bounds to mappable clusters only.
+      // Add markers for mapped localities
       const bounds = new maplibregl.LngLatBounds();
-      mappableClusters.forEach(c => {
-        const color = c.coordinates_verified ? "#047857" : "#f59e0b"; // emerald if verified, amber if synthetic
-        const popup = new maplibregl.Popup().setHTML(
-          `<strong>${c.id}</strong> · ${c.name}<br>` +
-          `Locality: ${c.locality || "—"}<br>` +
-          `${c.households} households<br>` +
-          `<em>${c.coordinates_verified ? "Verified coordinates" : "Synthetic placeholder — not actual village position"}</em>`
-        );
-        new maplibregl.Marker({ color })
-          .setLngLat([c.lon, c.lat])
+      mappable.forEach(loc => {
+        // Safely escape text for popup
+        const esc = s => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        const popupHTML = [
+          '<div class="text-sm">',
+          '<strong>' + esc(loc.cluster_id) + '</strong> — ' + esc(loc.name) + '<br>',
+          '<strong>Locality:</strong> ' + esc(loc.locality) + '<br>',
+          '<strong>Reference type:</strong> ' + esc(loc.coordinate_type) + '<br>',
+          '<strong>Coordinate source:</strong> ' + esc(loc.coordinate_source) + '<br>',
+          '<strong>Households (synthetic):</strong> ' + loc.households + '<br>',
+          loc.source_url ? '<a href="' + esc(loc.source_url) + '" target="_blank" rel="noopener">View on OSM ↗</a><br>' : '',
+          '<em>Locality reference point — not the location of synthetic households.</em>',
+          '</div>',
+        ].join('');
+        const popup = new maplibregl.Popup({ maxWidth: '300px' }).setHTML(popupHTML);
+        const marker = new maplibregl.Marker({ color: '#047857' })
+          .setLngLat([loc.lon, loc.lat])  // GeoJSON order: [lng, lat]
           .setPopup(popup)
           .addTo(map);
-        bounds.extend([c.lon, c.lat]);
+        bounds.extend([loc.lon, loc.lat]);
       });
-      map.fitBounds(bounds, { padding: 40 });
-    });
 
-    // Detect tile-load failure (network/CSP/etc) — if the first tile errors, show fallback.
-    let tileErrors = 0;
-    map.on("sourcedata", (e) => {
-      if (e.sourceId === "osm" && !e.isSourceLoaded && e.tile) {
-        tileErrors++;
-        if (tileErrors > 5) showFallback();
+      if (mappable.length > 1) {
+        map.fitBounds(bounds, { padding: 60 });
       }
     });
-  } catch (err) {
-    console.error("MapLibre failed to initialise:", err);
-    showFallback();
+
+    // Error handling: don't hide the map for a single tile error.
+    // Only show fallback if the entire source fails to load.
+    let sourceErrorCount = 0;
+    map.on('error', (e) => {
+      // Suppress individual tile errors — they're non-fatal.
+      // Only react to source-level errors.
+      if (e && e.sourceId === 'osm') {
+        sourceErrorCount++;
+        if (sourceErrorCount > 20) {
+          // Persistent source failure — show fallback but keep the list.
+          document.getElementById('map-loading').classList.add('hidden');
+          // Don't hide the map — the markers may still be visible.
+        }
+      }
+    });
+
+    // Add zoom controls
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+  } catch(err) {
+    console.error('MapLibre init failed:', err);
+    document.getElementById('map-loading').classList.add('hidden');
+    document.getElementById('map-fallback').classList.remove('hidden');
   }
+
+  // Locality list click → focus map marker
+  document.querySelectorAll('.focus-map').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const lat = parseFloat(btn.dataset.lat);
+      const lon = parseFloat(btn.dataset.lon);
+      if (map && !isNaN(lat) && !isNaN(lon)) {
+        map.flyTo({ center: [lon, lat], zoom: 13 });
+      }
+    });
+  });
+
+  // Search filter
+  const searchInput = document.getElementById('locality-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.toLowerCase().trim();
+      document.querySelectorAll('.locality-row').forEach(row => {
+        const hay = row.dataset.search || '';
+        row.hidden = q && !hay.includes(q);
+      });
+    });
+  }
+})();
 </script>
 {% endblock %}
