@@ -26,7 +26,7 @@
 4. Some Kachieng households have no recent plot record on file, and she only discovers this when a farmer challenges the advisory.
 5. Generic advice ("plant when it rains") is what climate-smart advisory should *not* be — but it's what the manual process drifts towards under time pressure.
 
-## What she values in MajiShamba
+## What she values in Kachieng AI Agent
 
 - **Speed.** The agent gathers evidence in seconds; she reviews in minutes.
 - **Sourcing.** Every claim has a citation she can show a farmer.

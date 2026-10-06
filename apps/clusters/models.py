@@ -1,4 +1,11 @@
-"""Farmer clusters for Kachieng Ward (KACH-01, KACH-02, KACH-03)."""
+"""Farmer clusters for Kachieng Ward (KACH-01..KACH-14).
+
+Geographic verification: locality names confirmed by the project owner
+Onunga Christopher on 2026-10-06 (verification_status=locally_confirmed,
+verification_method=project_owner_local_knowledge). Local confirmation of
+a name does NOT establish coordinates or make the farmer groups real — all
+household/plot/yield data remains explicitly synthetic.
+"""
 from __future__ import annotations
 
 from django.db import models
@@ -23,8 +30,20 @@ class FarmerCluster(models.Model):
     )
     representative = models.CharField(max_length=160, blank=True, help_text="Synthetic representative name.")
     contact = models.CharField(max_length=120, blank=True)
+    # "locality" is the geographic type used for Kachieng clusters.
+    # It is NOT an administrative village-unit/sub-location classification.
+    # Local confirmation of a name does not establish its coordinates.
+    locality = models.CharField(
+        max_length=120, blank=True,
+        help_text="Locality name (e.g. Sori, Kiranda). Confirmed by project owner; no government classification claimed.",
+    )
     centroid_lat = models.FloatField(null=True, blank=True)
     centroid_lon = models.FloatField(null=True, blank=True)
+    # Whether the lat/lon above are real verified coordinates or synthetic placeholders.
+    coordinates_verified = models.BooleanField(
+        default=False,
+        help_text="True only if coordinates are verified real; False if synthetic or missing.",
+    )
     notes = models.TextField(blank=True)
 
     def __str__(self) -> str:  # pragma: no cover - trivial

@@ -40,7 +40,7 @@ Write-Host "==> Step 3: Apply migrations" -ForegroundColor Cyan
 .venv\Scripts\python.exe manage.py migrate --noinput
 if ($LASTEXITCODE -ne 0) { Write-Error "Migrations failed"; exit 1 }
 
-Write-Host "==> Step 4: Load synthetic Kachieng fixtures" -ForegroundColor Cyan
+Write-Host "==> Step 4: Load synthetic Kachieng fixtures + seed 14 clusters + demo users" -ForegroundColor Cyan
 .venv\Scripts\python.exe manage.py loaddata `
     data\fixtures\migori_kachieng_clusters.json `
     data\fixtures\migori_kachieng_plots.json `
@@ -49,11 +49,10 @@ Write-Host "==> Step 4: Load synthetic Kachieng fixtures" -ForegroundColor Cyan
     data\fixtures\migori_pest_alerts.json `
     data\fixtures\migori_market_prices.json `
     --ignorenonexistent
-
-Write-Host "==> Step 5: Seed demo users" -ForegroundColor Cyan
+.venv\Scripts\python.exe manage.py seed_kachieng_clusters
 .venv\Scripts\python.exe scripts\load_demo_data.py
 
-Write-Host "==> Step 6: Ollama (optional)" -ForegroundColor Cyan
+Write-Host "==> Step 5: Ollama (optional)" -ForegroundColor Cyan
 $ollamaCmd = Get-Command ollama -ErrorAction SilentlyContinue
 if ($ollamaCmd) {
     Write-Host "    Ollama found. Ensuring service is running..."
@@ -66,7 +65,7 @@ if ($ollamaCmd) {
     Write-Host "    Install Ollama from https://ollama.com to enable the open-weights model run."
 }
 
-Write-Host "==> Step 7: Start Django dev server" -ForegroundColor Cyan
+Write-Host "==> Step 6: Start Django dev server" -ForegroundColor Cyan
 Write-Host "    Open http://127.0.0.1:8000 and log in as nyatike_officer / majishamba-demo-2025" -ForegroundColor Green
 $env:MAJISHAMBA_SKIP_OLLAMA = "0"  # Let the agent try Ollama in the demo
 .venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000

@@ -1,4 +1,4 @@
-# Developer setup — MajiShamba Extension Agent
+# Developer setup — Kachieng AI Agent
 
 ## Prerequisites
 

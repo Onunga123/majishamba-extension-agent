@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Request advisory — MajiShamba{% endblock %}
+{% block title %}Request advisory — Kachieng AI Agent{% endblock %}
 {% block content %}
 <div class="max-w-2xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
   <h1 class="text-lg font-semibold mb-2">Request advisory for a Kachieng cluster</h1>
@@ -19,14 +19,43 @@
   <form method="post" class="space-y-3">
     {% csrf_token %}
     <div>
-      <label class="block text-sm font-medium">Cluster</label>
-      <select name="cluster_id" class="w-full border border-stone-300 rounded px-3 py-2">
+      <label class="block text-sm font-medium" for="cluster_id_select">Cluster
+        <span class="text-xs text-stone-500 font-normal">({{ clusters|length }} locality-based farmer clusters available)</span>
+      </label>
+      <input type="text"
+             id="cluster_search"
+             placeholder="Type to filter by ID, name or locality (e.g. Sori, KACH-14, Wachara)"
+             class="w-full border border-stone-300 rounded px-3 py-2 mt-1 mb-2 text-sm">
+      <select name="cluster_id" id="cluster_id_select" size="8"
+              class="w-full border border-stone-300 rounded px-3 py-2 text-sm">
         {% for c in clusters %}
-          <option value="{{ c.cluster_id }}">{{ c.cluster_id }} — {{ c.name }} ({{ c.ward.name }} ward)</option>
+          <option value="{{ c.cluster_id }}"
+                  data-search="{{ c.cluster_id|lower }} {{ c.name|lower }} {{ c.locality|lower }}">
+            {{ c.cluster_id }} — {{ c.name }} ({{ c.locality|default:"no locality" }})
+          </option>
         {% endfor %}
       </select>
+      <p class="text-xs text-stone-500 mt-1">
+        One cluster per advisory run. The agent does not auto-generate advisories for all clusters.
+      </p>
     </div>
     <button type="submit" class="bg-emerald-700 text-white px-3 py-1 rounded text-sm hover:bg-emerald-800">Run agent</button>
   </form>
 </div>
+<script>
+  // Simple search filter on the select element.
+  (function() {
+    const search = document.getElementById('cluster_search');
+    const select = document.getElementById('cluster_id_select');
+    if (!search || !select) return;
+    const options = Array.from(select.options);
+    search.addEventListener('input', () => {
+      const q = search.value.toLowerCase().trim();
+      options.forEach(opt => {
+        const hay = opt.dataset.search || opt.text.toLowerCase();
+        opt.hidden = q && !hay.includes(q);
+      });
+    });
+  })();
+</script>
 {% endblock %}

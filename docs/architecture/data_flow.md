@@ -1,4 +1,4 @@
-# Data flow — MajiShamba Extension Agent
+# Data flow — Kachieng AI Agent
 
 ## End-to-end request flow
 

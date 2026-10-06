@@ -23,7 +23,7 @@
 2. **Pest pressure.** Fall armyworm (Spodoptera frugiperda) is the major seasonal threat for maize. Storage pests — Larger Grain Borer (Prostephanus truncatus) — matter post-harvest but are out of scope for the planting-advisory MVP.
 3. **Market volatility.** Maize prices at Migori Town fluctuate; farmers sometimes sell low immediately after harvest.
 4. **Plot records.** The office's household/plot records are partial and out of date; some Kachieng households have no recent season record on file (the KACH-03 fixture reproduces this gap).
-5. **Communication.** Most smallholders have a basic phone (SMS/USSD); smartphones are less common. The officer decides delivery channel — MajiShamba does not automate this.
+5. **Communication.** Most smallholders have a basic phone (SMS/USSD); smartphones are less common. The officer decides delivery channel — Kachieng AI Agent does not automate this.
 
 ## Why the office's workflow fits this design
 
@@ -34,7 +34,7 @@ The Nyatike Sub-County Agricultural Office's seasonal advisory cycle has four st
 3. **Officer approval** — confirm, edit, or reject.
 4. **Delivery** — share by phone, SMS, USSD, cluster meeting, or printed handout.
 
-MajiShamba automates steps 1 and 2 (agent + MCP tools + open-weights model), keeps step 3 explicitly human (the approval gate), and leaves step 4 entirely to the officer. This is the narrowest useful scope that shows real agentic depth without over-automating.
+Kachieng AI Agent automates steps 1 and 2 (agent + MCP tools + open-weights model), keeps step 3 explicitly human (the approval gate), and leaves step 4 entirely to the officer. This is the narrowest useful scope that shows real agentic depth without over-automating.
 
 ## Synthetic data fidelity
 

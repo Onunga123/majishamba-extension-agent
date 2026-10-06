@@ -22,6 +22,12 @@ RQ_QUEUES = {
 # Tailwind / static — relax for dev
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
+# DEMO_MODE: enables the demo-only account selector on the login page.
+# Default ON in development so `make demo` shows the picker.
+# Override with env var DEMO_MODE=0 to hide it (e.g. when running pytest
+# against a non-demo deployment).
+MAJISHAMBA["DEMO_MODE"] = env_bool("DEMO_MODE", default=True)
+
 # Use a simpler logger formatter for tests so output is readable.
 LOGGING = {
     "version": 1,

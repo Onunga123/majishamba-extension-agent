@@ -1,8 +1,8 @@
-# Solution overview — MajiShamba Extension Agent
+# Solution overview — Kachieng AI Agent
 
 ## In one paragraph
 
-MajiShamba is a Django + LangGraph system with a custom MCP server (`majishamba-extension-mcp`) of eight tools. A Nyatike extension officer requests an advisory for a Kachieng cluster. A LangGraph agent calls the tools in order, drafts an advisory with Qwen2.5-7B-Instruct via Ollama (or a deterministic fallback), validates the output against a strict Pydantic schema, saves it as DRAFT, and stops. The officer reviews the DRAFT in the Django UI, approves / rejects / defers / requests-evidence. Only after approval can a follow-up task (field visit, cluster meeting, etc.) be created — enforced in code by an approval-gated action tool. The agent never sends SMS, places orders, or issues credit flags. The officer decides delivery.
+Kachieng AI Agent is a Django + LangGraph system with a custom MCP server (`majishamba-extension-mcp`) of eight tools. A Nyatike extension officer requests an advisory for a Kachieng cluster. A LangGraph agent calls the tools in order, drafts an advisory with Qwen2.5-7B-Instruct via Ollama (or a deterministic fallback), validates the output against a strict Pydantic schema, saves it as DRAFT, and stops. The officer reviews the DRAFT in the Django UI, approves / rejects / defers / requests-evidence. Only after approval can a follow-up task (field visit, cluster meeting, etc.) be created — enforced in code by an approval-gated action tool. The agent never sends SMS, places orders, or issues credit flags. The officer decides delivery.
 
 ## Components
 

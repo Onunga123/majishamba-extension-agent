@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}MajiShamba — Nyatike Extension Office{% endblock %}</title>
+  <title>{% block title %}Kachieng AI Agent — Nyatike Extension Office{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css">
@@ -15,10 +15,10 @@
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
       <div>
         <a href="{% url 'dashboard:home' %}" class="font-bold text-lg tracking-tight">
-          MajiShamba <span class="text-emerald-200">/ Extension Agent</span>
+          Kachieng AI Agent <span class="text-emerald-200">/ Climate-smart advisories</span>
         </a>
         <span class="ml-2 text-emerald-200 text-xs hidden sm:inline">
-          Nyatike Sub-County Agricultural Office · Kachieng Ward · Migori County
+          Kachieng Ward · Nyatike Sub-County · Migori County, Kenya
         </span>
       </div>
       <nav class="space-x-3 text-sm">
@@ -57,7 +57,7 @@
 
   <footer class="bg-stone-900 text-stone-300 text-xs">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between gap-1">
-      <span>MajiShamba Extension Agent — MIT licence · Climate-smart advisory for Kachieng Ward.
+      <span>Kachieng AI Agent — MIT licence · Climate-smart advisories for Kachieng Ward, Migori County, Kenya.
         {% if user.is_authenticated and user.is_staff %}
           · <a href="{% url 'agents:graph' %}" class="text-stone-400 hover:text-stone-200 underline">Agent graph (dev only)</a>
         {% endif %}

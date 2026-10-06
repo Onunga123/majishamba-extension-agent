@@ -1,44 +1,165 @@
 {% extends "base.html" %}
-{% block title %}Map — MajiShamba{% endblock %}
+{% block title %}Map — Kachieng AI Agent{% endblock %}
 {% block content %}
 <div class="bg-white p-4 rounded shadow border border-stone-200">
-  <h1 class="text-lg font-semibold mb-2">Kachieng Ward — cluster map</h1>
-  <div id="map" class="w-full h-[480px] rounded border border-stone-300"></div>
+  <h1 class="text-lg font-semibold mb-2">Kachieng Ward — locality map</h1>
+  <p class="text-sm text-stone-600 mb-3">
+    14 locality-based farmer clusters in Kachieng Ward, Nyatike Sub-County, Migori County.
+    Locality names confirmed by the project owner, who is from the area.
+    Farmer groups, household records and plot histories are synthetic.
+  </p>
+
+  <div id="map" class="w-full h-[480px] rounded border border-stone-300" aria-label="Cluster map"></div>
+  <div id="map-fallback" class="hidden p-4 bg-amber-50 border border-amber-300 text-amber-900 rounded mt-2">
+    <strong>Basemap unavailable.</strong>
+    The OpenStreetMap raster tile service is currently unreachable.
+    The cluster list and advisory workflows are still usable from the dashboard.
+  </div>
+
+  <h2 class="font-semibold mt-5 mb-2">Cluster localities</h2>
+  <table class="w-full text-sm">
+    <thead class="bg-stone-100">
+      <tr>
+        <th class="text-left px-2 py-1">Cluster ID</th>
+        <th class="text-left px-2 py-1">Name</th>
+        <th class="text-left px-2 py-1">Locality</th>
+        <th class="text-left px-2 py-1">Households</th>
+        <th class="text-left px-2 py-1">Coordinates</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for c in clusters %}
+      <tr class="border-t border-stone-200">
+        <td class="px-2 py-1 font-mono">{{ c.cluster_id }}</td>
+        <td class="px-2 py-1">{{ c.name }}</td>
+        <td class="px-2 py-1">{{ c.locality|default:"—" }}</td>
+        <td class="px-2 py-1">{{ c.households.count }}</td>
+        <td class="px-2 py-1 text-xs">
+          {% if c.coordinates_verified %}
+            Verified
+          {% elif c.centroid_lat %}
+            <span class="text-amber-700" title="Synthetic placeholder, not actual village position">Synthetic placeholder</span>
+          {% else %}
+            <span class="text-stone-500 italic">Coordinates not yet recorded</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="text-xs text-stone-500 mt-4">
+    Basemap: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>.
+    Public OSM raster tiles are used for low-traffic local MVP only — not a guaranteed unlimited
+    production hosting service. For production, configure <code>KACHIENG_MAP_TILES</code> to a
+    self-hosted or commercial tile server.
+  </p>
 </div>
+
 <script>
-  const clusters = [
+  // Cluster data passed from the view. We never invent coordinates client-side.
+  const allClusters = [
     {% for c in clusters %}
     {
       "id": "{{ c.cluster_id }}",
       "name": "{{ c.name|escapejs }}",
-      "lat": {{ c.centroid_lat|default_if_none:"-0.965" }},
-      "lon": {{ c.centroid_lon|default_if_none:"34.445" }},
+      "locality": "{{ c.locality|escapejs }}",
+      "lat": {{ c.centroid_lat|default_if_none:"null" }},
+      "lon": {{ c.centroid_lon|default_if_none:"null" }},
       "households": {{ c.households.count }},
+      "coordinates_verified": {% if c.coordinates_verified %}true{% else %}false{% endif %},
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
   ];
-  const map = new maplibregl.Map({
-    container: "map",
-    style: { version: 8, sources: {}, layers: [] , glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf"},
-    center: [34.445, -0.965],
-    zoom: 11,
-  });
-  // Add a simple raster background from OpenStreetMap (no API key needed)
-  map.on("load", () => {
-    map.addSource("osm", {
-      type: "raster",
-      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-      tileSize: 256,
-      attribution: "© OpenStreetMap contributors",
+  // Only clusters with actual coordinates get a marker. We do NOT default
+  // missing coords to the ward centroid — that would invent a position.
+  const mappableClusters = allClusters.filter(c => c.lat !== null && c.lon !== null);
+
+  const tileUrl = "{{ tile_url|escapejs }}";
+  const attribution = "{{ attribution|escapejs }}";
+
+  let mapFailed = false;
+  function showFallback() {
+    if (mapFailed) return;
+    mapFailed = true;
+    document.getElementById("map").style.display = "none";
+    document.getElementById("map-fallback").classList.remove("hidden");
+  }
+
+  try {
+    const map = new maplibregl.Map({
+      container: "map",
+      style: {
+        version: 8,
+        sources: {},
+        layers: [],
+        glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+      },
+      center: mappableClusters.length > 0 ? [mappableClusters[0].lon, mappableClusters[0].lat] : [34.445, -0.965],
+      zoom: 11,
     });
-    map.addLayer({ id: "osm", type: "raster", source: "osm" });
-    clusters.forEach(c => {
-      new maplibregl.Marker({ color: "#047857" })
-        .setLngLat([c.lon, c.lat])
-        .setPopup(new maplibregl.Popup().setHTML(
-          `<strong>${c.id}</strong><br>${c.name}<br>${c.households} households`))
-        .addTo(map);
+
+    map.on("error", (e) => {
+      // Suppress noisy non-fatal tile errors; only show fallback on persistent failure.
+      // MapLibre fires per-tile errors; we don't want to flash fallback on one bad tile.
     });
-  });
+
+    map.on("load", () => {
+      try {
+        map.addSource("osm", {
+          type: "raster",
+          tiles: [tileUrl],
+          tileSize: 256,
+          attribution: attribution,
+          maxzoom: 19,
+        });
+        map.addLayer({ id: "osm", type: "raster", source: "osm" });
+      } catch (err) {
+        console.error("Failed to add OSM source:", err);
+        showFallback();
+        return;
+      }
+
+      if (mappableClusters.length === 0) {
+        // No verified coords — show a centerpoint marker on the ward centroid
+        // with a clear note that no clusters are mappable.
+        new maplibregl.Popup({ closeOnClick: false })
+          .setLngLat([34.445, -0.965])
+          .setHTML("<em>No clusters have verified coordinates yet. See the locality table below.</em>")
+          .addTo(map);
+        return;
+      }
+
+      // Fit bounds to mappable clusters only.
+      const bounds = new maplibregl.LngLatBounds();
+      mappableClusters.forEach(c => {
+        const color = c.coordinates_verified ? "#047857" : "#f59e0b"; // emerald if verified, amber if synthetic
+        const popup = new maplibregl.Popup().setHTML(
+          `<strong>${c.id}</strong> · ${c.name}<br>` +
+          `Locality: ${c.locality || "—"}<br>` +
+          `${c.households} households<br>` +
+          `<em>${c.coordinates_verified ? "Verified coordinates" : "Synthetic placeholder — not actual village position"}</em>`
+        );
+        new maplibregl.Marker({ color })
+          .setLngLat([c.lon, c.lat])
+          .setPopup(popup)
+          .addTo(map);
+        bounds.extend([c.lon, c.lat]);
+      });
+      map.fitBounds(bounds, { padding: 40 });
+    });
+
+    // Detect tile-load failure (network/CSP/etc) — if the first tile errors, show fallback.
+    let tileErrors = 0;
+    map.on("sourcedata", (e) => {
+      if (e.sourceId === "osm" && !e.isSourceLoaded && e.tile) {
+        tileErrors++;
+        if (tileErrors > 5) showFallback();
+      }
+    });
+  } catch (err) {
+    console.error("MapLibre failed to initialise:", err);
+    showFallback();
+  }
 </script>
 {% endblock %}

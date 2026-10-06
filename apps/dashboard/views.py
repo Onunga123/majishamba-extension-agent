@@ -1,6 +1,7 @@
 """Officer dashboard views — map, cluster list, advisory review."""
 from __future__ import annotations
 
+from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Q
 from django.shortcuts import render
@@ -41,12 +42,13 @@ class DashboardHomeView(LoginRequiredMixin, View):
             {
                 "clusters": clusters,
                 "cluster_stats": cluster_stats,
+                "cluster_count": len(clusters),
                 "recent_advisories": recent_advisories,
                 "recent_events": recent_events,
                 "pending_tasks": pending_tasks,
                 "weather_summary": weather_summary,
                 "pest_summary": pest_summary,
-                "office_name": "Nyatike Sub-County Agricultural Office",
+                "office_name": "Nyatike Sub-County Agricultural Office (intended user)",
                 "ward": "Kachieng",
                 "sub_county": "Nyatike",
                 "county": "Migori",
@@ -57,7 +59,13 @@ class DashboardHomeView(LoginRequiredMixin, View):
 class ClusterMapView(LoginRequiredMixin, View):
     def get(self, request):
         clusters = list(FarmerCluster.objects.select_related("ward__sub_county__county").all())
-        return render(request, "dashboard/map.html", {"clusters": clusters})
+        cfg = settings.MAJISHAMBA
+        return render(request, "dashboard/map.html", {
+            "clusters": clusters,
+            "tile_url": cfg.get("MAP_BASEMAP_TILES", "https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
+            "attribution": cfg.get("MAP_BASEMAP_ATTRIBUTION", "© OpenStreetMap contributors"),
+            "max_zoom": cfg.get("MAP_MAX_ZOOM", 19),
+        })
 
 
 class AuditTrailView(LoginRequiredMixin, View):

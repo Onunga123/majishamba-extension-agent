@@ -1,4 +1,4 @@
-# Human approval policy — MajiShamba Extension Agent
+# Human approval policy — Kachieng AI Agent
 
 ## Why human approval is required
 

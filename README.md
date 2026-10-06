@@ -1,31 +1,39 @@
-# MajiShamba Extension Agent
+# Kachieng AI Agent
 
-> Climate-smart planting advisory for the **Nyatike Sub-County Agricultural Office**, serving smallholder farmer clusters in **Kachieng Ward, Migori County, Kenya**.
+> Climate-smart advisories. Extension officers decide.
+>
+> Designed for the **Nyatike Sub-County Agricultural Office** (intended user, not a confirmed partner), serving smallholder farmer clusters in **Kachieng Ward, Migori County, Kenya**.
 
 **Track:** African Agentic AI Design Challenge — Agriculture & Food Security
 **Sub-theme:** Climate-smart advisory
 **Geographic focus:** Migori County → Nyatike Sub-County → **Kachieng Ward**
-**Target institution:** Nyatike Sub-County Agricultural Office
-**Named user:** Nyatike Agricultural Extension Officer
+**Intended user:** Nyatike Sub-County Agricultural Office
+**Named user role:** Agricultural Extension Officer
 **Licence:** MIT (OSI-approved)
 
-MajiShamba helps the Nyatike Sub-County Agricultural Extension Officer turn weather, crop-calendar, plot-history and pest signals into a sourced, officer-approved planting advisory for smallholder farmer clusters in Kachieng Ward — **without ever sending advice automatically**.
+---
+
+## One-sentence pitch
+
+Kachieng AI Agent helps a Nyatike Sub-County Agricultural Extension Officer turn weather, crop-calendar, plot-history and pest signals into a sourced, officer-approved planting advisory for smallholder farmer clusters in Kachieng Ward — **without ever sending advice automatically**.
+
+---
 
 ## Get running in one command
 
 ### Linux / macOS / WSL / Git Bash
 
 ```bash
-git clone <your-repo-url> majishamba
-cd majishamba
+git clone <your-repo-url> kachieng-ai-agent
+cd kachieng-ai-agent
 make demo
 ```
 
 ### Windows PowerShell (no `make` required)
 
 ```powershell
-git clone <your-repo-url> majishamba
-cd majishamba
+git clone <your-repo-url> kachieng-ai-agent
+cd kachieng-ai-agent
 .\scripts\run_demo.ps1
 ```
 
@@ -36,26 +44,31 @@ Both commands will:
 1. Create a Python 3.11+ virtualenv at `.venv/`.
 2. Install dependencies (Django, LangGraph, MCP Python SDK, Ollama client, Pydantic, etc.).
 3. Apply migrations (defaults to **SQLite** so the demo runs without PostgreSQL/PostGIS).
-4. Load synthetic Kachieng Ward fixtures (3 clusters, 14 households, 12 plots, 3 crop calendars, weather/pest/market signals).
-5. Seed the named demo officer `nyatike_officer` (password `majishamba-demo-2025`).
-6. Pull `qwen2.5:7b-instruct` via **Ollama** if installed (skipped gracefully otherwise — the deterministic fallback takes over).
-7. Start Django dev server on http://127.0.0.1:8000.
+4. Load synthetic Kachieng Ward fixtures (3 original clusters KACH-01..KACH-03 with 14 households/12 plots, plus weather/pest/market signals).
+5. **Seed 14 Kachieng pilot clusters** via the idempotent `seed_kachieng_clusters` management command (renames KACH-01..KACH-03 to the locally-confirmed register; creates KACH-04..KACH-14 with 3 households + 1 plot each).
+6. Seed the named demo officer `nyatike_officer` (password set on first creation only — re-runs do not reset passwords).
+7. Pull `qwen2.5:7b-instruct` via **Ollama** if installed (skipped gracefully otherwise — the deterministic fallback takes over).
+8. Start Django dev server on http://127.0.0.1:8000 with `DEMO_MODE=1` so the login page shows the demo account selector.
 
-Open http://127.0.0.1:8000 and log in as `nyatike_officer / majishamba-demo-2025`.
+Open http://127.0.0.1:8000 and log in via the demo account selector (or manually as `nyatike_officer / majishamba-demo-2025`).
 
 > If Ollama is not installed, the agent logs `WARN: Ollama not installed` and falls back to a deterministic template generator. The demo still works end-to-end — the model is *one* of two drafting modes.
 
-## What this system does 
+---
+
+## What this system does (≈300 words for the application form)
 
 **Problem.** The Nyatike Sub-County Agricultural Extension Officer must manually compare rainfall forecasts, crop calendars, plot histories, pest alerts and market prices for many Kachieng smallholder households. Rainfall onset is erratic; false starts cause crop failure or replanting costs. Pest alerts (e.g. fall armyworm) arrive via WhatsApp and radio without cluster specificity. The officer cannot easily show farmers *why* a recommendation was made. The result is generic, late or conflicting advice, with limited auditability.
 
-**Solution.** MajiShamba is an MCP-based agentic system that gathers evidence through a custom MCP server (`majishamba-extension-mcp`, eight tools), uses **LangGraph** as the orchestration framework, drafts a structured advisory with the open-weights model **Qwen2.5-7B-Instruct via Ollama** (with a deterministic template fallback), validates the output against a strict Pydantic schema, and saves the advisory as **DRAFT**. A named Nyatike extension officer then reviews, edits, approves, defers or rejects it in a Django UI. Only after approval can a follow-up task (e.g. field visit, cluster meeting) be created — the action tool `create_follow_up_task_after_approval` enforces this gate in code. The agent never sends SMS, places orders or issues credit flags; the officer decides how to communicate.
+**Solution.** Kachieng AI Agent is an MCP-based agentic system that gathers evidence through a custom MCP server (`majishamba-extension-mcp`, eight tools), uses **LangGraph** as the orchestration framework, drafts a structured advisory with the open-weights model **Qwen2.5-7B-Instruct via Ollama** (with a deterministic template fallback), validates the output against a strict Pydantic schema, and saves the advisory as **DRAFT**. A named Nyatike extension officer then reviews, edits, approves, defers or rejects it in a Django UI. Only after approval can a follow-up task (e.g. field visit, cluster meeting) be created — the action tool `create_follow_up_task_after_approval` enforces this gate in code. The agent never sends SMS, places orders or issues credit flags; the officer decides how to communicate.
 
 **Sub-theme.** Climate-smart advisory (Agriculture & Food Security).
 
-**Workflow it serves.** The Nyatike Sub-County Agricultural Office's seasonal planting advisory cycle for Kachieng Ward clusters (KACH-01, KACH-02, KACH-03). It focuses on short-rains maize, the dominant staple, in the Migori Low-to-Mid Altitude bimodal zone. All household and plot records are synthetic; weather/pest/market aggregates are clearly labelled.
+**Workflow it serves.** The Nyatike Sub-County Agricultural Office's seasonal planting advisory cycle for Kachieng Ward clusters (KACH-01 through KACH-14, 14 locality-based farmer clusters). It focuses on short-rains maize, the dominant staple, in the Migori Low-to-Mid Altitude bimodal zone. All household and plot records are synthetic; weather/pest/market aggregates are clearly labelled. Locality names are confirmed by the project owner (who is from the area); farmer groups are not real organisations.
 
 **Benefits.** Faster advisory preparation, sourced and defensible advice citing rainfall, calendar, plot and pest sources, visibility of data gaps, consistent workflow and an audit trail for the office, and better climate resilience for Kachieng farmers — while keeping the human officer fully responsible.
+
+---
 
 ## Problem, solution, benefits (Kachieng-specific)
 
@@ -264,11 +277,75 @@ majishamba/
 
 ## Demo logins
 
-| Username | Password | Role |
+| Username | Password (set on first creation only) | Role |
 |---|---|---|
 | `nyatike_officer` | `majishamba-demo-2025` | Extension Officer (can request + approve) |
 | `nyatike_supervisor` | `majishamba-demo-2025` | Supervisor (can approve) |
 | `nyatike_viewer` | `majishamba-demo-2025` | Viewer (read-only) |
+
+> The `DEMO_MODE` flag (default ON in development, OFF in production) gates the demo-only account selector on the login page. With `DEMO_MODE=1`, the login page shows three clickable cards (officer/supervisor/viewer) that populate the username field. The user still has to type the password and submit the standard Django auth form. **Roles are always derived from the authenticated database user — never from the card selection.** Selecting the officer card does not grant officer permissions unless you actually log in as `nyatike_officer`.
+
+### To enable/disable DEMO_MODE
+
+```bash
+# Enable (default in development):
+export DEMO_MODE=1   # or set in .env
+
+# Disable (default in production):
+export DEMO_MODE=0
+```
+
+Or set `MAJISHAMBA["DEMO_MODE"]` in your settings module.
+
+---
+
+## 14 Kachieng pilot clusters
+
+The system uses an idempotent management command to seed 14 locality-based farmer clusters:
+
+| Cluster ID | Name | Locality |
+|---|---|---|
+| KACH-01 | Sori Farmer Cluster | Sori |
+| KACH-02 | Kiranda Farmer Cluster | Kiranda |
+| KACH-03 | Odendo Farmer Cluster | Odendo |
+| KACH-04 | Agolomuok Farmer Cluster | Agolomuok |
+| KACH-05 | Bongu Farmer Cluster | Bongu |
+| KACH-06 | Gunga Farmer Cluster | Gunga |
+| KACH-07 | Kaduro Farmer Cluster | Kaduro |
+| KACH-08 | Kopala Farmer Cluster | Kopala |
+| KACH-09 | Nyamanga Farmer Cluster | Nyamanga |
+| KACH-10 | Obondi Farmer Cluster | Obondi |
+| KACH-11 | Orore Farmer Cluster | Orore |
+| KACH-12 | Raga Farmer Cluster | Raga |
+| KACH-13 | Sidika Farmer Cluster | Sidika |
+| KACH-14 | Wachara Farmer Cluster | Wachara |
+
+**Geographic verification record:**
+
+```
+verification_status: locally_confirmed
+verification_method: project_owner_local_knowledge
+verified_by: Onunga Christopher
+verification_date: 2026-10-06
+geographic_type: locality
+```
+
+Locality names are confirmed by the project owner (who is from the area). This does NOT constitute government certification, administrative classification, or coordinates. All farmer groups, household records, plot histories and yields are explicitly synthetic. **No coordinates are invented** for new clusters — they appear in the locality list with "Coordinates not yet recorded" until real verified coordinates are collected.
+
+### Re-seeding (idempotent)
+
+```bash
+python manage.py seed_kachieng_clusters            # apply
+python manage.py seed_kachieng_clusters --dry-run  # preview only
+python manage.py seed_kachieng_clusters --report    # show current totals
+```
+
+The command:
+- Preserves KACH-01..KACH-03 primary keys, households, plots, advisories, audit history
+- Updates KACH-01..KACH-03 display names and `locality` field
+- Creates KACH-04..KACH-14 with three synthetic households each, one synthetic maize plot per household
+- Is idempotent — running twice produces no duplicates
+- Does NOT reset the database or overwrite existing household records
 
 ---
 

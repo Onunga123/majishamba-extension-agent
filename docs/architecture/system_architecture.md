@@ -1,4 +1,4 @@
-# System architecture — MajiShamba Extension Agent
+# System architecture — Kachieng AI Agent
 
 This document expands on `ARCHITECTURE.md` (the one-page summary at the repo root). Read `ARCHITECTURE.md` first; this file adds deployment and code-organisation detail.
 

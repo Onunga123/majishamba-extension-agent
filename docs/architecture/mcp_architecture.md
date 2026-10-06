@@ -1,4 +1,4 @@
-# MCP architecture — MajiShamba Extension Agent
+# MCP architecture — Kachieng AI Agent
 
 ## Custom server: `majishamba-extension-mcp`
 

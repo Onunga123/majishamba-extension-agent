@@ -1,4 +1,4 @@
-# Demo video script — MajiShamba Extension Agent (unedited, under 3 minutes)
+# Demo video script — Kachieng AI Agent (unedited, under 3 minutes)
 
 > Total target: 2:55. Each shot is one continuous screen recording segment; no jump cuts, no voice-overs added after recording. Read the narration in a single take.
 
@@ -16,7 +16,7 @@
 
 **Camera.** Show the repo root `README.md` in the editor.
 
-**Narration.** "MajiShamba is a climate-smart advisory agent built for the Nyatike Sub-County Agricultural Office in Migori County, Kenya, serving smallholder farmer clusters in Kachieng Ward. The challenge: an MCP-based agentic system with a custom MCP server, LangGraph orchestration, an open-weights model run, a logged tool call for every action, and a strict human approval gate. Setup is one command — `make demo` — and we're already running."
+**Narration.** "Kachieng AI Agent is a climate-smart advisory agent built for the Nyatike Sub-County Agricultural Office in Migori County, Kenya, serving smallholder farmer clusters in Kachieng Ward. The challenge: an MCP-based agentic system with a custom MCP server, LangGraph orchestration, an open-weights model run, a logged tool call for every action, and a strict human approval gate. Setup is one command — `make demo` — and we're already running."
 
 **Action.** Switch to the browser at `http://127.0.0.1:8000/dashboard/`. The login page appears.
 
@@ -26,9 +26,9 @@
 
 **Narration.** "The named Nyatike extension officer logs in. Three demo users are seeded — officer, supervisor, viewer. We log in as the officer."
 
-**Action.** Type `nyatike_officer` / `majishamba-demo-2025`. Click Login. Land on the dashboard showing KACH-01, KACH-02, KACH-03.
+**Action.** Type `nyatike_officer` / `majishamba-demo-2025` (or click the demo account card labelled "Jane Awuor — Extension Officer" to fill the username). Click Login. Land on the dashboard showing 14 Kachieng locality-based farmer clusters (KACH-01 through KACH-14).
 
-**Narration.** "Three synthetic Kachieng clusters. We click 'Request advisory' for KACH-01."
+**Narration.** "14 locality-based farmer clusters in Kachieng Ward. Locality names are confirmed by the project owner, who is from the area. Farmer groups and household records are synthetic. We click 'Request advisory' for KACH-01."
 
 **Action.** Click "+ Request advisory". Select `KACH-01`. Click "Run agent".
 
@@ -70,7 +70,7 @@
 
 **Action.** Open `/audit/` to show the audit trail. Point at the `agent_run:start` and `agent_run:end` events for the run we just did.
 
-**Narration.** "Every tool call, every HTTP mutation, every agent run is in the audit log with the officer's name. The agent recommends; the officer decides. That's MajiShamba for Kachieng Ward."
+**Narration.** "Every tool call, every HTTP mutation, every agent run is in the audit log with the officer's name. The agent recommends; the officer decides. That's Kachieng AI Agent for Kachieng Ward."
 
 **Action.** Cut to black. Show README link + ARCHITECTURE.md + EVALS.md + licence (MIT) for 5 seconds.
 

@@ -1,4 +1,4 @@
-# ARCHITECTURE — MajiShamba Extension Agent (one page)
+# ARCHITECTURE — Kachieng AI Agent (one page)
 
 ## Agent shape (LangGraph)
 

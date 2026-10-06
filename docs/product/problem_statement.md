@@ -1,4 +1,4 @@
-# Problem statement — MajiShamba Extension Agent
+# Problem statement — Kachieng AI Agent
 
 ## The institution
 

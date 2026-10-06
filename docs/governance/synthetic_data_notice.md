@@ -1,4 +1,4 @@
-# Synthetic data notice — MajiShamba Extension Agent
+# Synthetic data notice — Kachieng AI Agent
 
 ## Statement
 

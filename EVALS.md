@@ -1,4 +1,4 @@
-# EVALS — MajiShamba Extension Agent
+# EVALS — Kachieng AI Agent
 
 Each task is reproducible from the loaded fixtures (or via factories in `tests/`). Tests are in `tests/integration/` and `tests/security/`. Run `make test` to execute.
 

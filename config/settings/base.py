@@ -175,7 +175,7 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": "WARNING"},
 }
 
-# --- MajiShamba-specific config --------------------------------------------
+# --- Kachieng AI Agent config (settings dict kept as MAJISHAMBA for backwards compat) ---
 MAJISHAMBA = {
     # Open-weights model used for at least one full task per challenge requirement.
     "OLLAMA_HOST": env_str("OLLAMA_HOST", "http://127.0.0.1:11434"),
@@ -199,6 +199,20 @@ MAJISHAMBA = {
         "ward": "Kachieng",
         "office_name": "Nyatike Sub-County Agricultural Office",
     },
+    # DEMO MODE: gates the demo-only account selector on the login page.
+    # Set DEMO_MODE=1 in dev to show "Choose a demo account" cards.
+    # In production, DEMO_MODE=0 (the default) hides the cards and the
+    # login page behaves like a normal Django login.
+    "DEMO_MODE": env_bool("DEMO_MODE", default=False),
+    # Map / basemap config. Public OSM raster tiles by default — not a
+    # guaranteed unlimited production hosting service; replace with a
+    # self-hosted tile server or a commercial provider for production.
+    "MAP_BASEMAP_TILES": env_str(
+        "KACHIENG_MAP_TILES",
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    ),
+    "MAP_BASEMAP_ATTRIBUTION": "© OpenStreetMap contributors",
+    "MAP_MAX_ZOOM": 19,
 }
 
 # --- Caching / queues (demo falls back to local memory) ---------------------

@@ -1,4 +1,4 @@
-# AI governance — MajiShamba Extension Agent
+# AI governance — Kachieng AI Agent
 
 ## Principle
 
