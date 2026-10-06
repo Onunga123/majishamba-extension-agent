@@ -124,8 +124,13 @@ def test_invalid_coordinates_excluded_from_markers(officer_client):
 def test_tile_url_configurable_via_settings():
     """The map tile URL must come from settings, allowing production to override it."""
     from django.conf import settings
-    # Default must be the public OSM raster endpoint.
+    # Default must be Stadia Maps (free for localhost dev).
     url = settings.MAJISHAMBA["MAP_BASEMAP_TILES"]
-    assert "tile.openstreetmap.org" in url
+    assert "stadiamaps.com" in url or "tile.openstreetmap.org" in url, f"Unexpected tile URL: {url}"
+    # Attribution must be present.
+    attribution = settings.MAJISHAMBA["MAP_BASEMAP_ATTRIBUTION"]
+    assert "OpenStreetMap" in attribution or "Stadia" in attribution
+    # API key setting must exist (empty for localhost dev).
+    assert "MAP_API_KEY" in settings.MAJISHAMBA
     # Attribution must be present.
     assert "OpenStreetMap" in settings.MAJISHAMBA["MAP_BASEMAP_ATTRIBUTION"]

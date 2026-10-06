@@ -182,15 +182,22 @@ class ClusterMapView(LoginRequiredMixin, View):
                 })
                 unmapped_count += 1
         cfg = settings.MAJISHAMBA
+        # Substitute API key into tile URL if configured.
+        tile_url = cfg.get("MAP_BASEMAP_TILES", "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png")
+        api_key = cfg.get("MAP_API_KEY", "")
+        if api_key and "{api_key}" in tile_url:
+            tile_url = tile_url.replace("{api_key}", api_key)
+        # Remove {r} placeholder (retina) — MapLibre raster sources don't support it.
+        tile_url = tile_url.replace("{r}", "")
         return render(request, "dashboard/map.html", {
             "clusters": clusters,
             "localities": localities_for_template,
             "mapped_count": mapped_count,
             "unmapped_count": unmapped_count,
             "total_count": len(clusters),
-            "tile_url": cfg.get("MAP_BASEMAP_TILES", "https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
-            "attribution": cfg.get("MAP_BASEMAP_ATTRIBUTION", "© OpenStreetMap contributors"),
-            "max_zoom": cfg.get("MAP_MAX_ZOOM", 19),
+            "tile_url": tile_url,
+            "attribution": cfg.get("MAP_BASEMAP_ATTRIBUTION", "© Stadia Maps © OpenMapTiles © OpenStreetMap contributors"),
+            "max_zoom": cfg.get("MAP_MAX_ZOOM", 20),
             "can_request_advisory": bool(request.user.is_authenticated and request.user.is_officer()),
         })
 

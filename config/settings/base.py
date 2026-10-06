@@ -207,15 +207,23 @@ MAJISHAMBA = {
     # In production, DEMO_MODE=0 (the default) hides the cards and the
     # login page behaves like a normal Django login.
     "DEMO_MODE": env_bool("DEMO_MODE", default=False),
-    # Map / basemap config. Public OSM raster tiles by default — not a
-    # guaranteed unlimited production hosting service; replace with a
-    # self-hosted tile server or a commercial provider for production.
+    # Map / basemap config.
+    # DEFAULT: Stadia Maps Alidade Smooth (raster) — free for localhost/127.0.0.1
+    # development without an API key. See https://docs.stadiamaps.com/free-tier/
+    # For production, set KACHIENG_MAP_TILES to your own tile server or get a
+    # Stadia Maps API key (https://stadiamaps.com/) and set KACHIENG_MAP_API_KEY.
+    # The {api_key} placeholder in the tile URL is replaced at render time.
     "MAP_BASEMAP_TILES": env_str(
         "KACHIENG_MAP_TILES",
-        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png",
     ),
-    "MAP_BASEMAP_ATTRIBUTION": "© OpenStreetMap contributors",
-    "MAP_MAX_ZOOM": 19,
+    "MAP_BASEMAP_ATTRIBUTION": env_str(
+        "KACHIENG_MAP_ATTRIBUTION",
+        "© Stadia Maps © OpenMapTiles © OpenStreetMap contributors",
+    ),
+    "MAP_MAX_ZOOM": 20,
+    # Optional API key for Stadia Maps production use. Leave blank for localhost dev.
+    "MAP_API_KEY": env_str("KACHIENG_MAP_API_KEY", ""),
 }
 
 # --- Caching / queues (demo falls back to local memory) ---------------------

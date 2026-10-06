@@ -39,7 +39,7 @@
   {# Legend #}
   <div class="flex items-center gap-4 mt-2 text-xs text-stone-500">
     <span>🟢 Owner-confirmed reference point</span>
-    <span>© OpenStreetMap contributors (basemap + coordinates)</span>
+    <span>{{ attribution|default:"© Stadia Maps © OpenMapTiles © OpenStreetMap contributors" }}</span>
   </div>
 
   {# Locality list — always usable, even if the map fails #}
@@ -100,9 +100,10 @@
   </table>
 
   <p class="text-xs text-stone-500 mt-4">
-    Basemap: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>.
-    Public OSM raster tiles are used for low-traffic local MVP only. For production, configure
-    <code>KACHIENG_MAP_TILES</code> to a self-hosted or commercial tile server.
+    Basemap: <strong>Stadia Maps</strong> (Alidade Smooth) — free for localhost development.
+    For production, register at <a href="https://stadiamaps.com/" target="_blank" rel="noopener" class="text-emerald-700 hover:underline">stadiamaps.com</a>
+    and set <code>KACHIENG_MAP_API_KEY</code> in your environment.
+    Attribution: {{ attribution|default:"© Stadia Maps © OpenMapTiles © OpenStreetMap contributors" }}.
   </p>
 </div>
 
