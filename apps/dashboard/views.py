@@ -19,10 +19,12 @@ from apps.weather.models import WeatherSignal
 
 
 def _latest_real_weather():
-    """Return the most recent NON-synthetic WeatherSignal, or None."""
+    """Return the most recent NON-synthetic, NON-quarantined WeatherSignal, or None.
+    Records with verification_status='review_required' are excluded from production display."""
     return (
         WeatherSignal.objects
         .exclude(synthetic_flag="synthetic")
+        .exclude(verification_status="review_required")
         .order_by("-publication_date", "-source_date", "-retrieved_at")
         .first()
     )

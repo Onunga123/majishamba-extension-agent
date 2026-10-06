@@ -129,10 +129,20 @@ def ingest_kmd_bulletin_metadata(
     The officer is responsible for transcribing the bulletin's metadata accurately.
     We do NOT fetch the bulletin ourselves (no public API; respect robots/rate-limits).
 
-    Returns the created WeatherSignal as a dict.
+    Content validation is performed BEFORE the record is stored. Records that fail
+    validation are stored with verification_status='review_required' (quarantined)
+    rather than rejected outright — the officer sees the errors and can fix them.
+
+    Returns the created WeatherSignal as a dict with:
+    - weather_signal_id
+    - verification_status (current_official | regional_context | review_required)
+    - display_label
+    - validation_errors (list of errors, empty if valid)
+    - validation_warnings (list of warnings)
     """
     from apps.weather.models import WeatherSignal
     from apps.audit.service import log_audit_event
+    from apps.governance.validators import validate_weather_content
 
     if rainfall_mm is not None and not rainfall_period_note:
         raise ValueError(
@@ -140,9 +150,22 @@ def ingest_kmd_bulletin_metadata(
             "numeric rainfall must record the period and geographic scope it applies to."
         )
 
-    # Determine honest verification_status based on coverage_level.
-    # Regional forecasts (Lake Victoria Basin) are NOT county-specific.
-    if coverage_level == "regional":
+    # --- Content validation (the "eee" fix) ---
+    validation = validate_weather_content(
+        forecast_summary=forecast_summary,
+        onset_status=onset_status,
+        rainfall_mm=rainfall_mm,
+        rainfall_period_note=rainfall_period_note,
+        valid_from=valid_from,
+        valid_to=valid_to,
+        publication_date=publication_date,
+    )
+
+    # Determine honest verification_status based on coverage_level AND validation result.
+    if not validation.is_valid:
+        # Quarantine: store the record but mark it review_required.
+        verification_status = "review_required"
+    elif coverage_level == "regional":
         verification_status = WeatherSignal.VerificationStatus.REGIONAL_CONTEXT
     elif coverage_level == "county":
         verification_status = WeatherSignal.VerificationStatus.CURRENT_OFFICIAL
@@ -192,6 +215,9 @@ def ingest_kmd_bulletin_metadata(
         "weather_signal_id": sig.id,
         "verification_status": sig.verification_status,
         "display_label": sig.display_label,
+        "validation_errors": validation.errors,
+        "validation_warnings": validation.warnings,
+        "is_valid": validation.is_valid,
     }
 
 

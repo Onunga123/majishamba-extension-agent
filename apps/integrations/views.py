@@ -64,7 +64,26 @@ class KMDBulletinIngestView(LoginRequiredMixin, View):
                 source_url=data.get("source_url", ""),
                 actor_id=request.user.id,
             )
-            messages.success(request, f"KMD bulletin ingested as WeatherSignal #{result['weather_signal_id']} ({result['display_label']}). Dashboard now shows it as current.")
+            if not result.get("is_valid", True):
+                # Content validation failed — record was stored as review_required.
+                # Show the officer the validation errors so they can fix and re-submit.
+                for err in result.get("validation_errors", []):
+                    messages.error(request, f"Validation: {err}")
+                for warn in result.get("validation_warnings", []):
+                    messages.warning(request, f"Warning: {warn}")
+                messages.warning(
+                    request,
+                    f"Bulletin stored as WeatherSignal #{result['weather_signal_id']} with status 'review_required'. "
+                    f"Fix the issues and re-submit, or ask a supervisor to review."
+                )
+            else:
+                for warn in result.get("validation_warnings", []):
+                    messages.warning(request, f"Warning: {warn}")
+                messages.success(
+                    request,
+                    f"KMD bulletin ingested as WeatherSignal #{result['weather_signal_id']} "
+                    f"({result['display_label']}). Dashboard now shows it as current."
+                )
             return redirect("dashboard:home")
         except ValueError as exc:
             form.add_error(None, str(exc))
