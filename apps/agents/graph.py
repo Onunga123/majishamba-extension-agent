@@ -165,62 +165,71 @@ def load_calendar_from_borrowed_mcp(state: AgentState) -> AgentState:
     """Use the BORROWED official filesystem MCP server to read an approved
     crop-calendar text file from docs/calendars/.
 
-    This demonstrates the borrowed MCP server in the agent graph — the same
-    evidence the agent already has from `get_crop_calendar` (custom MCP), but
-    sourced from a real external MCP server over stdio, with the call logged
-    to the audit trail. Restricted to development; not used in production.
+    Two paths:
+      (1) PREFERRED — when MAJISHAMBA_BORROWED_MCP_USE_NPX=1 and Node/npx are
+          available, this node starts the official @modelcontextprotocol/server-filesystem
+          MCP server over stdio, initializes a real MCP client session
+          (`mcp.client.stdio.stdio_client` + `ClientSession`), invokes the
+          `read_file` tool, and validates the response. This is a real MCP
+          invocation, not a file read.
+      (2) FALLBACK — when npx is unavailable (e.g. dev machines without Node),
+          this node reads the APPROVED file directly. The call is still
+          logged to the audit trail as `borrowed_filesystem_mcp` so the
+          officer can see the borrowed-server evidence path. The fallback
+          is clearly labelled in the audit metadata (`status = read_direct_fallback`).
+
+    Restriction: filesystem access is limited to the approved directory
+    (MAJISHAMBA["BORROWED_FILESYSTEM_MCP_ROOT"]). The agent never reads
+    arbitrary files. Only MIT-licensed or self-authored approved material
+    is exposed — KALRO content is NOT loaded here (permission-pending).
     """
     from django.conf import settings as django_settings
+    import asyncio
 
     calendar_dir = django_settings.MAJISHAMBA["BORROWED_FILESYSTEM_MCP_ROOT"]
-    calendar_path = os.path.join(calendar_dir, "sample_calendar.txt")
+    calendar_filename = "sample_calendar.txt"
+    calendar_path = os.path.join(calendar_dir, calendar_filename)
 
-    # Best-effort: use the official @modelcontextprotocol/server-filesystem
-    # MCP server if Node/npx is available; otherwise read the file directly
-    # (still representing what the borrowed MCP would return) and log it.
     calendar_text = ""
     borrowed_status = "skipped"
-    try:
-        if os.environ.get("MAJISHAMBA_BORROWED_MCP_SKIP_NPX") == "1" or not _env_bool("MAJISHAMBA_BORROWED_MCP_USE_NPX", default=False):
-            # Direct file read (development default — no external runtime needed)
+    invocation_method = "none"  # "mcp_client" | "direct_fallback" | "none"
+
+    use_npx = _env_bool("MAJISHAMBA_BORROWED_MCP_USE_NPX", default=False)
+    skip_npx = os.environ.get("MAJISHAMBA_BORROWED_MCP_SKIP_NPX") == "1"
+
+    if use_npx and not skip_npx:
+        # --- (1) PREFERRED PATH — real MCP client invocation ---
+        try:
+            calendar_text, invocation_method, borrowed_status = _invoke_filesystem_mcp_via_stdio(
+                calendar_dir, calendar_filename
+            )
+        except Exception as exc:  # pragma: no cover - env-dependent
+            logger.warning("Borrowed MCP stdio path failed: %s", exc)
+            borrowed_status = f"mcp_client_error: {exc}"
+            invocation_method = "none"
+            # Fall through to direct fallback below if file exists.
             if os.path.exists(calendar_path):
                 with open(calendar_path, encoding="utf-8") as f:
                     calendar_text = f.read()
-                borrowed_status = "read_direct"
-            else:
-                borrowed_status = "file_missing"
+                invocation_method = "direct_fallback_after_mcp_error"
+                borrowed_status = "direct_fallback_after_mcp_error"
+    else:
+        # --- (2) FALLBACK PATH — direct read (no npx available) ---
+        if os.path.exists(calendar_path):
+            with open(calendar_path, encoding="utf-8") as f:
+                calendar_text = f.read()
+            borrowed_status = "read_direct_fallback"
+            invocation_method = "direct_fallback"
         else:
-            # Try to launch the official filesystem MCP server via npx.
-            # If npx is unavailable, fall back to direct file read.
-            try:
-                import subprocess
-                import json as _json
-                proc = subprocess.run(
-                    ["npx", "-y", "@modelcontextprotocol/server-filesystem", calendar_dir],
-                    capture_output=True, text=True, timeout=5,
-                )
-                if proc.returncode != 0 and not os.path.exists(calendar_path):
-                    borrowed_status = "npx_failed"
-                else:
-                    with open(calendar_path, encoding="utf-8") as f:
-                        calendar_text = f.read()
-                    borrowed_status = "read_via_npx"
-            except Exception as exc:  # pragma: no cover - env-dependent
-                logger.warning("Borrowed MCP npx path failed: %s", exc)
-                if os.path.exists(calendar_path):
-                    with open(calendar_path, encoding="utf-8") as f:
-                        calendar_text = f.read()
-                    borrowed_status = "read_direct_after_npx_fail"
-                else:
-                    borrowed_status = f"error: {exc}"
-    except Exception as exc:  # pragma: no cover
-        borrowed_status = f"error: {exc}"
+            borrowed_status = "file_missing"
+            invocation_method = "none"
 
     # Add to state — store as a parallel calendar source alongside the custom MCP one.
     borrowed_calendar = {
-        "source": "borrowed_filesystem_mcp:docs/calendars/sample_calendar.txt",
+        "source": f"borrowed_filesystem_mcp:docs/calendars/{calendar_filename}",
         "text_preview": calendar_text[:300],
         "status": borrowed_status,
+        "invocation_method": invocation_method,
     }
     existing = state.get("borrowed_mcp_calls", []) or []
     existing.append(borrowed_calendar)
@@ -228,17 +237,66 @@ def load_calendar_from_borrowed_mcp(state: AgentState) -> AgentState:
     # Log this as a tool call so the audit trail shows the borrowed MCP server being used.
     log_tool_call(
         tool_name="borrowed_filesystem_mcp",
-        inputs={"path": "docs/calendars/sample_calendar.txt"},
+        inputs={"path": f"docs/calendars/{calendar_filename}", "invocation_method": invocation_method},
         outputs={"status": borrowed_status, "chars_read": len(calendar_text)},
         actor_id=state.get("actor_id"),
         approval_status="",
     )
 
     new_warnings = list(state.get("warnings") or [])
-    if borrowed_status in {"file_missing", "npx_failed"} or borrowed_status.startswith("error"):
+    if borrowed_status in {"file_missing", "npx_failed", "mcp_client_error"} or borrowed_status.startswith("error"):
         new_warnings.append(f"Borrowed MCP calendar read failed: {borrowed_status}")
 
     return {**state, "borrowed_mcp_calls": existing, "warnings": new_warnings}
+
+
+def _invoke_filesystem_mcp_via_stdio(
+    calendar_dir: str, filename: str
+) -> tuple[str, str, str]:
+    """Start the official @modelcontextprotocol/server-filesystem MCP server,
+    initialize a real MCP client session, invoke read_file, return the text.
+
+    Returns (text, invocation_method, status).
+    Raises on any failure so the caller can fall back to a direct file read.
+    """
+    import asyncio
+    import shutil
+
+    # Verify npx is available before trying to spawn it.
+    if shutil.which("npx") is None:
+        raise RuntimeError("npx not found on PATH; cannot start @modelcontextprotocol/server-filesystem")
+
+    # Use the official MCP Python SDK client over stdio.
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    async def _run() -> str:
+        server_params = StdioServerParameters(
+            command="npx",
+            args=["-y", "@modelcontextprotocol/server-filesystem", calendar_dir],
+        )
+        async with stdio_client(server_params) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                # List tools to verify the server is up and has read_file.
+                tools_result = await session.list_tools()
+                tool_names = [t.name for t in tools_result.tools]
+                if "read_file" not in tool_names:
+                    raise RuntimeError(f"filesystem MCP server did not expose read_file (tools: {tool_names})")
+                # Invoke read_file with the absolute path inside the approved directory.
+                abs_path = os.path.join(calendar_dir, filename)
+                result = await session.call_tool("read_file", {"path": abs_path})
+                # Extract text from the result content blocks.
+                text_parts: list[str] = []
+                for block in (result.content or []):
+                    # block may have .text attribute (TextContent) — use getattr for safety.
+                    chunk = getattr(block, "text", None)
+                    if chunk:
+                        text_parts.append(chunk)
+                return "".join(text_parts)
+
+    text = asyncio.run(_run())
+    return text, "mcp_client", "read_via_mcp_client"
 
 
 def fetch_weather(state: AgentState) -> AgentState:
@@ -303,8 +361,9 @@ def _build_prompt(state: AgentState) -> str:
         )
     ) if ph else "No plot records"
     cc_summary = (
-        f"window {cc.get('planting_window_start','?')} to {cc.get('planting_window_end','?')} "
-        f"(source: {cc.get('source','?')} {cc.get('source_date','?')})"
+        f"window {cc.get('planting_window_display') or cc.get('planting_window_start','?')} to {cc.get('planting_window_end','?')} "
+        f"(source: {cc.get('source','?')} {cc.get('source_date','?')}; "
+        f"permission_status: {cc.get('permission_status','?')})"
     ) if cc else "No calendar"
     wx30 = wx.get("last_30_days", {}) or {}
     wx10 = wx.get("10_day_forecast", {}) or {}
@@ -414,14 +473,27 @@ def _fallback_template(state: AgentState) -> str:
     rainfall = last30.get("rainfall_mm")
     pa = state.get("pest_alerts", []) or []
 
+    # Honest recommendation logic — we do NOT inflate severity.
+    # We only recommend pest_monitoring when:
+    #   (a) a real official notice OR officer field report lists the pest with
+    #       severity = high/extreme, OR
+    #   (b) any synthetic test scenario mentions the pest (the officer is
+    #       expected to verify locally; the agent does not claim the pest is
+    #       confirmed in Kachieng).
     if state.get("evidence_validation", {}).get("missing_required"):
         rec = "data_gap"
     elif onset == "onset_delayed" or (rainfall is not None and rainfall < 40):
         rec = "delay"
     elif onset == "false_start":
         rec = "verify_locally"
-    elif any(a.get("severity") == "high" for a in pa):
+    elif any(a.get("severity") in {"high", "extreme"} for a in pa):
+        # Real official notice with explicit high/extreme severity.
         rec = "pest_monitoring"
+    elif pa and any(a.get("verification_status") == "synthetic" for a in pa):
+        # Synthetic test scenario mentions a pest — recommend verify_locally
+        # rather than plant, so the officer scouts the field. We do NOT
+        # claim the pest is confirmed; we say "verify locally".
+        rec = "verify_locally"
     else:
         rec = "plant"
 
@@ -436,23 +508,28 @@ def _fallback_template(state: AgentState) -> str:
 
     body_parts = [
         f"Cluster {cluster} (Kachieng Ward, Nyatike Sub-County, Migori County) — short rains maize advisory.",
-        f"Planting window from crop calendar: {cc.get('planting_window_start', '?')} to {cc.get('planting_window_end', '?')}. [Source: {cc.get('source', '?')}]",
-        f"Last 30 days rainfall: {rainfall} mm with onset status '{onset}'. [Source: {last30.get('source', '?')}]",
+        f"Crop calendar: {cc.get('planting_window_display', 'Local planting dates not specified in this source')}. [Source: {cc.get('source', '?')}; permission_status: {cc.get('permission_status', '?')}]",
+        f"Last 30 days rainfall: {rainfall if rainfall is not None else 'not specified'} (onset: {onset}). [Source: {last30.get('source', '?')}]",
         f"10-day forecast: {fcst.get('forecast_summary', 'N/A')}. [Source: {fcst.get('source', '?')}]",
     ]
     if pa:
-        body_parts.append(f"Pest alerts: {'; '.join(a['pest']+' ('+a['severity']+')' for a in pa)}. [Source: {pa[0].get('source', '?')}]")
-    body_parts.append("Recommendation: officer to verify local rainfall onset in Kachieng with cluster representative before any planting decision.")
+        # Show severity as "not stated" if it's "not_specified" — don't fabricate.
+        pa_summary = "; ".join(
+            a['pest'] + " (" + (a['severity'] if a['severity'] != "not_specified" else "severity not stated") + ")"
+            for a in pa
+        )
+        body_parts.append(f"Pest alerts: {pa_summary}. [Source: {pa[0].get('source', '?')}]")
+    body_parts.append("Recommendation: officer to verify local rainfall onset in Kachieng with cluster representative before any planting decision. Agent does not infer onset from forecasts.")
 
     return json.dumps({
         "recommendation_type": rec,
         "summary": summary,
         "body": "\n\n".join(body_parts),
         "confidence": "medium",
-        "limitations": "Advisory generated by deterministic fallback — review by officer required.",
+        "limitations": "Advisory generated by deterministic fallback — review by officer required. Crop calendar ingestion is permission-pending for KALRO content; planting dates are not specified.",
         "evidence": [
-            {"source_type": "crop_calendar", "source_ref": cc.get("source", ""), "claim": "Planting window", "source_url": cc.get("source_url", "")},
-            {"source_type": "weather", "source_ref": last30.get("source", ""), "claim": "Last 30 days rainfall", "source_url": last30.get("source_url", "")},
+            {"source_type": "crop_calendar", "source_ref": cc.get("source", "") or cc.get("source_authority", ""), "claim": cc.get("planting_window_display", "Planting window"), "source_url": cc.get("source_url", "")},
+            {"source_type": "weather", "source_ref": last30.get("source", "") or last30.get("source_authority", ""), "claim": "Last 30 days rainfall", "source_url": last30.get("source_url", "")},
         ],
     })
 

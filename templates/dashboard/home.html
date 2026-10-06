@@ -90,29 +90,82 @@
   </div>
 
   <div class="bg-white p-4 rounded shadow border border-stone-200">
-    <h2 class="font-semibold mb-2">Latest weather signal</h2>
-    {% if weather_summary %}
-      <p class="text-xs font-medium text-amber-900 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-2">Synthetic demonstration signal — not a live KMD feed</p>
-      <div class="text-sm">
-        <p>{{ weather_summary.area_label }} — {{ weather_summary.get_period_display }}</p>
-        <p>Rainfall: {{ weather_summary.rainfall_mm }} mm</p>
-        <p>Onset: {{ weather_summary.onset_status }}</p>
-        <p class="text-xs text-stone-500">Source: {{ weather_summary.source }} · observation date {{ weather_summary.source_date }}</p>
-      </div>
+    <h2 class="font-semibold mb-2">Weather — KMD bulletin status</h2>
+    {% if weather_panel.kind == "real" %}
+      {% with sig=weather_panel.signal %}
+        <div class="text-sm">
+          <p class="font-medium">{{ sig.product_type|default:sig.source_authority }}</p>
+          <p class="text-xs text-stone-600">Authority: {{ sig.source_authority }} · Coverage: {{ sig.geographic_scope|default:"—" }} ({{ sig.coverage_level|default:"—" }})</p>
+          <p class="text-xs text-stone-600">Issued: {{ sig.publication_date|default:sig.source_date }}{% if sig.valid_from %} · Valid: {{ sig.valid_from }} to {{ sig.valid_to|default:"(open)" }}{% endif %}</p>
+          <p class="mt-1">Forecast: {{ sig.forecast_summary }}</p>
+          <p>Rainfall amount: <strong>{{ weather_panel.rainfall_display }}</strong>{% if sig.rainfall_period_note %} <span class="text-xs text-stone-500">({{ sig.rainfall_period_note }})</span>{% endif %}</p>
+          <p>Onset: {{ sig.onset_status }}{% if sig.onset_status == "unknown" %} <span class="text-xs text-stone-500">(not reported by authority — officer verification needed)</span>{% endif %}</p>
+          {% if weather_panel.is_regional %}
+            <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">Regional forecast covering Migori — not a Nyatike station observation or Kachieng-local forecast</p>
+          {% endif %}
+          {% if sig.source_url %}<p class="text-xs mt-1"><a href="{{ sig.source_url }}" target="_blank" rel="noopener" class="text-emerald-700 hover:underline">Open official publication ↗</a></p>{% endif %}
+        </div>
+      {% endwith %}
     {% else %}
-      <p class="text-sm text-stone-500">No weather signal loaded.</p>
+      {# No current verified KMD bulletin ingested — honest default state #}
+      <div class="text-sm">
+        <p class="font-medium text-stone-700">{{ weather_panel.no_notice.message }}</p>
+        <p class="text-xs text-stone-500 mt-1">{{ weather_panel.no_notice.manual_retrieval_note }}</p>
+        <p class="text-xs text-stone-500">Authority: Kenya Meteorological Department (https://meteo.go.ke/) — no public API; manual retrieval required.</p>
+        {% if weather_panel.synthetic_for_demo %}
+          <details class="mt-2">
+            <summary class="text-xs text-amber-800 cursor-pointer">Show synthetic test scenario (demo only — NOT a real KMD bulletin)</summary>
+            <div class="text-xs text-stone-600 bg-amber-50 border border-amber-200 rounded p-2 mt-1">
+              <p><strong>{{ weather_panel.synthetic_for_demo.product_type }}</strong></p>
+              <p>{{ weather_panel.synthetic_for_demo.forecast_summary }}</p>
+              <p class="text-xs text-stone-500">Synthetic — used to exercise the agent's fallback path; not for production decisions.</p>
+            </div>
+          </details>
+        {% endif %}
+      </div>
     {% endif %}
 
-    <h2 class="font-semibold mt-5 mb-2">Latest pest alert</h2>
-    {% if pest_summary %}
-      <p class="text-xs font-medium text-amber-900 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-2">Synthetic demonstration signal — not a live alert</p>
-      <div class="text-sm">
-        <p>{{ pest_summary.pest }} ({{ pest_summary.get_severity_display }})</p>
-        <p class="text-xs text-stone-500">Source: {{ pest_summary.source }} · {{ pest_summary.source_date }}</p>
-      </div>
+    <h2 class="font-semibold mt-5 mb-2">Pest notices</h2>
+    {% if pest_panel.kind == "real" %}
+      {% with alert=pest_panel.alert %}
+        <div class="text-sm">
+          <p class="font-medium">{{ alert.pest }}</p>
+          <p class="text-xs text-stone-600">Authority: {{ alert.source_authority }} · Product: {{ alert.product_type }}</p>
+          <p class="text-xs text-stone-600">Issued: {{ alert.publication_date|default:alert.source_date }}{% if alert.valid_from %} · Valid: {{ alert.valid_from }} to {{ alert.valid_to|default:"(open)" }}{% endif %}</p>
+          <p>Severity: {{ pest_panel.severity_display }}</p>
+          <p>Coverage: {{ alert.geographic_scope|default:"—" }} ({{ alert.coverage_level|default:"—" }})</p>
+          {% if alert.advisory %}<p class="mt-1">{{ alert.advisory }}</p>{% endif %}
+          {% if alert.source_url %}<p class="text-xs mt-1"><a href="{{ alert.source_url }}" target="_blank" rel="noopener" class="text-emerald-700 hover:underline">Open source ↗</a></p>{% endif %}
+        </div>
+      {% endwith %}
     {% else %}
-      <p class="text-sm text-stone-500">No pest alert loaded.</p>
+      {# No current verified pest notice — honest default state #}
+      <div class="text-sm">
+        <p class="font-medium text-stone-700">{{ pest_panel.no_notice.message }}</p>
+        <p class="text-xs text-stone-500 mt-1">{{ pest_panel.no_notice.scouting_note }}</p>
+        <p class="text-xs text-stone-500">Authorities checked: KEPHIS, KALRO, Migori County Dept. of Agriculture — no public alert API; manual retrieval required.</p>
+        {% if pest_panel.synthetic_for_demo %}
+          <details class="mt-2">
+            <summary class="text-xs text-amber-800 cursor-pointer">Show synthetic test scenario (demo only — NOT a real KEPHIS/KALRO/PlantVillage bulletin)</summary>
+            <div class="text-xs text-stone-600 bg-amber-50 border border-amber-200 rounded p-2 mt-1">
+              <p><strong>{{ pest_panel.synthetic_for_demo.pest }}</strong></p>
+              <p>{{ pest_panel.synthetic_for_demo.advisory }}</p>
+              <p class="text-xs text-stone-500">Synthetic — used to exercise the agent's fallback path; not for production decisions.</p>
+            </div>
+          </details>
+        {% endif %}
+      </div>
     {% endif %}
+
+    <h2 class="font-semibold mt-5 mb-2">Agronomic guidance — KALRO permission status</h2>
+    <div class="text-sm">
+      <p class="font-medium text-stone-700">{{ kalro_state.message }}</p>
+      <p class="text-xs text-stone-500 mt-1">{{ kalro_state.bibliographic_recorded }}</p>
+      <p class="text-xs text-stone-500">{{ kalro_state.extraction_deferred }}</p>
+      <p class="text-xs text-stone-500">Licence basis: {{ kalro_state.licence_basis }}</p>
+      {% if kalro_state.source_url %}<p class="text-xs mt-1"><a href="{{ kalro_state.source_url }}" target="_blank" rel="noopener" class="text-emerald-700 hover:underline">Open KALRO publication page ↗</a> (publication page only — content not ingested)</p>{% endif %}
+      <p class="text-xs text-amber-800 mt-1">⚠ Local planting dates not specified in this source. Officer must verify local agro-climatic applicability with the extension office.</p>
+    </div>
 
     <h2 class="font-semibold mt-5 mb-2">Pending follow-up tasks</h2>
     {% if pending_tasks %}

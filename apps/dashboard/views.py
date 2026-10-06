@@ -10,9 +10,53 @@ from django.views import View
 from apps.advisories.models import Advisory
 from apps.audit.models import AuditEvent
 from apps.clusters.models import FarmerCluster
+from apps.integrations.kalro import permission_status as kalro_permission_status
+from apps.integrations.kmd import no_current_kmd_notice
+from apps.integrations.pests import no_current_pest_notice
 from apps.pests.models import PestAlert
 from apps.tasks.models import FollowUpTask
 from apps.weather.models import WeatherSignal
+
+
+def _latest_real_weather():
+    """Return the most recent NON-synthetic WeatherSignal, or None."""
+    return (
+        WeatherSignal.objects
+        .exclude(synthetic_flag="synthetic")
+        .order_by("-publication_date", "-source_date", "-retrieved_at")
+        .first()
+    )
+
+
+def _latest_synthetic_weather():
+    """Return the most recent synthetic WeatherSignal (clearly labelled), or None."""
+    return (
+        WeatherSignal.objects
+        .filter(synthetic_flag="synthetic")
+        .order_by("-publication_date", "-source_date", "-retrieved_at")
+        .first()
+    )
+
+
+def _latest_real_pest_notice():
+    """Return the most recent NON-synthetic, currently-valid PestAlert, or None."""
+    return (
+        PestAlert.objects
+        .exclude(synthetic_flag="synthetic")
+        .filter(verification_status__in=["current_official", "officer_field_report"])
+        .order_by("-publication_date", "-source_date", "-retrieved_at")
+        .first()
+    )
+
+
+def _latest_synthetic_pest_notice():
+    """Return the most recent synthetic PestAlert (clearly labelled), or None."""
+    return (
+        PestAlert.objects
+        .filter(synthetic_flag="synthetic")
+        .order_by("-publication_date", "-source_date", "-retrieved_at")
+        .first()
+    )
 
 
 class DashboardHomeView(LoginRequiredMixin, View):
@@ -33,8 +77,41 @@ class DashboardHomeView(LoginRequiredMixin, View):
         recent_events = AuditEvent.objects.select_related("actor").order_by("-created_at")[:25]
         pending_tasks = FollowUpTask.objects.exclude(status=FollowUpTask.Status.COMPLETED).order_by("deadline")[:10]
 
-        weather_summary = WeatherSignal.objects.order_by("-source_date").first()
-        pest_summary = PestAlert.objects.order_by("-source_date").first()
+        # --- Honest weather state ---
+        real_weather = _latest_real_weather()
+        synthetic_weather = _latest_synthetic_weather()
+        if real_weather:
+            weather_panel = {
+                "kind": "real",
+                "signal": real_weather,
+                "rainfall_display": real_weather.rainfall_display,
+                "is_regional": real_weather.is_regional_context,
+            }
+        else:
+            weather_panel = {
+                "kind": "no_current_notice",
+                "no_notice": no_current_kmd_notice(),
+                "synthetic_for_demo": synthetic_weather,
+            }
+
+        # --- Honest pest state ---
+        real_pest = _latest_real_pest_notice()
+        synthetic_pest = _latest_synthetic_pest_notice()
+        if real_pest:
+            pest_panel = {
+                "kind": "real",
+                "alert": real_pest,
+                "severity_display": real_pest.severity_display_safe,
+            }
+        else:
+            pest_panel = {
+                "kind": "no_current_notice",
+                "no_notice": no_current_pest_notice(),
+                "synthetic_for_demo": synthetic_pest,
+            }
+
+        # --- KALRO permission state ---
+        kalro_state = kalro_permission_status()
 
         return render(
             request,
@@ -46,8 +123,9 @@ class DashboardHomeView(LoginRequiredMixin, View):
                 "recent_advisories": recent_advisories,
                 "recent_events": recent_events,
                 "pending_tasks": pending_tasks,
-                "weather_summary": weather_summary,
-                "pest_summary": pest_summary,
+                "weather_panel": weather_panel,
+                "pest_panel": pest_panel,
+                "kalro_state": kalro_state,
                 "office_name": "Nyatike Sub-County Agricultural Office (intended user)",
                 "ward": "Kachieng",
                 "sub_county": "Nyatike",

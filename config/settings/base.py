@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     # MajiShamba domain apps
     "apps.accounts",
     "apps.geography",
+    "apps.governance",  # Provenance mixin (no models of its own, but used for app registry)
     "apps.clusters",
     "apps.plots",
     "apps.calendars",
