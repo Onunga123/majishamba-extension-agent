@@ -16,6 +16,7 @@ class AgentState(TypedDict, total=False):
     county: str
     actor_id: int | None
     request_id: str
+    advisory_run_id: int | None
 
     # Tool outputs
     plot_history: list[dict]

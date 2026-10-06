@@ -20,6 +20,8 @@ class FollowUpTask(models.Model):
         ASSIGNED = "assigned", "Assigned"
         IN_PROGRESS = "in_progress", "In progress"
         COMPLETED = "completed", "Completed"
+        VERIFIED = "verified", "Verified by supervisor"
+        CLOSED = "closed", "Closed"
         CANCELLED = "cancelled", "Cancelled"
 
     approved_advisory = models.ForeignKey(
@@ -47,4 +49,38 @@ class FollowUpTask(models.Model):
         if not self.deadline:
             return False
         as_of = as_of or dt.date.today()
-        return self.deadline < as_of and self.status != self.Status.COMPLETED
+        return self.deadline < as_of and self.status not in {
+            self.Status.COMPLETED,
+            self.Status.VERIFIED,
+            self.Status.CLOSED,
+            self.Status.CANCELLED,
+        }
+
+
+class FieldFinding(models.Model):
+    """Officer field notes after an approved advisory — internal only."""
+
+    task = models.ForeignKey(FollowUpTask, on_delete=models.CASCADE, related_name="field_findings")
+    visit_date = models.DateField()
+    checklist = models.JSONField(default=dict, blank=True)
+    observations = models.TextField(blank=True)
+    missing_information = models.TextField(blank=True)
+    follow_up_notes = models.TextField(blank=True)
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="field_findings_submitted",
+    )
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="field_findings_verified",
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-submitted_at",)

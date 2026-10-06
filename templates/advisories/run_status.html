@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Advisory run — Kachieng AI Agent{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <h1 class="text-lg font-semibold mb-1">Preparing advisory for {{ run.cluster.locality|default:run.cluster.name }} ({{ run.cluster.cluster_id }})</h1>
+  <p class="text-sm text-stone-600 mb-4">The agent is gathering plot, calendar, weather, pest and market evidence. Nothing is sent to farmers.</p>
+  {% include "advisories/partials/run_progress.html" %}
+</div>
+{% endblock %}

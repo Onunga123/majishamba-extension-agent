@@ -4,50 +4,52 @@
 <div class="max-w-2xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
   <h1 class="text-lg font-semibold mb-2">Request advisory for a Kachieng cluster</h1>
   <p class="text-sm text-stone-600 mb-4">
-    Selecting a cluster runs the LangGraph agent. The agent calls the custom MCP tools
-    (plot history, crop calendar, Nyatike weather, Migori pest alerts, Migori Town market
-    prices), drafts an advisory with Qwen2.5-7B-Instruct via Ollama (or falls back to a
-    deterministic template), validates the output, and saves it as <strong>DRAFT</strong>.
-    Nothing is sent automatically — the officer reviews and approves in the next step.
+    Choose one locality cluster. The system will check plot records, maize planting guidance,
+    weather and pest evidence, then prepare an <strong>internal DRAFT</strong> for your review.
+    This usually takes one to several minutes if the local model is running; otherwise a template draft is used.
+    Nothing is sent to farmers automatically.
   </p>
-  {% if error %}
-    <div class="bg-red-50 border border-red-300 text-red-800 text-sm p-3 rounded mb-3">
-      <strong>Agent error:</strong> {{ error }}
-      {% if trace %}<pre class="text-xs mt-2 bg-white p-2 rounded border border-red-200">{{ trace|join:"\n" }}</pre>{% endif %}
-    </div>
-  {% endif %}
-  <form method="post" class="space-y-3">
+  <form method="post" class="space-y-3" id="request-advisory-form">
     {% csrf_token %}
     <div>
       <label class="block text-sm font-medium" for="cluster_id_select">Cluster
-        <span class="text-xs text-stone-500 font-normal">({{ clusters|length }} locality-based farmer clusters available)</span>
+        <span class="text-xs text-stone-500 font-normal">({{ clusters|length }} localities)</span>
       </label>
       <input type="text"
              id="cluster_search"
-             placeholder="Type to filter by ID, name or locality (e.g. Sori, KACH-14, Wachara)"
-             class="w-full border border-stone-300 rounded px-3 py-2 mt-1 mb-2 text-sm">
-      <select name="cluster_id" id="cluster_id_select" size="8"
-              class="w-full border border-stone-300 rounded px-3 py-2 text-sm">
+             placeholder="Filter by locality (e.g. Sori, Wachara) or KACH ID"
+             class="w-full border border-stone-300 rounded px-3 py-2 mt-1 mb-2 text-sm"
+             autocomplete="off">
+      <select name="cluster_id" id="cluster_id_select" size="8" required
+              class="w-full border border-stone-300 rounded px-3 py-2 text-sm min-h-[12rem]">
         {% for c in clusters %}
           <option value="{{ c.cluster_id }}"
+                  {% if preselect == c.cluster_id %}selected{% endif %}
                   data-search="{{ c.cluster_id|lower }} {{ c.name|lower }} {{ c.locality|lower }}">
-            {{ c.cluster_id }} — {{ c.name }} ({{ c.locality|default:"no locality" }})
+            {{ c.locality|default:c.name }} — {{ c.name }} ({{ c.cluster_id }})
           </option>
         {% endfor %}
       </select>
-      <p class="text-xs text-stone-500 mt-1">
-        One cluster per advisory run. The agent does not auto-generate advisories for all clusters.
-      </p>
     </div>
-    <button type="submit" class="bg-emerald-700 text-white px-3 py-1 rounded text-sm hover:bg-emerald-800">Run agent</button>
+    <button type="submit" id="run-agent-btn" class="bg-emerald-700 text-white px-4 py-2 rounded text-sm hover:bg-emerald-800 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed">
+      Start advisory run
+    </button>
+    <p class="text-xs text-stone-500" id="submit-hint" aria-live="polite"></p>
   </form>
 </div>
 <script>
-  // Simple search filter on the select element.
-  (function() {
-    const search = document.getElementById('cluster_search');
-    const select = document.getElementById('cluster_id_select');
-    if (!search || !select) return;
+(function() {
+  const search = document.getElementById('cluster_search');
+  const select = document.getElementById('cluster_id_select');
+  const form = document.getElementById('request-advisory-form');
+  const btn = document.getElementById('run-agent-btn');
+  const hint = document.getElementById('submit-hint');
+  if (select) {
+    Array.from(select.options).forEach(opt => {
+      if (opt.hidden) opt.hidden = false;
+    });
+  }
+  if (search && select) {
     const options = Array.from(select.options);
     search.addEventListener('input', () => {
       const q = search.value.toLowerCase().trim();
@@ -56,6 +58,14 @@
         opt.hidden = q && !hay.includes(q);
       });
     });
-  })();
+  }
+  if (form && btn) {
+    form.addEventListener('submit', () => {
+      btn.disabled = true;
+      btn.textContent = 'Starting…';
+      if (hint) hint.textContent = 'Please wait — do not submit again until the run page opens.';
+    });
+  }
+})();
 </script>
 {% endblock %}

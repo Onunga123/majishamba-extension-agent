@@ -14,7 +14,7 @@ from django.urls import reverse_lazy
 # so the cards never describe a role that doesn't exist in the database.
 _ROLE_CAPABILITIES = {
     "extension_officer": "Request advisories, review DRAFTs, approve or reject, create follow-up tasks.",
-    "supervisor": "Approve or reject advisories; spot-check the audit trail. Cannot request advisories unless also an officer.",
+    "supervisor": "Request advisories, approve or reject, create follow-up tasks, and spot-check the audit trail.",
     "viewer": "Read-only access to dashboard, advisories, tasks, audit. Cannot request or approve.",
 }
 

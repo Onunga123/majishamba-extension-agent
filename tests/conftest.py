@@ -9,6 +9,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
 # Skip Ollama by default in tests so the suite is fast (<5s) and deterministic.
 # Set MAJISHAMBA_SKIP_OLLAMA=0 to disable this and exercise the live model path.
 os.environ.setdefault("MAJISHAMBA_SKIP_OLLAMA", "1")
+os.environ.setdefault("MAJISHAMBA_SYNC_RUN", "1")
 django.setup()
 
 import pytest

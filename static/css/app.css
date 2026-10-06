@@ -1,4 +1,36 @@
-/* MajiShamba — minor custom styles on top of Tailwind CDN. */
-.majishamba-card { @apply bg-white border border-stone-200 rounded shadow p-4; }
-.majishamba-pill { @apply px-2 py-0.5 rounded text-xs font-medium; }
-pre { white-space: pre-wrap; }
+/* Kachieng AI Agent — accessibility helpers on Tailwind CDN */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.skip-link:focus {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  width: auto;
+  height: auto;
+  padding: 0.5rem 1rem;
+  background: #fff;
+  color: #065f46;
+  z-index: 100;
+  border: 2px solid #047857;
+  border-radius: 0.25rem;
+}
+:focus-visible {
+  outline: 2px solid #047857;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+@media print {
+  header, footer, nav, .no-print { display: none !important; }
+}

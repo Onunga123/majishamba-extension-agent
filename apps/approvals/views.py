@@ -3,12 +3,13 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.views.generic import View
 
 from apps.accounts.permissions import require_approver
+from apps.advisories.context_helpers import advisory_review_context
 from apps.advisories.models import Advisory
 from apps.audit.service import log_audit_event
 from apps.tasks.service import create_follow_up_task_after_approval
@@ -22,60 +23,86 @@ class ApprovalGateView(LoginRequiredMixin, View):
 
     def get(self, request: HttpRequest, advisory_pk: int) -> HttpResponse:
         require_approver(request.user)
-        advisory = get_object_or_404(Advisory, pk=advisory_pk)
+        advisory = get_object_or_404(Advisory.objects.select_related("cluster").prefetch_related("evidence"), pk=advisory_pk)
+        if advisory.status != Advisory.Status.DRAFT:
+            messages.warning(request, "This advisory is no longer in DRAFT status.")
+            return redirect("advisories:detail", pk=advisory.pk)
         form = OfficerApprovalForm()
-        return render(
-            request,
-            "approvals/gate.html",
-            {"advisory": advisory, "form": form},
-        )
+        ctx = {"advisory": advisory, "form": form}
+        ctx.update(advisory_review_context(advisory))
+        return render(request, "approvals/gate.html", ctx)
 
+    @transaction.atomic
     def post(self, request: HttpRequest, advisory_pk: int) -> HttpResponse | HttpResponseRedirect:
         require_approver(request.user)
-        advisory = get_object_or_404(Advisory, pk=advisory_pk)
+        advisory = get_object_or_404(Advisory.objects.select_related("cluster"), pk=advisory_pk)
+        if advisory.status != Advisory.Status.DRAFT:
+            messages.error(request, "This advisory is no longer in DRAFT status — refresh and review the current version.")
+            return redirect("advisories:detail", pk=advisory.pk)
+
+        try:
+            posted_version = int(request.POST.get("content_version", "0"))
+        except ValueError:
+            posted_version = 0
+        if posted_version != advisory.content_version:
+            messages.error(
+                request,
+                "This advisory was updated while you were reviewing. Please read the latest version before deciding.",
+            )
+            return redirect("advisories:detail", pk=advisory.pk)
+
         form = OfficerApprovalForm(request.POST)
         if not form.is_valid():
-            return render(request, "approvals/gate.html", {"advisory": advisory, "form": form})
+            ctx = {"advisory": advisory, "form": form}
+            ctx.update(advisory_review_context(advisory))
+            return render(request, "approvals/gate.html", ctx)
+
+        locked = Advisory.objects.select_for_update().get(pk=advisory.pk)
+        if locked.content_version != posted_version or locked.status != Advisory.Status.DRAFT:
+            messages.error(request, "Advisory changed during submission. Please review again.")
+            return redirect("advisories:detail", pk=advisory.pk)
 
         approval = form.save(commit=False)
-        approval.advisory = advisory
+        approval.advisory = locked
         approval.officer = request.user
         approval.save()
 
-        # Reflect decision on the advisory record
         if approval.decision == OfficerApproval.Decision.APPROVED:
-            advisory.status = Advisory.Status.APPROVED
+            locked.status = Advisory.Status.APPROVED
         elif approval.decision == OfficerApproval.Decision.REJECTED:
-            advisory.status = Advisory.Status.REJECTED
+            locked.status = Advisory.Status.REJECTED
         elif approval.decision == OfficerApproval.Decision.DEFERRED:
-            advisory.status = Advisory.Status.DEFERRED
+            locked.status = Advisory.Status.DEFERRED
         else:
-            advisory.status = Advisory.Status.NEEDS_EVIDENCE
-        advisory.save(update_fields=["status", "updated_at"])
+            locked.status = Advisory.Status.NEEDS_EVIDENCE
+        locked.save(update_fields=["status", "updated_at"])
 
         log_audit_event(
             actor=request.user,
             action="officer_approval",
-            target=advisory,
-            metadata={"decision": approval.decision, "comments": approval.comments[:200]},
+            target=locked,
+            metadata={
+                "decision": approval.decision,
+                "comments": approval.comments[:200],
+                "content_version": locked.content_version,
+            },
         )
 
-        # If approved AND the officer requested a follow-up task, create it.
         if approval.decision == OfficerApproval.Decision.APPROVED and request.POST.get("create_followup"):
             task_type = request.POST.get("task_type", "field_visit")
             deadline = request.POST.get("deadline")
             res = create_follow_up_task_after_approval(
-                approved_advisory_id=advisory.id,
+                approved_advisory_id=locked.id,
                 officer_id=request.user.id,
                 task_type=task_type,
                 deadline=deadline,
-                ward=advisory.ward,
+                ward=locked.ward,
                 actor=request.user,
             )
             if res.get("task_id"):
-                messages.success(request, f"Follow-up task #{res['task_id']} created.")
+                messages.success(request, f"Follow-up task #{res['task_id']} created (internal — no message sent to farmers).")
             else:
                 messages.error(request, f"Could not create task: {res.get('error')}")
 
-        messages.success(request, f"Advisory marked {advisory.get_status_display()}.")
-        return redirect("advisories:detail", pk=advisory.pk)
+        messages.success(request, f"Advisory marked {locked.get_status_display()}. No farmer message was sent.")
+        return redirect("advisories:detail", pk=locked.pk)

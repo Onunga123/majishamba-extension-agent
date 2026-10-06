@@ -3,17 +3,19 @@
 {% block content %}
 <div class="bg-white p-4 rounded shadow border border-stone-200">
   <h1 class="text-lg font-semibold mb-2">Follow-up tasks — Kachieng Ward</h1>
-  <p class="text-sm text-stone-600 mb-3">Tasks are only created after officer approval of an advisory.</p>
+  <p class="text-sm text-stone-600 mb-3">Internal tasks created only after an advisory is approved. No farmer messages are sent.</p>
   <table class="w-full text-sm">
+    <caption class="sr-only">Follow-up tasks</caption>
     <thead class="bg-stone-100">
       <tr>
         <th class="text-left px-2 py-1">ID</th>
         <th class="text-left px-2 py-1">Advisory</th>
+        <th class="text-left px-2 py-1">Locality</th>
         <th class="text-left px-2 py-1">Owner</th>
         <th class="text-left px-2 py-1">Type</th>
         <th class="text-left px-2 py-1">Deadline</th>
         <th class="text-left px-2 py-1">Status</th>
-        <th class="text-left px-2 py-1">Ward</th>
+        <th class="px-2 py-1">Open</th>
       </tr>
     </thead>
     <tbody>
@@ -21,14 +23,15 @@
       <tr class="border-t border-stone-200">
         <td class="px-2 py-1 font-mono">#{{ t.id }}</td>
         <td class="px-2 py-1 font-mono">#{{ t.approved_advisory_id }}</td>
+        <td class="px-2 py-1">{{ t.approved_advisory.cluster.locality|default:"—" }}</td>
         <td class="px-2 py-1">{{ t.owner|default:"—" }}</td>
         <td class="px-2 py-1">{{ t.get_task_type_display }}</td>
         <td class="px-2 py-1">{{ t.deadline|default:"(none)" }}</td>
         <td class="px-2 py-1">{{ t.get_status_display }}</td>
-        <td class="px-2 py-1">{{ t.ward }}</td>
+        <td class="px-2 py-1 text-right"><a href="{% url 'tasks:detail' t.id %}" class="text-emerald-700 hover:underline">open</a></td>
       </tr>
     {% empty %}
-      <tr><td colspan="7" class="px-2 py-3 text-stone-500 italic">No tasks yet.</td></tr>
+      <tr><td colspan="8" class="px-2 py-3 text-stone-500 italic">No tasks yet.</td></tr>
     {% endfor %}
     </tbody>
   </table>

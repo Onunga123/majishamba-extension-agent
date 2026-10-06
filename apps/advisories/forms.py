@@ -11,6 +11,9 @@ class AdvisoryReviewForm(forms.ModelForm):
         model = Advisory
         fields = ["recommendation_type", "summary", "body", "confidence", "limitations"]
         widgets = {
-            "limitations": forms.Textarea(attrs={"rows": 3}),
-            "body": forms.Textarea(attrs={"rows": 10}),
+            "recommendation_type": forms.Select(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 text-sm"}),
+            "summary": forms.TextInput(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 text-sm"}),
+            "confidence": forms.Select(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 text-sm"}),
+            "limitations": forms.Textarea(attrs={"rows": 3, "class": "w-full border border-stone-300 rounded px-3 py-2 text-sm"}),
+            "body": forms.Textarea(attrs={"rows": 10, "class": "w-full border border-stone-300 rounded px-3 py-2 text-sm"}),
         }

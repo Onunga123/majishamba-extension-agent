@@ -27,6 +27,18 @@ def test_anonymous_cannot_request_advisory(anonymous_client):
 
 
 @pytest.mark.django_db
+def test_viewer_cannot_request_advisory(viewer_client):
+    resp = viewer_client.get("/advisories/request/")
+    assert resp.status_code == 403
+
+
+@pytest.mark.django_db
+def test_viewer_cannot_open_agent_graph(viewer_client):
+    resp = viewer_client.get("/agents/graph/")
+    assert resp.status_code == 403
+
+
+@pytest.mark.django_db
 def test_no_external_message_can_be_sent_by_agent():
     """A defensive test: the agent module must NOT import any SMS/email/HTTP-send helper."""
     import apps.agents.graph as graph

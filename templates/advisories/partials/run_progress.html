@@ -1,0 +1,37 @@
+<div id="run-progress-panel"
+     {% if run.status == "queued" or run.status == "running" or run.status == "waiting_for_model" or run.status == "validating" %}
+     hx-get="{% url 'advisories:run_progress' run.run_id %}"
+     hx-trigger="every 2s"
+     hx-swap="outerHTML"
+     {% endif %}
+     role="status"
+     aria-live="polite"
+     aria-atomic="true"
+     class="border border-stone-200 rounded p-4 bg-white">
+  <p class="text-sm font-medium">{{ run.current_message|default:"Working…" }}</p>
+  <p class="text-xs text-stone-500 mt-1">Status: {{ run.get_status_display }}</p>
+  {% if run.completed_stages %}
+  <ul class="text-sm list-disc ml-5 mt-3 space-y-0.5">
+    {% for stage in run.completed_stages %}
+      <li>{{ stage }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if run.status == "completed" or run.status == "completed_with_fallback" %}
+    {% if run.status == "completed_with_fallback" %}
+    <p class="text-sm text-blue-900 bg-blue-50 border border-blue-200 rounded p-2 mt-3">
+      Template-generated draft — model unavailable. Officer review still required.
+    </p>
+    {% endif %}
+    {% if run.result_advisory_id %}
+    <a href="{% url 'advisories:detail' run.result_advisory_id %}" class="inline-block mt-3 bg-emerald-700 text-white px-4 py-2 rounded text-sm hover:bg-emerald-800">
+      Open draft advisory
+    </a>
+    {% endif %}
+  {% elif run.status == "failed" %}
+    <p class="text-sm text-red-800 bg-red-50 border border-red-200 rounded p-2 mt-3">{{ run.error_message }}</p>
+    <a href="{% url 'advisories:request' %}" class="inline-block mt-2 text-sm text-emerald-700 underline">Try again</a>
+  {% else %}
+    <p class="text-xs text-stone-500 mt-3">You can leave this page and return using the same run link from your browser history.</p>
+  {% endif %}
+</div>

@@ -1,0 +1,51 @@
+{# Shared officer-review context — internal only, not farmer-facing #}
+<div class="bg-stone-100 border border-stone-300 rounded p-3 text-sm mb-4">
+  <p class="text-xs uppercase tracking-wide text-stone-600 font-semibold">Internal officer review — not a farmer message</p>
+  <p class="mt-1"><strong>Locality:</strong> {{ locality_name|default:"—" }} · <strong>Cluster:</strong> {{ advisory.cluster.cluster_id }}</p>
+  <p><strong>Crop / season:</strong> {{ crop_label }} · {{ season_label }}</p>
+  <p><strong>Generation:</strong> {{ generation_label }}</p>
+  <p class="text-xs text-stone-600 mt-1">{{ confidence_help }}</p>
+</div>
+
+{% if scope_snapshot %}
+<div class="bg-white border border-stone-200 rounded p-3 text-sm mb-4">
+  <h3 class="font-semibold text-sm">Plot scope captured in this run</h3>
+  <p class="text-xs text-stone-500">{{ scope_snapshot.note }}</p>
+  <ul class="list-disc ml-5 mt-1">
+    <li>Households in snapshot: {{ scope_snapshot.household_count|default:0 }}</li>
+    <li>Plots in snapshot: {{ scope_snapshot.plot_count|default:0 }}</li>
+  </ul>
+  {% if scope_snapshot.missing_or_excluded_notes %}
+  <p class="text-amber-800 text-xs mt-2"><strong>Missing / excluded:</strong> {{ scope_snapshot.missing_or_excluded_notes|join:"; " }}</p>
+  {% endif %}
+</div>
+{% else %}
+<p class="text-xs text-stone-500 mb-4">No scope snapshot stored for this advisory — live cluster records may differ from what the run used.</p>
+{% endif %}
+
+<div class="space-y-2 mb-4">
+  <h3 class="font-semibold text-sm">Source evidence</h3>
+  {% for ev in advisory.evidence.all %}
+  <div class="border border-stone-200 rounded p-2 text-sm">
+    <div class="flex justify-between gap-2">
+      <strong>{{ ev.source_type }}</strong>
+      <span class="text-xs px-2 py-0.5 rounded {% if ev.is_stale %}bg-amber-100 text-amber-900{% else %}bg-stone-100 text-stone-800{% endif %}">
+        {% if ev.is_stale %}Stale source{% else %}Listed source{% endif %}
+      </span>
+    </div>
+    <p class="text-xs mt-1">Source ref: {{ ev.source_ref|default:"—" }}</p>
+    {% if ev.source_observed_at %}<p class="text-xs">Observation / publication: {{ ev.source_observed_at }}</p>{% endif %}
+    {% if ev.retrieved_at %}<p class="text-xs text-stone-500">Retrieved into system: {{ ev.retrieved_at|date:"Y-m-d H:i" }}</p>{% endif %}
+    <p class="text-xs mt-1">Supports: {{ ev.claim }}</p>
+  </div>
+  {% empty %}
+  <p class="text-sm text-stone-500 italic">No evidence rows linked.</p>
+  {% endfor %}
+</div>
+
+{% if advisory.limitations or advisory.confidence == "low" %}
+<div class="bg-amber-50 border border-amber-300 text-amber-950 rounded p-3 text-sm mb-4">
+  <strong>Limitations and gaps</strong>
+  <p class="mt-1">{{ advisory.limitations|default:"Confidence is low — verify locally before acting." }}</p>
+</div>
+{% endif %}

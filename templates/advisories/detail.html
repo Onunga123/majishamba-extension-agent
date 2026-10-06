@@ -2,166 +2,86 @@
 {% block title %}Advisory #{{ advisory.id }} — Kachieng AI Agent{% endblock %}
 {% block content %}
 
-{# Demo mode banner — honest about fallback path #}
 {% if advisory.generation_mode == "fallback_template" %}
-<div class="mb-3 bg-blue-50 border border-blue-200 text-blue-900 text-sm rounded p-3">
-  <strong>ℹ️ Demo mode:</strong> This advisory was generated using a deterministic template because
-  Qwen2.5-7B-Instruct via Ollama was unavailable (or timed out on this CPU-only demo machine).
-  In a production pilot with a GPU or a dedicated model server, the open-weights model would
-  produce the prose directly. See <code>EVALS.md</code> Task 13 for the honest evaluation.
+<div class="mb-3 bg-blue-50 border border-blue-200 text-blue-900 text-sm rounded p-3" role="status">
+  <strong>Template-generated draft — model unavailable.</strong>
+  {{ generation_label }} Officer review is still required before any follow-up action.
+</div>
+{% else %}
+<div class="mb-3 bg-stone-100 border border-stone-300 text-stone-800 text-sm rounded p-3">
+  {{ generation_label }}
 </div>
 {% endif %}
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
   <div class="lg:col-span-2 bg-white p-4 rounded shadow border border-stone-200">
-    <div class="flex items-center justify-between">
-      <h1 class="text-lg font-semibold">Advisory #{{ advisory.id }} — {{ advisory.cluster.cluster_id }}</h1>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h1 class="text-lg font-semibold">{{ advisory_title }}</h1>
       <span class="text-xs px-2 py-0.5 rounded font-medium
         {% if advisory.status == 'approved' %}bg-emerald-100 text-emerald-800
         {% elif advisory.status == 'rejected' %}bg-red-100 text-red-800
         {% elif advisory.status == 'draft' %}bg-amber-100 text-amber-900
         {% else %}bg-stone-100 text-stone-700{% endif %}">{{ advisory.get_status_display }}</span>
     </div>
+    <p class="text-xs uppercase tracking-wide text-stone-500 mt-1">Internal officer review — not a farmer message</p>
     <p class="text-sm text-stone-700 mt-2 font-medium">{{ advisory.summary }}</p>
-    <p class="text-xs text-stone-500 mt-1">
-      Ward: {{ advisory.ward }}, {{ advisory.sub_county }}, {{ advisory.county }} ·
-      Confidence: <span class="font-medium">{{ advisory.confidence }}</span>
-    </p>
+    <p class="text-xs text-stone-500 mt-1">{{ crop_label }} · {{ season_label }} · Version {{ advisory.content_version }}</p>
 
-    {# Why this recommendation? #}
-    <div class="mt-4 bg-stone-50 border border-stone-200 rounded p-3">
-      <h2 class="text-sm font-semibold mb-1">Why this recommendation?</h2>
-      <ul class="text-sm list-disc ml-5 space-y-0.5">
-        <li>Recommendation type: <strong>{{ advisory.get_recommendation_type_display }}</strong></li>
-        <li>Cited evidence: {{ advisory.evidence.count }} source(s) — see Evidence panel below.</li>
-        <li>Confidence level: <strong>{{ advisory.confidence }}</strong>{% if advisory.confidence == "low" %} (sources conflict or are stale){% endif %}.</li>
-        <li>Limitations: {% if advisory.limitations %}{{ advisory.limitations }}{% else %}none noted{% endif %}.</li>
-        <li>Agent stops here — a named Nyatike extension officer must approve before any follow-up task is created.</li>
-      </ul>
+    <div class="mt-4 bg-stone-50 border border-stone-200 rounded p-3 text-sm">
+      <h2 class="font-semibold text-sm">Suggested officer action (draft)</h2>
+      <p class="mt-1"><strong>{{ advisory.get_recommendation_type_display }}</strong> — verify locally before communicating to farmers.</p>
+      <p class="text-xs text-stone-600 mt-2">{{ confidence_help }}</p>
     </div>
 
-    {# Data gaps alert #}
-    {% if advisory.limitations or advisory.evidence.all and advisory.evidence.all|length < 3 or advisory.confidence == "low" %}
-    <div class="mt-3 bg-amber-50 border border-amber-300 text-amber-900 text-sm rounded p-3">
-      <strong>⚠️ Data gaps / uncertainty:</strong>
-      <ul class="list-disc ml-5 mt-1">
-        {% if advisory.confidence == "low" %}<li>Confidence is LOW — sources conflict or are stale. Officer should verify locally before action.</li>{% endif %}
-        {% if advisory.evidence.all|length < 3 %}<li>Only {{ advisory.evidence.all|length }} evidence source(s) cited — a complete advisory cites plot, calendar, and weather at minimum.</li>{% endif %}
-        {% if advisory.limitations %}<li>{{ advisory.limitations }}</li>{% endif %}
-      </ul>
-    </div>
-    {% endif %}
+    {% include "advisories/partials/review_context.html" %}
 
-    <h2 class="font-semibold mt-5 mb-1">Body</h2>
-    <div class="text-sm whitespace-pre-wrap">{{ advisory.body }}</div>
+    <h2 class="font-semibold mt-4 mb-1">Draft body</h2>
+    <div class="text-sm whitespace-pre-wrap leading-relaxed max-w-prose">{{ advisory.body }}</div>
 
-    <h2 class="font-semibold mt-4 mb-1">Limitations</h2>
-    <p class="text-sm">{{ advisory.limitations|default:"—" }}</p>
-
-    {# Prominent evidence with icons + dates #}
-    <h2 class="font-semibold mt-4 mb-2">Evidence (sourced findings)</h2>
-    <div class="space-y-2">
-    {% for ev in advisory.evidence.all %}
-      <div class="border border-stone-200 rounded p-2 text-sm">
-        <div class="flex items-center justify-between">
-          <strong>
-            {% if ev.source_type == "crop_calendar" %}📅 Crop Calendar
-            {% elif ev.source_type == "weather" %}🌦 Weather
-            {% elif ev.source_type == "pest" %}🐛 Pest Alert
-            {% elif ev.source_type == "plot_history" %}🌱 Plot History
-            {% elif ev.source_type == "market" %}💰 Market Price
-            {% else %}📎 {{ ev.source_type|default:"Other" }}{% endif %}
-          </strong>
-          <span class="text-xs px-2 py-0.5 rounded
-            {% if ev.is_stale %}bg-amber-100 text-amber-900{% else %}bg-emerald-100 text-emerald-800{% endif %}">
-            {% if ev.is_stale %}stale{% else %}fresh{% endif %}
-          </span>
-        </div>
-        <div class="text-xs text-stone-700 mt-1">Source: {{ ev.source_ref|default:"(unspecified)" }}</div>
-        <div class="text-xs text-stone-600">Claim: {{ ev.claim }}</div>
-        {% if ev.source_url %}<div class="text-xs"><a href="{{ ev.source_url }}" target="_blank" rel="noopener" class="text-emerald-700 hover:underline">View source ↗</a></div>{% endif %}
-      </div>
-    {% empty %}
-      <p class="text-sm text-stone-500 italic">No evidence cited. The agent's validator should have rejected this advisory — file a bug.</p>
-    {% endfor %}
-    </div>
-
-    {# Action buttons #}
-    <div class="mt-5 flex flex-wrap gap-2 items-center">
-      {% if advisory.status == 'draft' and user.can_approve %}
-        <a href="{% url 'approvals:gate' advisory.id %}" class="bg-emerald-700 text-white px-3 py-1 rounded text-sm hover:bg-emerald-800">✓ Review / Approve</a>
-        <a href="{% url 'advisories:edit' advisory.id %}" class="border border-stone-300 px-3 py-1 rounded text-sm hover:bg-stone-50">✎ Edit draft</a>
+    <div class="mt-5 flex flex-wrap gap-2 items-center no-print">
+      {% if advisory.status == 'draft' and user_can_approve_advisory %}
+        <a href="{% url 'approvals:gate' advisory.id %}" class="bg-emerald-700 text-white px-4 py-2 rounded text-sm hover:bg-emerald-800 min-h-[44px] flex items-center">Review and decide</a>
+        <a href="{% url 'advisories:edit' advisory.id %}" class="border border-stone-300 px-4 py-2 rounded text-sm hover:bg-stone-50 min-h-[44px] flex items-center">Edit draft</a>
       {% endif %}
-      <button onclick="window.print()" class="border border-stone-300 px-3 py-1 rounded text-sm hover:bg-stone-50">🖨 Print advisory</button>
-      <a href="{% url 'audit:list' %}" class="text-stone-600 text-sm hover:underline ml-2">View audit trail →</a>
+      <button type="button" onclick="window.print()" class="border border-stone-300 px-3 py-2 rounded text-sm hover:bg-stone-50">Print internal copy</button>
+      <a href="{% url 'clusters:detail' advisory.cluster.cluster_id %}" class="text-emerald-700 text-sm hover:underline">Cluster records</a>
     </div>
 
-    {# After approval — next steps panel #}
     {% if advisory.status == 'approved' %}
-    <div class="mt-4 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded p-3">
-      <strong>✅ Advisory approved.</strong>
-      <p class="text-sm mt-1">A named Nyatike extension officer has approved this advisory. Follow-up tasks can now be created.</p>
+    <div class="mt-4 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded p-3 text-sm">
+      <strong>Approved internal record.</strong> You may use this for visits or meetings; the system does not send it automatically.
       {% if advisory.follow_up_tasks.all %}
-        <ul class="text-sm list-disc ml-5 mt-2">
+        <ul class="list-disc ml-5 mt-2">
         {% for t in advisory.follow_up_tasks.all %}
-          <li><strong>{{ t.get_task_type_display }}</strong> — {{ t.get_status_display }} — due {{ t.deadline|default:"(no deadline)" }}
-              — owner: {{ t.owner.display_name|default:"unassigned" }} — ward: {{ t.ward }}</li>
+          <li><a href="{% url 'tasks:detail' t.id %}" class="underline">{{ t.get_task_type_display }}</a> — {{ t.get_status_display }}</li>
         {% endfor %}
         </ul>
-      {% else %}
-        <p class="text-xs text-emerald-800 mt-1">No follow-up tasks yet — they can be created from the approval view.</p>
       {% endif %}
     </div>
     {% endif %}
 
-    {# Generated-by footer #}
     <div class="mt-5 pt-3 border-t border-stone-200 text-xs text-stone-500">
-      <strong>Generated by:</strong>
-      <code>{{ advisory.generation_mode }}</code> ·
-      <strong>Model:</strong>
-      <code>{{ advisory.model_name|default:"fallback_template" }}</code>
-      {% if advisory.generation_seconds %} · <strong>Time:</strong> {{ advisory.generation_seconds }}s{% endif %}
-      · <strong>Created:</strong> {{ advisory.created_at|date:"Y-m-d H:i" }}
-      · <strong>By:</strong> {{ advisory.created_by.display_name|default:"agent" }}
+      Created {{ advisory.created_at|date:"Y-m-d H:i" }}
+      {% if advisory.generation_seconds %} · Run time {{ advisory.generation_seconds }}s{% endif %}
+      · By {{ advisory.created_by.display_name|default:"agent" }}
     </div>
   </div>
 
-  {# Right sidebar — approval + tasks #}
   <div class="bg-white p-4 rounded shadow border border-stone-200">
     <h2 class="font-semibold mb-2">Approval history</h2>
     {% if advisory.approvals.all %}
-      <ul class="text-sm list-disc ml-5 space-y-1">
+      <ul class="text-sm space-y-2">
       {% for ap in advisory.approvals.all %}
         <li>
-          <span class="font-medium">{{ ap.officer.display_name }}</span> —
-          <span class="px-2 py-0.5 text-xs rounded
-            {% if ap.decision == 'approved' %}bg-emerald-100 text-emerald-800
-            {% elif ap.decision == 'rejected' %}bg-red-100 text-red-800
-            {% else %}bg-amber-100 text-amber-900{% endif %}">{{ ap.get_decision_display }}</span>
-          — {{ ap.created_at|date:"Y-m-d H:i" }}
-          {% if ap.comments %}<br><span class="text-xs text-stone-600">{{ ap.comments }}</span>{% endif %}
+          <span class="font-medium">{{ ap.officer.display_name }}</span> — {{ ap.get_decision_display }}
+          <span class="text-xs text-stone-500">{{ ap.created_at|date:"Y-m-d H:i" }}</span>
         </li>
       {% endfor %}
       </ul>
     {% else %}
-      <p class="text-sm text-stone-500">No approval decisions yet.</p>
+      <p class="text-sm text-stone-500">No decision yet.</p>
     {% endif %}
-
-    <h2 class="font-semibold mt-4 mb-2">Follow-up tasks</h2>
-    {% if advisory.follow_up_tasks.all %}
-      <ul class="text-sm list-disc ml-5 space-y-1">
-      {% for t in advisory.follow_up_tasks.all %}
-        <li><strong>{{ t.get_task_type_display }}</strong> — {{ t.get_status_display }} — due {{ t.deadline|default:"(none)" }}</li>
-      {% endfor %}
-      </ul>
-    {% else %}
-      <p class="text-sm text-stone-500">No follow-up tasks. They can only be created after officer approval.</p>
-    {% endif %}
-
-    {# Audit quick-link #}
-    <h2 class="font-semibold mt-4 mb-2">Audit trail</h2>
-    <p class="text-sm text-stone-600">Every tool call that produced this advisory is logged with timestamp, actor, and approval status.</p>
-    <a href="{% url 'audit:list' %}" class="text-emerald-700 text-sm hover:underline mt-1 inline-block">View full audit trail →</a>
+    <a href="{% url 'audit:list' %}" class="text-emerald-700 text-sm hover:underline mt-4 inline-block">Audit trail</a>
   </div>
 </div>
 {% endblock %}

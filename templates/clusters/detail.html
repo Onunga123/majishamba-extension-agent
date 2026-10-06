@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ cluster.locality|default:cluster.name }} — Kachieng AI Agent{% endblock %}
+{% block content %}
+<div class="bg-white p-4 rounded shadow border border-stone-200">
+  <h1 class="text-lg font-semibold">{{ cluster.name }} — {{ cluster.cluster_id }}</h1>
+  <p class="text-sm text-stone-600">Locality: <strong>{{ cluster.locality|default:"—" }}</strong> · Nyatike / Kachieng / Migori</p>
+  <p class="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded p-2 mt-3">
+    Synthetic demonstration data — farmer groups and plot histories are not real household records.
+  </p>
+
+  <h2 class="font-semibold mt-5 mb-2">Households and plots</h2>
+  {% for hh in households %}
+  <div class="border border-stone-200 rounded p-3 mb-2 text-sm">
+    <strong>{{ hh.household_id }}</strong> — {{ hh.head_of_household|default:"Synthetic household" }}
+    <ul class="list-disc ml-5 mt-1">
+      {% for plot in hh.plots.all %}
+      <li>Plot {{ plot.plot_id }} ({{ plot.area_ha }} ha) — {{ plot.season_records.count }} season record(s)</li>
+      {% empty %}
+      <li class="text-stone-500 italic">No plots on file</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% empty %}
+  <p class="text-sm text-stone-500">No households loaded for this cluster.</p>
+  {% endfor %}
+
+  <h2 class="font-semibold mt-5 mb-2">Recent advisories</h2>
+  <ul class="text-sm list-disc ml-5">
+    {% for a in recent_advisories %}
+    <li><a href="{% url 'advisories:detail' a.id %}" class="text-emerald-700 underline">#{{ a.id }}</a> — {{ a.get_status_display }}</li>
+    {% empty %}
+    <li class="text-stone-500">None yet.</li>
+    {% endfor %}
+  </ul>
+
+  {% if user_can_request_advisory %}
+  <a href="{% url 'advisories:request' %}?cluster={{ cluster.cluster_id }}" class="inline-block mt-5 bg-emerald-700 text-white px-4 py-2 rounded text-sm">Request advisory for this cluster</a>
+  {% endif %}
+</div>
+{% endblock %}

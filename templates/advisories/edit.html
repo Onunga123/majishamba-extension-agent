@@ -2,18 +2,23 @@
 {% block title %}Edit advisory #{{ advisory.id }} — Kachieng AI Agent{% endblock %}
 {% block content %}
 <div class="max-w-3xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
-  <h1 class="text-lg font-semibold mb-3">Edit advisory #{{ advisory.id }}</h1>
+  <h1 class="text-lg font-semibold mb-1">Edit draft — {{ advisory_title|default:advisory.cluster.cluster_id }}</h1>
+  {% if blocked %}
+  <p class="text-sm text-red-800 bg-red-50 border border-red-200 rounded p-3">{{ blocked }}</p>
+  {% else %}
+  <p class="text-sm text-stone-600 mb-4">Saving increments the version number. Approvers must review the latest version.</p>
   <form method="post" class="space-y-3">
     {% csrf_token %}
     {% for field in form %}
       <div>
-        <label class="block text-sm font-medium">{{ field.label }}</label>
+        <label class="block text-sm font-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
         {% if field.errors %}<div class="text-red-700 text-xs">{{ field.errors }}</div>{% endif %}
       </div>
     {% endfor %}
-    <button type="submit" class="bg-emerald-700 text-white px-3 py-1 rounded text-sm">Save</button>
+    <button type="submit" class="bg-emerald-700 text-white px-4 py-2 rounded text-sm min-h-[44px]">Save draft</button>
     <a href="{% url 'advisories:detail' advisory.id %}" class="ml-2 text-stone-600 text-sm">Cancel</a>
   </form>
+  {% endif %}
 </div>
 {% endblock %}

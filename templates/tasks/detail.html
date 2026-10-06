@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Task #{{ task.id }} — Kachieng AI Agent{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
+  <h1 class="text-lg font-semibold">Follow-up task #{{ task.id }}</h1>
+  <p class="text-sm text-stone-600">
+    {{ task.get_task_type_display }} · {{ task.get_status_display }} · Due {{ task.deadline|default:"(none)" }}
+  </p>
+  <p class="text-sm mt-2">
+    Cluster: <a href="{% url 'clusters:detail' task.approved_advisory.cluster.cluster_id %}" class="text-emerald-700 underline">
+      {{ task.approved_advisory.cluster.locality|default:task.approved_advisory.cluster.cluster_id }}
+    </a>
+    · Advisory <a href="{% url 'advisories:detail' task.approved_advisory_id %}" class="text-emerald-700 underline">#{{ task.approved_advisory_id }}</a>
+  </p>
+  <p class="text-xs text-stone-500 mt-2">Internal task only — submitting findings does not message farmers.</p>
+
+  {% if task.status == "assigned" or task.status == "in_progress" %}
+  <h2 class="font-semibold mt-5 mb-2">Record field findings</h2>
+  <form method="post" action="{% url 'tasks:findings' task.id %}" class="space-y-3">
+    {% csrf_token %}
+    <div>
+      <label for="id_visit_date" class="block text-sm font-medium">Visit date</label>
+      <input type="date" name="visit_date" id="id_visit_date" required class="border border-stone-300 rounded px-3 py-2 text-sm">
+    </div>
+    <fieldset class="border border-stone-200 rounded p-3 text-sm">
+      <legend class="font-medium px-1">Checklist</legend>
+      <label class="flex items-center gap-2 mt-1"><input type="checkbox" name="onset_verified_locally" value="yes"> Rainfall onset verified locally</label>
+      <label class="flex items-center gap-2 mt-1"><input type="checkbox" name="pest_scouting_done" value="yes"> Pest scouting completed</label>
+    </fieldset>
+    <div>
+      <label for="id_observations" class="block text-sm font-medium">Observations</label>
+      <textarea name="observations" id="id_observations" rows="4" class="w-full border border-stone-300 rounded px-3 py-2 text-sm"></textarea>
+    </div>
+    <div>
+      <label for="id_missing_information" class="block text-sm font-medium">Missing information</label>
+      <textarea name="missing_information" id="id_missing_information" rows="2" class="w-full border border-stone-300 rounded px-3 py-2 text-sm"></textarea>
+    </div>
+    <button type="submit" class="bg-emerald-700 text-white px-4 py-2 rounded text-sm">Save findings</button>
+  </form>
+  {% endif %}
+
+  {% if task.status == "in_progress" or task.status == "assigned" %}
+  <form method="post" action="{% url 'tasks:complete' task.id %}" class="mt-4">
+    {% csrf_token %}
+    <button type="submit" class="border border-stone-400 px-3 py-1 rounded text-sm">Mark task completed</button>
+  </form>
+  {% endif %}
+
+  {% if user.role == "supervisor" and task.status == "completed" %}
+  <form method="post" action="{% url 'tasks:verify' task.id %}" class="mt-4">
+    {% csrf_token %}
+    <button type="submit" class="bg-stone-800 text-white px-3 py-1 rounded text-sm">Verify findings (supervisor)</button>
+  </form>
+  {% endif %}
+
+  <h2 class="font-semibold mt-6 mb-2">Submitted findings</h2>
+  {% for f in task.field_findings.all %}
+  <div class="border border-stone-200 rounded p-3 text-sm mb-2">
+    <p>Visit {{ f.visit_date }} · by {{ f.submitted_by.display_name|default:"—" }}</p>
+    <p class="mt-1">{{ f.observations|default:"—" }}</p>
+    {% if f.verified_by %}<p class="text-xs text-emerald-800 mt-1">Verified by {{ f.verified_by.display_name }} at {{ f.verified_at|date:"Y-m-d H:i" }}</p>{% endif %}
+  </div>
+  {% empty %}
+  <p class="text-sm text-stone-500 italic">No field findings yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

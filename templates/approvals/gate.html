@@ -1,49 +1,62 @@
 {% extends "base.html" %}
-{% block title %}Approve advisory #{{ advisory.id }} — Kachieng AI Agent{% endblock %}
+{% block title %}Review advisory #{{ advisory.id }} — Kachieng AI Agent{% endblock %}
 {% block content %}
 <div class="max-w-3xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
-  <h1 class="text-lg font-semibold mb-2">Officer approval gate — Advisory #{{ advisory.id }} ({{ advisory.cluster.cluster_id }})</h1>
-  <p class="text-sm text-stone-600 mb-3">
-    The agent has produced a DRAFT advisory. As a named Nyatike extension officer you must
-    approve, reject, defer, or request more evidence before any follow-up task can be created.
-    The agent cannot send messages, place orders, or issue credit flags.
+  <h1 class="text-lg font-semibold mb-1">{{ advisory_title }}</h1>
+  <p class="text-sm text-stone-600 mb-4">
+    Review this <strong>DRAFT</strong> (version {{ advisory.content_version }}) before you decide.
+    Submitting will record your decision on this version only. No farmer message will be sent.
   </p>
-  <div class="bg-stone-100 p-3 rounded text-sm mb-3">
-    <p><strong>Summary:</strong> {{ advisory.summary }}</p>
-    <p class="mt-1"><strong>Recommendation:</strong> {{ advisory.get_recommendation_type_display }}</p>
-    <p class="mt-1"><strong>Mode:</strong> <code>{{ advisory.generation_mode }}</code> · <strong>Model:</strong> <code>{{ advisory.model_name|default:"fallback_template" }}</code></p>
+
+  {% include "advisories/partials/review_context.html" %}
+
+  <div class="bg-stone-50 border border-stone-200 rounded p-3 text-sm mb-4">
+    <h2 class="font-semibold text-sm">Draft text (internal review)</h2>
+    <p class="font-medium mt-1">{{ advisory.summary }}</p>
+    <div class="whitespace-pre-wrap mt-2 text-stone-800">{{ advisory.body }}</div>
   </div>
+
+  <div class="bg-emerald-50 border border-emerald-200 rounded p-3 text-sm mb-4">
+    <strong>What happens when you submit</strong>
+    <ul class="list-disc ml-5 mt-1">
+      <li>Your decision is saved for advisory #{{ advisory.id }} at version {{ advisory.content_version }}.</li>
+      <li>If you choose <em>Approved</em> and tick the follow-up box, one <strong>internal</strong> task is created.</li>
+      <li>No SMS, WhatsApp, or other farmer message is sent by this system.</li>
+    </ul>
+  </div>
+
   <form method="post" class="space-y-3">
     {% csrf_token %}
+    <input type="hidden" name="content_version" value="{{ advisory.content_version }}">
     {% for field in form %}
       <div>
-        <label class="block text-sm font-medium">{{ field.label }}</label>
+        <label class="block text-sm font-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
         {% if field.errors %}<div class="text-red-700 text-xs">{{ field.errors }}</div>{% endif %}
       </div>
     {% endfor %}
     <div class="border-t border-stone-200 pt-3">
-      <label class="flex items-center text-sm">
-        <input type="checkbox" name="create_followup" class="mr-2">
-        On approval, also create a follow-up task
+      <label class="flex items-center text-sm gap-2 min-h-[44px]">
+        <input type="checkbox" name="create_followup" class="h-4 w-4">
+        On <strong>Approved</strong> only: also create an internal follow-up task
       </label>
-      <div class="grid grid-cols-2 gap-2 mt-2">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
         <div>
-          <label class="text-xs block">Task type</label>
-          <select name="task_type" class="w-full border border-stone-300 rounded px-2 py-1 text-sm">
-            <option value="field_visit">Field visit to Kachieng cluster</option>
+          <label class="text-xs block font-medium" for="task_type">Task type</label>
+          <select name="task_type" id="task_type" class="w-full border border-stone-300 rounded px-2 py-2 text-sm">
+            <option value="field_visit">Field visit to cluster</option>
             <option value="cluster_meeting">Cluster meeting</option>
             <option value="re_evidence">Re-collect evidence</option>
             <option value="print_advisory">Print advisory for delivery</option>
           </select>
         </div>
         <div>
-          <label class="text-xs block">Deadline (YYYY-MM-DD)</label>
-          <input name="deadline" type="date" class="w-full border border-stone-300 rounded px-2 py-1 text-sm">
+          <label class="text-xs block font-medium" for="deadline">Deadline</label>
+          <input name="deadline" id="deadline" type="date" class="w-full border border-stone-300 rounded px-2 py-2 text-sm">
         </div>
       </div>
     </div>
-    <button type="submit" class="bg-emerald-700 text-white px-3 py-1 rounded text-sm hover:bg-emerald-800">Submit decision</button>
+    <button type="submit" class="bg-emerald-700 text-white px-4 py-2 rounded text-sm hover:bg-emerald-800 min-h-[44px]">Submit decision</button>
     <a href="{% url 'advisories:detail' advisory.id %}" class="ml-2 text-stone-600 text-sm">Cancel</a>
   </form>
 </div>

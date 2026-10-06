@@ -462,7 +462,7 @@ def draft_advisory(state: AgentState) -> AgentState:
     prompt = _build_prompt(state)
     prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:16]
     started = time.time()
-    out = _try_ollama(prompt)
+    out = None if SKIP_OLLAMA else _try_ollama(prompt)
     elapsed_s = round(time.time() - started, 2)
     if out and out["text"]:
         return {
@@ -525,6 +525,16 @@ def save_draft(state: AgentState) -> AgentState:
     if state.get("errors") or not state.get("draft"):
         return state
     draft = state["draft"]
+    cc = state.get("crop_calendar") or {}
+    weather = (state.get("weather") or {}).get("last_30_days") or {}
+
+    def _observed_at(source_type: str) -> str:
+        if source_type == "crop_calendar":
+            return str(cc.get("season_year") or cc.get("source_date") or "")
+        if source_type == "weather":
+            return str(weather.get("period_end") or weather.get("as_of") or "")
+        return ""
+
     evidence_links = [
         {
             "source_type": e.source_type,
@@ -532,6 +542,7 @@ def save_draft(state: AgentState) -> AgentState:
             "claim": e.claim,
             "source_url": e.source_url,
             "is_stale": e.is_stale,
+            "source_observed_at": _observed_at(e.source_type),
         }
         for e in draft.evidence
     ]
@@ -551,6 +562,19 @@ def save_draft(state: AgentState) -> AgentState:
     )
     # Tool already logs to AuditEvent; we just thread state.
     if res.get("advisory_id"):
+        from apps.advisories.scope import build_scope_snapshot
+
+        meta = state.get("model_metadata") or {}
+        snap = build_scope_snapshot(
+            plot_history=state.get("plot_history") or [],
+            warnings=state.get("warnings") or [],
+        )
+        Advisory.objects.filter(pk=res["advisory_id"]).update(
+            scope_snapshot=snap,
+            crop="maize",
+            season="short_rains",
+            generation_seconds=meta.get("elapsed_s"),
+        )
         return {**state, "advisory_id": res["advisory_id"]}
     return {**state, "errors": [{"node": "save_draft", "msg": res.get("error", "save failed")}]}
 
@@ -614,24 +638,43 @@ def use_fallback_template(state: AgentState) -> AgentState:
 
 # --- Build the graph --------------------------------------------------------
 
+def _with_run_tracking(stage: str, fn: Callable[[AgentState], AgentState]) -> Callable[[AgentState], AgentState]:
+    """Record plain-language progress on AdvisoryRun when advisory_run_id is set."""
+
+    def wrapped(state: AgentState) -> AgentState:
+        from apps.agents.models import AdvisoryRun
+        from apps.agents.run_tracking import mark_run_stage
+
+        rid = state.get("advisory_run_id")
+        status = AdvisoryRun.Status.RUNNING
+        if stage == "draft_advisory":
+            status = AdvisoryRun.Status.WAITING_FOR_MODEL
+        elif stage in {"validate_output_schema", "use_fallback_template"}:
+            status = AdvisoryRun.Status.VALIDATING
+        mark_run_stage(run_db_id=rid, stage=stage, status=status)
+        return fn(state)
+
+    return wrapped
+
+
 def build_graph():  # type: ignore[no-untyped-def]
     g = StateGraph(AgentState)  # type: ignore[arg-type]
-    g.add_node("validate_request", validate_request)
-    g.add_node("fetch_plot_history", fetch_plot_history)
-    g.add_node("fetch_crop_calendar", fetch_crop_calendar)
-    # Borrowed MCP server node — uses the official filesystem MCP server to
-    # load approved crop-calendar text from docs/calendars/. Demonstrates
-    # the borrowed MCP server in the agent graph; logged to the audit trail.
-    g.add_node("load_calendar_from_borrowed_mcp", load_calendar_from_borrowed_mcp)
-    g.add_node("fetch_weather", fetch_weather)
-    g.add_node("fetch_pest_alerts", fetch_pest_alerts)
-    g.add_node("fetch_market_prices", fetch_market_prices)
-    g.add_node("validate_evidence", validate_evidence)
-    g.add_node("draft_advisory", draft_advisory)
-    g.add_node("validate_output_schema", validate_output_schema)
-    g.add_node("use_fallback_template", use_fallback_template)
-    g.add_node("save_draft", save_draft)
-    g.add_node("officer_approval_gate", officer_approval_gate)
+    g.add_node("validate_request", _with_run_tracking("validate_request", validate_request))
+    g.add_node("fetch_plot_history", _with_run_tracking("fetch_plot_history", fetch_plot_history))
+    g.add_node("fetch_crop_calendar", _with_run_tracking("fetch_crop_calendar", fetch_crop_calendar))
+    g.add_node(
+        "load_calendar_from_borrowed_mcp",
+        _with_run_tracking("load_calendar_from_borrowed_mcp", load_calendar_from_borrowed_mcp),
+    )
+    g.add_node("fetch_weather", _with_run_tracking("fetch_weather", fetch_weather))
+    g.add_node("fetch_pest_alerts", _with_run_tracking("fetch_pest_alerts", fetch_pest_alerts))
+    g.add_node("fetch_market_prices", _with_run_tracking("fetch_market_prices", fetch_market_prices))
+    g.add_node("validate_evidence", _with_run_tracking("validate_evidence", validate_evidence))
+    g.add_node("draft_advisory", _with_run_tracking("draft_advisory", draft_advisory))
+    g.add_node("validate_output_schema", _with_run_tracking("validate_output_schema", validate_output_schema))
+    g.add_node("use_fallback_template", _with_run_tracking("use_fallback_template", use_fallback_template))
+    g.add_node("save_draft", _with_run_tracking("save_draft", save_draft))
+    g.add_node("officer_approval_gate", _with_run_tracking("officer_approval_gate", officer_approval_gate))
 
     g.add_edge(START, "validate_request")
     g.add_conditional_edges("validate_request", route_after_validate, {

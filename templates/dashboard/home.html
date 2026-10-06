@@ -1,15 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — Kachieng AI Agent{% endblock %}
 {% block content %}
-<div class="mb-4 bg-emerald-50 border border-emerald-200 rounded p-4 flex items-center justify-between">
+{% if user_can_request_advisory %}
+<div class="mb-4 bg-emerald-50 border border-emerald-200 rounded p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
   <div>
     <h2 class="text-base font-semibold text-emerald-900">Next step: request a climate-smart planting advisory</h2>
-    <p class="text-sm text-emerald-800">The agent gathers plot history, crop calendar, Nyatike weather, Migori pest alerts and Migori Town market prices, then drafts a sourced DRAFT — you approve before anything is sent.</p>
+    <p class="text-sm text-emerald-800">The agent gathers plot history, crop calendar, weather, pest and market signals, then saves a sourced <strong>DRAFT</strong>. You review and approve before any internal follow-up task — nothing is sent to farmers automatically.</p>
   </div>
-  <a href="{% url 'advisories:request' %}" class="bg-emerald-700 text-white px-4 py-2 rounded shadow-sm hover:bg-emerald-800 whitespace-nowrap">
-    📝 Request Advisory
+  <a href="{% url 'advisories:request' %}" class="bg-emerald-700 text-white px-4 py-2 rounded shadow-sm hover:bg-emerald-800 whitespace-nowrap text-center min-h-[44px] flex items-center justify-center">
+    Request advisory
   </a>
 </div>
+{% else %}
+<div class="mb-4 bg-stone-100 border border-stone-300 rounded p-4 text-sm text-stone-700">
+  You are signed in as a <strong>{{ user.get_role_display }}</strong>. You can read dashboards, advisories, tasks and audit records. Requesting or approving advisories requires an extension officer or supervisor account.
+</div>
+{% endif %}
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
   <div class="lg:col-span-2 bg-white p-4 rounded shadow border border-stone-200">
@@ -18,34 +24,33 @@
       <span class="text-xs text-stone-500">{{ office_name }}</span>
     </div>
     <p class="text-xs text-stone-500 mb-3">
-      Locality names confirmed by the project owner, who is from the area.
-      Farmer groups, household records and plot histories are synthetic.
+      Locality names confirmed by the project owner. Farmer groups, household records and plot histories are synthetic.
     </p>
     <table class="w-full text-sm">
+      <caption class="sr-only">Farmer clusters in Kachieng Ward</caption>
       <thead class="bg-stone-100">
         <tr>
-          <th class="text-left px-2 py-1">Cluster</th>
-          <th class="text-left px-2 py-1">Name</th>
           <th class="text-left px-2 py-1">Locality</th>
-          <th class="text-left px-2 py-1">Households</th>
+          <th class="text-left px-2 py-1">Name</th>
+          <th class="text-left px-2 py-1">ID</th>
+          <th class="text-left px-2 py-1">HH</th>
           <th class="text-left px-2 py-1">Plots</th>
-          <th class="text-left px-2 py-1">Drafts</th>
-          <th class="text-left px-2 py-1">Approved</th>
           <th class="px-2 py-1">Action</th>
         </tr>
       </thead>
       <tbody>
       {% for cs in cluster_stats %}
         <tr class="border-t border-stone-200">
-          <td class="px-2 py-1 font-mono">{{ cs.cluster.cluster_id }}</td>
+          <td class="px-2 py-1 font-medium">{{ cs.cluster.locality|default:"—" }}</td>
           <td class="px-2 py-1">{{ cs.cluster.name }}</td>
-          <td class="px-2 py-1">{{ cs.cluster.locality|default:"—" }}</td>
+          <td class="px-2 py-1 font-mono text-xs">{{ cs.cluster.cluster_id }}</td>
           <td class="px-2 py-1">{{ cs.household_count }}</td>
           <td class="px-2 py-1">{{ cs.plot_count }}</td>
-          <td class="px-2 py-1">{{ cs.draft_count }}</td>
-          <td class="px-2 py-1">{{ cs.approved_count }}</td>
-          <td class="px-2 py-1 text-right">
-            <a href="{% url 'advisories:request' %}" class="text-emerald-700 hover:underline">Request advisory</a>
+          <td class="px-2 py-1 text-right space-x-2">
+            <a href="{% url 'clusters:detail' cs.cluster.cluster_id %}" class="text-stone-700 hover:underline">View</a>
+            {% if user_can_request_advisory %}
+            <a href="{% url 'advisories:request' %}?cluster={{ cs.cluster.cluster_id }}" class="text-emerald-700 hover:underline">Request</a>
+            {% endif %}
           </td>
         </tr>
       {% endfor %}
@@ -54,16 +59,17 @@
 
     <h2 class="font-semibold mt-6 mb-2">Recent advisories</h2>
     <table class="w-full text-sm">
+      <caption class="sr-only">Recent advisories</caption>
       <thead class="bg-stone-100">
-        <tr><th class="text-left px-2 py-1">ID</th><th class="text-left px-2 py-1">Cluster</th>
+        <tr><th class="text-left px-2 py-1">ID</th><th class="text-left px-2 py-1">Locality</th>
             <th class="text-left px-2 py-1">Type</th><th class="text-left px-2 py-1">Status</th>
-            <th class="text-left px-2 py-1">Mode</th><th class="px-2 py-1">View</th></tr>
+            <th class="px-2 py-1">View</th></tr>
       </thead>
       <tbody>
       {% for a in recent_advisories %}
         <tr class="border-t border-stone-200">
           <td class="px-2 py-1 font-mono">#{{ a.id }}</td>
-          <td class="px-2 py-1 font-mono">{{ a.cluster.cluster_id }}</td>
+          <td class="px-2 py-1">{{ a.cluster.locality|default:a.cluster.cluster_id }}</td>
           <td class="px-2 py-1">{{ a.get_recommendation_type_display }}</td>
           <td class="px-2 py-1">
             <span class="px-2 py-0.5 text-xs rounded font-medium
@@ -74,11 +80,10 @@
               {{ a.get_status_display }}
             </span>
           </td>
-          <td class="px-2 py-1 text-xs">{{ a.generation_mode }}</td>
           <td class="px-2 py-1 text-right"><a href="{% url 'advisories:detail' a.id %}" class="text-emerald-700 hover:underline">open</a></td>
         </tr>
       {% empty %}
-        <tr><td colspan="6" class="px-2 py-3 text-stone-500 italic">No advisories yet — request one above.</td></tr>
+        <tr><td colspan="5" class="px-2 py-3 text-stone-500 italic">No advisories yet{% if user_can_request_advisory %} — request one above{% endif %}.</td></tr>
       {% endfor %}
       </tbody>
     </table>
@@ -87,11 +92,12 @@
   <div class="bg-white p-4 rounded shadow border border-stone-200">
     <h2 class="font-semibold mb-2">Latest weather signal</h2>
     {% if weather_summary %}
+      <p class="text-xs font-medium text-amber-900 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-2">Synthetic demonstration signal — not a live KMD feed</p>
       <div class="text-sm">
         <p>{{ weather_summary.area_label }} — {{ weather_summary.get_period_display }}</p>
         <p>Rainfall: {{ weather_summary.rainfall_mm }} mm</p>
         <p>Onset: {{ weather_summary.onset_status }}</p>
-        <p class="text-xs text-stone-500">Source: {{ weather_summary.source }} ({{ weather_summary.source_date }})</p>
+        <p class="text-xs text-stone-500">Source: {{ weather_summary.source }} · observation date {{ weather_summary.source_date }}</p>
       </div>
     {% else %}
       <p class="text-sm text-stone-500">No weather signal loaded.</p>
@@ -99,9 +105,10 @@
 
     <h2 class="font-semibold mt-5 mb-2">Latest pest alert</h2>
     {% if pest_summary %}
+      <p class="text-xs font-medium text-amber-900 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-2">Synthetic demonstration signal — not a live alert</p>
       <div class="text-sm">
         <p>{{ pest_summary.pest }} ({{ pest_summary.get_severity_display }})</p>
-        <p class="text-xs text-stone-500">Source: {{ pest_summary.source }} ({{ pest_summary.source_date }})</p>
+        <p class="text-xs text-stone-500">Source: {{ pest_summary.source }} · {{ pest_summary.source_date }}</p>
       </div>
     {% else %}
       <p class="text-sm text-stone-500">No pest alert loaded.</p>
@@ -111,8 +118,7 @@
     {% if pending_tasks %}
       <ul class="text-sm list-disc ml-5">
       {% for t in pending_tasks %}
-        <li>{{ t.get_task_type_display }} — due {{ t.deadline|default:"(no deadline)" }}
-            — cluster {{ t.approved_advisory.cluster.cluster_id }}</li>
+        <li><a href="{% url 'tasks:detail' t.id %}" class="text-emerald-700 underline">{{ t.get_task_type_display }}</a> — due {{ t.deadline|default:"(no deadline)" }}</li>
       {% endfor %}
       </ul>
     {% else %}
@@ -125,7 +131,6 @@
       <li class="text-stone-700">
         <span class="font-mono">{{ e.created_at|date:"H:i:s" }}</span>
         <span class="font-medium">{{ e.action }}</span>
-        {% if e.tool_name %}<span class="text-stone-500">[{{ e.tool_name }}]</span>{% endif %}
       </li>
     {% endfor %}
     </ul>

@@ -324,6 +324,7 @@ def create_draft_advisory_record(
             claim=ev.get("claim", ""),
             is_stale=bool(ev.get("is_stale", False)),
             source_url=ev.get("source_url", ""),
+            source_observed_at=ev.get("source_observed_at", "") or "",
         )
     out = {"advisory_id": advisory.id, "status": advisory.status, "cluster_id": cluster.cluster_id}
     log_tool_call(

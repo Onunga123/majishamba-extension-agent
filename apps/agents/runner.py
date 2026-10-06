@@ -21,6 +21,7 @@ def run_advisory_pipeline(
     sub_county: str = "Nyatike",
     county: str = "Migori",
     actor=None,
+    advisory_run_id: int | None = None,
 ) -> dict[str, Any]:
     """Run the LangGraph agent for a Kachieng cluster request.
 
@@ -43,6 +44,7 @@ def run_advisory_pipeline(
         "county": county,
         "actor_id": getattr(actor, "id", None),
         "request_id": request_id,
+        "advisory_run_id": advisory_run_id,
         "errors": [],
         "warnings": [],
     }
@@ -79,4 +81,9 @@ def run_advisory_pipeline(
         return {"error": errors[0].get("msg", "Unknown error"), "trace": warnings + [str(e) for e in errors]}
     if not advisory_id:
         return {"error": "Agent did not produce a DRAFT advisory.", "trace": warnings}
-    return {"advisory_id": advisory_id, "trace": warnings, "generation_mode": result.get("generation_mode")}
+    return {
+        "advisory_id": advisory_id,
+        "trace": warnings,
+        "generation_mode": result.get("generation_mode"),
+        "request_id": request_id,
+    }

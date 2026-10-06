@@ -2,19 +2,22 @@
 {% block title %}Advisories — Kachieng AI Agent{% endblock %}
 {% block content %}
 <div class="bg-white p-4 rounded shadow border border-stone-200">
-  <div class="flex items-center justify-between mb-3">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
     <h1 class="text-lg font-semibold">Advisories — Kachieng Ward</h1>
-    <a href="{% url 'advisories:request' %}" class="bg-emerald-700 text-white px-3 py-1 rounded text-sm hover:bg-emerald-800">+ Request advisory</a>
+    {% if user_can_request_advisory %}
+    <a href="{% url 'advisories:request' %}" class="bg-emerald-700 text-white px-3 py-2 rounded text-sm hover:bg-emerald-800 text-center min-h-[44px] flex items-center justify-center">Request advisory</a>
+    {% endif %}
   </div>
   <table class="w-full text-sm">
+    <caption class="sr-only">All advisories</caption>
     <thead class="bg-stone-100">
       <tr>
         <th class="text-left px-2 py-1">ID</th>
+        <th class="text-left px-2 py-1">Locality</th>
         <th class="text-left px-2 py-1">Cluster</th>
-        <th class="text-left px-2 py-1">Type</th>
+        <th class="text-left px-2 py-1">Recommendation</th>
         <th class="text-left px-2 py-1">Status</th>
-        <th class="text-left px-2 py-1">Mode</th>
-        <th class="text-left px-2 py-1">Created</th>
+        <th class="text-left px-2 py-1">Draft source</th>
         <th class="px-2 py-1">View</th>
       </tr>
     </thead>
@@ -22,19 +25,17 @@
     {% for a in advisories %}
       <tr class="border-t border-stone-200">
         <td class="px-2 py-1 font-mono">#{{ a.id }}</td>
-        <td class="px-2 py-1 font-mono">{{ a.cluster.cluster_id }}</td>
+        <td class="px-2 py-1">{{ a.cluster.locality|default:"—" }}</td>
+        <td class="px-2 py-1 font-mono text-xs">{{ a.cluster.cluster_id }}</td>
         <td class="px-2 py-1">{{ a.get_recommendation_type_display }}</td>
         <td class="px-2 py-1">
           <span class="px-2 py-0.5 text-xs rounded font-medium
             {% if a.status == 'approved' %}bg-emerald-100 text-emerald-800
             {% elif a.status == 'rejected' %}bg-red-100 text-red-800
             {% elif a.status == 'draft' %}bg-amber-100 text-amber-900
-            {% else %}bg-stone-100 text-stone-700{% endif %}">
-            {{ a.get_status_display }}
-          </span>
+            {% else %}bg-stone-100 text-stone-700{% endif %}">{{ a.get_status_display }}</span>
         </td>
-        <td class="px-2 py-1 text-xs">{{ a.generation_mode }}</td>
-        <td class="px-2 py-1 text-xs">{{ a.created_at|date:"Y-m-d H:i" }}</td>
+        <td class="px-2 py-1 text-xs">{% if a.generation_mode == 'fallback_template' %}Template{% else %}Model{% endif %}</td>
         <td class="px-2 py-1 text-right"><a href="{% url 'advisories:detail' a.id %}" class="text-emerald-700 hover:underline">open</a></td>
       </tr>
     {% empty %}

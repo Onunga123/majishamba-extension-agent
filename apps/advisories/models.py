@@ -48,6 +48,17 @@ class Advisory(models.Model):
         default="fallback_template",
         help_text="One of: 'ollama_qwen', 'fallback_template'.",
     )
+    content_version = models.PositiveIntegerField(
+        default=1,
+        help_text="Incremented when a DRAFT is edited; approval must match this version.",
+    )
+    scope_snapshot = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Household/plot scope captured when this advisory was drafted (not live DB counts).",
+    )
+    crop = models.CharField(max_length=40, default="maize")
+    season = models.CharField(max_length=40, default="short_rains")
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -82,6 +93,11 @@ class AdvisoryEvidence(models.Model):
     claim = models.TextField(help_text="What this evidence supports in the advisory.")
     is_stale = models.BooleanField(default=False)
     retrieved_at = models.DateTimeField(null=True, blank=True)
+    source_observed_at = models.CharField(
+        max_length=40,
+        blank=True,
+        help_text="Source observation or publication date — not the same as retrieval time.",
+    )
     source_url = models.URLField(blank=True)
 
     class Meta:
