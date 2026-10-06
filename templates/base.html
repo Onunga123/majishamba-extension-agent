@@ -31,7 +31,10 @@
         {% if user.is_authenticated %}
           <span class="text-emerald-200 hidden sm:inline">|</span>
           <span class="text-emerald-100 py-1">{{ user.display_name }} ({{ user.get_role_display }})</span>
-          <a href="{% url 'accounts:logout' %}" class="hover:underline py-1">Logout</a>
+          <form method="post" action="{% url 'accounts:logout' %}" class="inline">
+            {% csrf_token %}
+            <button type="submit" class="hover:underline py-1 text-emerald-100 hover:text-white">Logout</button>
+          </form>
         {% else %}
           <a href="{% url 'accounts:login' %}" class="hover:underline py-1">Login</a>
         {% endif %}
