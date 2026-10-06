@@ -76,6 +76,9 @@ class DashboardHomeView(LoginRequiredMixin, View):
         recent_advisories = Advisory.objects.select_related("cluster").order_by("-created_at")[:10]
         recent_events = AuditEvent.objects.select_related("actor").order_by("-created_at")[:25]
         pending_tasks = FollowUpTask.objects.exclude(status=FollowUpTask.Status.COMPLETED).order_by("deadline")[:10]
+        # Badges for the nav and dashboard
+        draft_advisory_count = Advisory.objects.filter(status=Advisory.Status.DRAFT).count()
+        pending_task_count = FollowUpTask.objects.exclude(status=FollowUpTask.Status.COMPLETED).count()
 
         # --- Honest weather state ---
         real_weather = _latest_real_weather()
@@ -123,6 +126,8 @@ class DashboardHomeView(LoginRequiredMixin, View):
                 "recent_advisories": recent_advisories,
                 "recent_events": recent_events,
                 "pending_tasks": pending_tasks,
+                "draft_advisory_count": draft_advisory_count,
+                "pending_task_count": pending_task_count,
                 "weather_panel": weather_panel,
                 "pest_panel": pest_panel,
                 "kalro_state": kalro_state,

@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "apps.audit",
     "apps.agents",
     "apps.mcp_tools",
+    "apps.integrations",
     "apps.dashboard",
 ]
 
@@ -92,6 +93,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.accounts.context_processors.active_officer",
+                "apps.dashboard.context_processors.nav_badges",
             ],
         },
     },

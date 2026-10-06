@@ -8,4 +8,5 @@ app_name = "audit"
 
 urlpatterns = [
     path("", views.AuditEventListView.as_view(), name="list"),
+    path("export.csv", views.AuditEventCSVExportView.as_view(), name="export_csv"),
 ]

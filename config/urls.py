@@ -18,6 +18,7 @@ urlpatterns = [
     path("audit/", include(("apps.audit.urls", "audit"), namespace="audit")),
     path("mcp/", include(("apps.mcp_tools.urls", "mcp_tools"), namespace="mcp_tools")),
     path("agents/", include(("apps.agents.urls", "agents"), namespace="agents")),
+    path("integrations/", include(("apps.integrations.urls", "integrations"), namespace="integrations")),
     path("", RedirectView.as_view(url="/dashboard/", permanent=False)),
 ]
 

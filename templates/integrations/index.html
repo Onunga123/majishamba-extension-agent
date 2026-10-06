@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Data ingestion — Kachieng AI Agent{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
+  <h1 class="text-lg font-semibold mb-3">Data ingestion — officer-supplied</h1>
+  <p class="text-sm text-stone-600 mb-4">
+    The system does not auto-fetch from KMD, KALRO, or KEPHIS (no public APIs exist).
+    As an authorized extension officer, you manually read the official publication,
+    then transcribe its metadata into the forms below. The system records full
+    provenance (authority, publication date, validity period, coverage, source URL)
+    and labels each record honestly.
+  </p>
+
+  <div class="space-y-3">
+    <a href="{{ kmd_form_url }}" class="block border border-stone-300 rounded p-3 hover:border-emerald-700 hover:bg-emerald-50">
+      <strong>🌦 Ingest KMD bulletin</strong>
+      <p class="text-xs text-stone-600 mt-1">Transcribe metadata from a Kenya Meteorological Department forecast you've read on meteo.go.ke. Records the bulletin as a WeatherSignal with verification_status = current_official (or regional_context for Lake Victoria forecasts).</p>
+    </a>
+
+    <a href="{{ pest_report_url }}" class="block border border-stone-300 rounded p-3 hover:border-emerald-700 hover:bg-emerald-50">
+      <strong>🐛 Submit officer field report (pest)</strong>
+      <p class="text-xs text-stone-600 mt-1">Record a verified local pest observation from your own field visit. Labelled as officer_field_report — NOT as a KEPHIS/KALRO publication. Your name is recorded as the author.</p>
+    </a>
+
+    <a href="{{ pest_notice_url }}" class="block border border-stone-300 rounded p-3 hover:border-emerald-700 hover:bg-emerald-50">
+      <strong>📋 Ingest published pest notice</strong>
+      <p class="text-xs text-stone-600 mt-1">Transcribe metadata from a published official pest notice (KEPHIS alert, county agricultural report, etc.). Severity is stored EXACTLY as published — do not inflate.</p>
+    </a>
+  </div>
+</div>
+{% endblock %}

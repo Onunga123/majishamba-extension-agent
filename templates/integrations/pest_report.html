@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Officer pest field report — Kachieng AI Agent{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
+  <h1 class="text-lg font-semibold mb-2">Officer field report — pest observation</h1>
+  <p class="text-sm text-stone-600 mb-4">
+    Record a verified local pest observation from your own field visit. This is
+    labelled as <strong>officer_field_report</strong> — NOT as a KEPHIS/KALRO publication.
+    Your name ({{ user.display_name }}) is recorded as the author.
+  </p>
+
+  {% if form.errors %}
+    <div class="bg-red-50 border border-red-300 text-red-800 text-sm p-3 rounded mb-3">
+      Please correct the errors below.
+    </div>
+  {% endif %}
+
+  <form method="post" class="space-y-3">
+    {% csrf_token %}
+    {% for field in form %}
+      <div>
+        <label class="block text-sm font-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="text-xs text-stone-500 mt-1">{{ field.help_text }}</p>{% endif %}
+        {% if field.errors %}<div class="text-red-700 text-xs mt-1">{{ field.errors|join:", " }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="flex gap-2 pt-2">
+      <button type="submit" class="bg-emerald-700 text-white px-3 py-1 rounded text-sm hover:bg-emerald-800">Submit field report</button>
+      <a href="{% url 'integrations:index' %}" class="text-stone-600 text-sm self-center">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
