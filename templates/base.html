@@ -26,6 +26,9 @@
         <a href="{% url 'dashboard:home' %}" class="hover:underline py-1">Dashboard</a>
         <a href="{% url 'dashboard:map' %}" class="hover:underline py-1">Map</a>
         <a href="{% url 'advisories:list' %}" class="hover:underline py-1">Advisories{% if nav_draft_advisory_count %} <span class="bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-1">{{ nav_draft_advisory_count }}</span>{% endif %}</a>
+        {% if user.is_authenticated and user.can_approve %}
+          <a href="{% url 'advisories:deleted' %}" class="hover:underline py-1">Deleted</a>
+        {% endif %}
         <a href="{% url 'tasks:list' %}" class="hover:underline py-1">Tasks{% if nav_pending_task_count %} <span class="bg-emerald-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-1">{{ nav_pending_task_count }}</span>{% endif %}</a>
         <a href="{% url 'audit:list' %}" class="hover:underline py-1">Audit</a>
         {% if user.is_authenticated and user.is_officer %}

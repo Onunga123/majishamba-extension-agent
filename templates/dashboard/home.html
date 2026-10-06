@@ -112,7 +112,7 @@
         <p class="font-medium text-stone-700">{{ weather_panel.no_notice.message }}</p>
         <p class="text-xs text-stone-500 mt-1">{{ weather_panel.no_notice.manual_retrieval_note }}</p>
         <p class="text-xs text-stone-500">Authority: Kenya Meteorological Department (https://meteo.go.ke/) — no public API; manual retrieval required.</p>
-        {% if weather_panel.synthetic_for_demo %}
+        {% if weather_panel.synthetic_for_demo and DEMO_MODE %}
           <details class="mt-2">
             <summary class="text-xs text-amber-800 cursor-pointer">Show synthetic test scenario (demo only — NOT a real KMD bulletin)</summary>
             <div class="text-xs text-stone-600 bg-amber-50 border border-amber-200 rounded p-2 mt-1">
@@ -144,7 +144,7 @@
         <p class="font-medium text-stone-700">{{ pest_panel.no_notice.message }}</p>
         <p class="text-xs text-stone-500 mt-1">{{ pest_panel.no_notice.scouting_note }}</p>
         <p class="text-xs text-stone-500">Authorities checked: KEPHIS, KALRO, Migori County Dept. of Agriculture — no public alert API; manual retrieval required.</p>
-        {% if pest_panel.synthetic_for_demo %}
+        {% if pest_panel.synthetic_for_demo and DEMO_MODE %}
           <details class="mt-2">
             <summary class="text-xs text-amber-800 cursor-pointer">Show synthetic test scenario (demo only — NOT a real KEPHIS/KALRO/PlantVillage bulletin)</summary>
             <div class="text-xs text-stone-600 bg-amber-50 border border-amber-200 rounded p-2 mt-1">

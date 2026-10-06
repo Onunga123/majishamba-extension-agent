@@ -1,10 +1,25 @@
-"""Advisory models — DRAFT → APPROVED/REJECTED lifecycle."""
+"""Advisory models — DRAFT → APPROVED/REJECTED lifecycle with soft-delete."""
 from __future__ import annotations
 
 from django.conf import settings
 from django.db import models
 
 from apps.clusters.models import FarmerCluster
+
+
+class ActiveAdvisoryManager(models.Manager):
+    """Default manager — excludes soft-deleted advisories."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+
+class AllAdvisoryManager(models.Manager):
+    """Includes soft-deleted advisories. Used by the 'Deleted advisories' view
+    and by audit/compliance queries. Never exposed to viewers."""
+
+    def get_queryset(self):
+        return super().get_queryset().all()
 
 
 class Advisory(models.Model):
@@ -70,12 +85,55 @@ class Advisory(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # --- Soft-delete support ---
+    deleted_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Set when an advisory is soft-deleted. NULL = active.",
+    )
+    deleted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="advisories_deleted",
+        help_text="Officer who soft-deleted this advisory.",
+    )
+    deletion_reason = models.CharField(
+        max_length=200, blank=True,
+        help_text="Reason for soft-deletion (internal officer note).",
+    )
+
     class Meta:
         ordering = ("-created_at",)
-        indexes = [models.Index(fields=["status", "cluster"])]
+        indexes = [
+            models.Index(fields=["status", "cluster"]),
+            models.Index(fields=["deleted_at"]),
+        ]
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return f"Advisory {self.id} — {self.cluster.cluster_id} {self.get_status_display()}"
+
+    @property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
+
+    def soft_delete(self, *, by_user, reason: str = "") -> None:
+        """Soft-delete this advisory. Preserves the record for audit."""
+        from django.utils import timezone
+        self.deleted_at = timezone.now()
+        self.deleted_by = by_user
+        self.deletion_reason = reason
+        self.save(update_fields=["deleted_at", "deleted_by", "deletion_reason", "updated_at"])
+
+    def restore(self) -> None:
+        """Restore a soft-deleted advisory."""
+        self.deleted_at = None
+        self.deleted_by = None
+        self.deletion_reason = ""
+        self.save(update_fields=["deleted_at", "deleted_by", "deletion_reason", "updated_at"])
+
+    # Managers: `objects` excludes soft-deleted; `all_objects` includes everything.
+    objects = ActiveAdvisoryManager()
+    all_objects = AllAdvisoryManager()
 
 
 class AdvisoryEvidence(models.Model):

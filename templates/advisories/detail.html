@@ -39,12 +39,32 @@
     <div class="text-sm whitespace-pre-wrap leading-relaxed max-w-prose">{{ advisory.body }}</div>
 
     <div class="mt-5 flex flex-wrap gap-2 items-center no-print">
-      {% if advisory.status == 'draft' and user_can_approve_advisory %}
-        <a href="{% url 'approvals:gate' advisory.id %}" class="bg-emerald-700 text-white px-4 py-2 rounded text-sm hover:bg-emerald-800 min-h-[44px] flex items-center">Review and decide</a>
-        <a href="{% url 'advisories:edit' advisory.id %}" class="border border-stone-300 px-4 py-2 rounded text-sm hover:bg-stone-50 min-h-[44px] flex items-center">Edit draft</a>
+      {% if is_deleted %}
+        <span class="bg-red-100 text-red-800 text-sm px-3 py-2 rounded font-medium">⚠ This advisory has been soft-deleted. It is preserved for audit.</span>
+        {% if user.can_approve %}
+          <form method="post" action="{% url 'advisories:restore' advisory.id %}" class="inline">
+            {% csrf_token %}
+            <button type="submit" class="bg-emerald-700 text-white px-3 py-2 rounded text-sm hover:bg-emerald-800">Restore advisory</button>
+          </form>
+        {% endif %}
+      {% else %}
+        {% if advisory.status == 'draft' and user_can_approve_advisory %}
+          <a href="{% url 'approvals:gate' advisory.id %}" class="bg-emerald-700 text-white px-4 py-2 rounded text-sm hover:bg-emerald-800 min-h-[44px] flex items-center">Review and decide</a>
+          <a href="{% url 'advisories:edit' advisory.id %}" class="border border-stone-300 px-4 py-2 rounded text-sm hover:bg-stone-50 min-h-[44px] flex items-center">Edit draft</a>
+        {% endif %}
+        <button type="button" onclick="window.print()" class="border border-stone-300 px-3 py-2 rounded text-sm hover:bg-stone-50">Print internal copy</button>
+        <a href="{% url 'clusters:detail' advisory.cluster.cluster_id %}" class="text-emerald-700 text-sm hover:underline">Cluster records</a>
+        {% if user.is_officer %}
+          <details class="inline-block">
+            <summary class="text-red-600 text-sm hover:underline cursor-pointer">Delete…</summary>
+            <form method="post" action="{% url 'advisories:soft_delete' advisory.id %}" class="inline-flex gap-2 items-center mt-1">
+              {% csrf_token %}
+              <input type="text" name="deletion_reason" placeholder="Reason (optional, internal)" class="border border-stone-300 rounded px-2 py-1 text-sm w-48">
+              <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700" onclick="return confirm('Soft-delete advisory #{{ advisory.id }}? It will be preserved in the audit trail.')">Soft-delete</button>
+            </form>
+          </details>
+        {% endif %}
       {% endif %}
-      <button type="button" onclick="window.print()" class="border border-stone-300 px-3 py-2 rounded text-sm hover:bg-stone-50">Print internal copy</button>
-      <a href="{% url 'clusters:detail' advisory.cluster.cluster_id %}" class="text-emerald-700 text-sm hover:underline">Cluster records</a>
     </div>
 
     {% if advisory.status == 'approved' %}

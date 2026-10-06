@@ -1,0 +1,82 @@
+# Production docker-compose for Kachieng AI Agent
+# Use: docker compose -f docker-compose.prod.yml up -d
+#
+# Prerequisites:
+#   - .env file with MAJISHAMBA_SECRET_KEY, KACHIENG_MAP_API_KEY, etc.
+#   - nginx (or Traefik) in front of the gunicorn container for HTTPS termination
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: ${MAJISHAMBA_DB_NAME:-majishamba}
+      POSTGRES_USER: ${MAJISHAMBA_DB_USER:-majishamba}
+      POSTGRES_PASSWORD: ${MAJISHAMBA_DB_PASSWORD:-majishamba}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MAJISHAMBA_DB_USER:-majishamba}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  valkey:
+    image: valkey/valkey:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:0.3
+    volumes:
+      - ollama_models:/root/.ollama
+    restart: unless-stopped
+    # GPU support: add deploy.resources.devices[0].capabilities: ["gpu"]
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+
+  web:
+    build: .
+    command: >
+      bash -c "
+        python manage.py migrate --noinput &&
+        python manage.py collectstatic --noinput &&
+        gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
+      "
+    env_file: .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - MAJISHAMBA_DB_HOST=db
+      - REDIS_URL=redis://valkey:6379/0
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      db:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  rqworker:
+    build: .
+    command: python manage.py rqworker default
+    env_file: .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - MAJISHAMBA_DB_HOST=db
+      - REDIS_URL=redis://valkey:6379/0
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      - web
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  ollama_models:

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
@@ -12,6 +13,7 @@ from django.views.generic import DetailView, ListView, View
 from apps.accounts.permissions import require_officer
 from apps.agents.models import AdvisoryRun
 from apps.agents.run_worker import start_advisory_run_async
+from apps.audit.service import log_audit_event
 from apps.clusters.models import FarmerCluster
 
 from .context_helpers import advisory_review_context
@@ -24,16 +26,85 @@ class AdvisoryListView(LoginRequiredMixin, ListView):
     context_object_name = "advisories"
     paginate_by = 20
 
+    def get_queryset(self):
+        # Default manager already excludes soft-deleted.
+        return Advisory.objects.select_related("cluster").all()
+
 
 class AdvisoryDetailView(LoginRequiredMixin, DetailView):
     model = Advisory
     template_name = "advisories/detail.html"
     context_object_name = "advisory"
 
+    def get_queryset(self):
+        # Officers/supervisors can view deleted advisories (with a warning banner);
+        # viewers can only see active ones.
+        if self.request.user.is_authenticated and self.request.user.is_officer():
+            return Advisory.all_objects.select_related("cluster", "created_by", "deleted_by")
+        return Advisory.objects.select_related("cluster", "created_by")
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx.update(advisory_review_context(self.object))
+        ctx["is_deleted"] = self.object.is_deleted
         return ctx
+
+
+class AdvisorySoftDeleteView(LoginRequiredMixin, View):
+    """Officer soft-deletes an advisory. Preserves the record for audit."""
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        require_officer(request.user)
+        advisory = get_object_or_404(Advisory.all_objects, pk=pk)
+        if advisory.is_deleted:
+            messages.warning(request, "This advisory is already deleted.")
+            return redirect("advisories:detail", pk=pk)
+        reason = request.POST.get("deletion_reason", "")
+        advisory.soft_delete(by_user=request.user, reason=reason)
+        log_audit_event(
+            actor=request.user,
+            action="advisory:soft_delete",
+            target=advisory,
+            metadata={"reason": reason[:200], "advisory_id": advisory.id},
+        )
+        messages.success(request, f"Advisory #{advisory.id} has been soft-deleted. It is preserved in the audit trail.")
+        return redirect("advisories:list")
+
+
+class AdvisoryRestoreView(LoginRequiredMixin, View):
+    """Supervisor restores a soft-deleted advisory."""
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        from apps.accounts.permissions import require_approver
+        require_approver(request.user)
+        advisory = get_object_or_404(Advisory.all_objects, pk=pk)
+        if not advisory.is_deleted:
+            messages.warning(request, "This advisory is not deleted.")
+            return redirect("advisories:detail", pk=pk)
+        advisory.restore()
+        log_audit_event(
+            actor=request.user,
+            action="advisory:restore",
+            target=advisory,
+            metadata={"advisory_id": advisory.id},
+        )
+        messages.success(request, f"Advisory #{advisory.id} has been restored.")
+        return redirect("advisories:detail", pk=pk)
+
+
+class DeletedAdvisoryListView(LoginRequiredMixin, ListView):
+    """Shows soft-deleted advisories. Supervisors and staff only."""
+    template_name = "advisories/deleted.html"
+    context_object_name = "advisories"
+    paginate_by = 25
+
+    def dispatch(self, request, *args, **kwargs):
+        if not (request.user.is_authenticated and request.user.can_approve()):
+            return HttpResponseForbidden("Only supervisors can view deleted advisories.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return Advisory.all_objects.filter(deleted_at__isnull=False).select_related("cluster", "deleted_by").order_by("-deleted_at")
 
 
 class AdvisoryEditView(LoginRequiredMixin, View):
