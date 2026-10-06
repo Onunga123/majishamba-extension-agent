@@ -9,13 +9,7 @@
 **Named user:** Nyatike Agricultural Extension Officer
 **Licence:** MIT (OSI-approved)
 
----
-
-## One-sentence pitch
-
 MajiShamba helps the Nyatike Sub-County Agricultural Extension Officer turn weather, crop-calendar, plot-history and pest signals into a sourced, officer-approved planting advisory for smallholder farmer clusters in Kachieng Ward — **without ever sending advice automatically**.
-
----
 
 ## Get running in one command
 
@@ -51,9 +45,7 @@ Open http://127.0.0.1:8000 and log in as `nyatike_officer / majishamba-demo-2025
 
 > If Ollama is not installed, the agent logs `WARN: Ollama not installed` and falls back to a deterministic template generator. The demo still works end-to-end — the model is *one* of two drafting modes.
 
----
-
-## What this system does (≈300 words for the application form)
+## What this system does 
 
 **Problem.** The Nyatike Sub-County Agricultural Extension Officer must manually compare rainfall forecasts, crop calendars, plot histories, pest alerts and market prices for many Kachieng smallholder households. Rainfall onset is erratic; false starts cause crop failure or replanting costs. Pest alerts (e.g. fall armyworm) arrive via WhatsApp and radio without cluster specificity. The officer cannot easily show farmers *why* a recommendation was made. The result is generic, late or conflicting advice, with limited auditability.
 
@@ -64,8 +56,6 @@ Open http://127.0.0.1:8000 and log in as `nyatike_officer / majishamba-demo-2025
 **Workflow it serves.** The Nyatike Sub-County Agricultural Office's seasonal planting advisory cycle for Kachieng Ward clusters (KACH-01, KACH-02, KACH-03). It focuses on short-rains maize, the dominant staple, in the Migori Low-to-Mid Altitude bimodal zone. All household and plot records are synthetic; weather/pest/market aggregates are clearly labelled.
 
 **Benefits.** Faster advisory preparation, sourced and defensible advice citing rainfall, calendar, plot and pest sources, visibility of data gaps, consistent workflow and an audit trail for the office, and better climate resilience for Kachieng farmers — while keeping the human officer fully responsible.
-
----
 
 ## Problem, solution, benefits (Kachieng-specific)
 
