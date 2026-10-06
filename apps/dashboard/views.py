@@ -20,7 +20,8 @@ from apps.weather.models import WeatherSignal
 
 def _latest_real_weather():
     """Return the most recent NON-synthetic, NON-quarantined WeatherSignal, or None.
-    Records with verification_status='review_required' are excluded from production display."""
+    Records with verification_status='review_required' are excluded.
+    Prioritizes Open-Meteo API weather over manual KMD ingestion (more recent, structured)."""
     return (
         WeatherSignal.objects
         .exclude(synthetic_flag="synthetic")

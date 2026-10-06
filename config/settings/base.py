@@ -222,8 +222,15 @@ MAJISHAMBA = {
         "© Stadia Maps © OpenMapTiles © OpenStreetMap contributors",
     ),
     "MAP_MAX_ZOOM": 20,
-    # Optional API key for Stadia Maps production use. Leave blank for localhost dev.
     "MAP_API_KEY": env_str("KACHIENG_MAP_API_KEY", ""),
+    # --- Weather provider config ---
+    # Default: Open-Meteo (free, no API key, CC-BY 4.0, 10k calls/day)
+    "WEATHER_PROVIDER": env_str("WEATHER_PROVIDER", "open_meteo"),
+    "OPEN_METEO_ENDPOINT": env_str("OPEN_METEO_ENDPOINT", "https://api.open-meteo.com/v1/forecast"),
+    "WEATHER_REFRESH_HOURS": int(env_str("WEATHER_REFRESH_HOURS", "6")),  # refresh interval
+    "WEATHER_REQUEST_TIMEOUT": int(env_str("WEATHER_REQUEST_TIMEOUT", "30")),  # HTTP timeout
+    "WEATHER_DAILY_BUDGET": int(env_str("WEATHER_DAILY_BUDGET", "100")),  # max API calls per day
+    "OPEN_METEO_ATTRIBUTION": "Forecast from Open-Meteo (CC-BY 4.0)",
 }
 
 # --- Caching / queues (demo falls back to local memory) ---------------------
