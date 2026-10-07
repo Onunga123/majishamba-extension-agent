@@ -384,7 +384,9 @@ Draft an OFFICER-FACING advisory for cluster {state.get('cluster_id')} for the S
 
 Use ONLY the following evidence. Do not invent data.
 
-IMPORTANT: Respond with ONLY a JSON object. No markdown, no code fences, no explanation before or after.
+Output ONLY a JSON object. Do NOT include any thinking, reasoning, or explanation.
+Do NOT use markdown. Start immediately with {{ and end with }}.
+
 The JSON must have exactly these fields:
 {{
   "recommendation_type": "plant" | "delay" | "verify_locally" | "pest_monitoring" | "data_gap",
@@ -404,7 +406,7 @@ EVIDENCE:
 - Pest alerts: {pest_summary}
 - Market prices: {market_summary}
 
-Output ONLY the JSON object. Start with {{ and end with }}. No other text."""
+Output ONLY the JSON object now. No thinking. No reasoning. Just the JSON."""
 
 
 def _strip_code_fence(text: str) -> str:
