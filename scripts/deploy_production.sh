@@ -1,17 +1,7 @@
 #!/bin/bash
 # Production deployment script for Kachieng AI Agent.
-# Run on a clean Ubuntu/Debian host with Python 3.11+, PostgreSQL, and Ollama installed.
-#
-# Prerequisites:
-#   - PostgreSQL 16 + PostGIS extension
-#   - Valkey 7 (or Redis 7)
-#   - Ollama 0.3+ with qwen2.5:7b-instruct pulled
-#   - nginx (reverse proxy with HTTPS)
-#   - A .env file with MAJISHAMBA_SECRET_KEY, DB credentials, REDIS_URL, etc.
-#
-# Usage:
-#   cp .env.example .env  # edit with production secrets
-#   bash scripts/deploy_production.sh
+# This script does NOT load demo fixtures or create demo users.
+# Production starts empty — officers are provisioned individually.
 
 set -euo pipefail
 
@@ -44,16 +34,30 @@ echo "==> Collecting static files"
 echo "==> Applying migrations"
 .venv/bin/python manage.py migrate --noinput
 
-echo "==> Loading fixtures + seeding 14 clusters"
-.venv/bin/python manage.py loaddata data/fixtures/*.json --ignorenonexistent || true
-.venv/bin/python manage.py seed_kachieng_clusters
-.venv/bin/python scripts/load_demo_data.py
-
 echo ""
 echo "==> Production deployment ready."
-echo "    Start gunicorn:"
-echo "    DJANGO_SETTINGS_MODULE=config.settings.production .venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 3 --timeout 120"
 echo ""
-echo "    Configure nginx to proxy_pass to http://127.0.0.1:8000 with HTTPS."
-echo "    Start an RQ worker for background jobs:"
-echo "    DJANGO_SETTINGS_MODULE=config.settings.production .venv/bin/python manage.py rqworker default"
+echo "    IMPORTANT: No demo fixtures or demo users are loaded in production."
+echo "    Production starts EMPTY. To set up:"
+echo ""
+echo "    1. Create your first officer account:"
+echo "       .venv/bin/python manage.py create_officer --username <username> --full-name '<name>' --role extension_officer"
+echo "       .venv/bin/python manage.py changepassword <username>"
+echo ""
+echo "    2. Seed locality clusters (14 Kachieng localities, no households/plots):"
+echo "       .venv/bin/python manage.py seed_kachieng_clusters"
+echo ""
+echo "    3. Geocode locality coordinates (needs internet):"
+echo "       .venv/bin/python manage.py geocode_kachieng_localities"
+echo "       .venv/bin/python manage.py geocode_kachieng_localities --approve KACH-01"
+echo ""
+echo "    4. Refresh weather from Open-Meteo (needs internet):"
+echo "       .venv/bin/python manage.py refresh_weather"
+echo ""
+echo "    5. Start gunicorn:"
+echo "       DJANGO_SETTINGS_MODULE=config.settings.production .venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 3 --timeout 120"
+echo ""
+echo "    6. Start an RQ worker for background jobs:"
+echo "       DJANGO_SETTINGS_MODULE=config.settings.production .venv/bin/python manage.py rqworker default &"
+echo ""
+echo "    7. Configure nginx to proxy_pass to http://127.0.0.1:8000 with HTTPS."

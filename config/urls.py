@@ -11,6 +11,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include(("apps.accounts.urls", "accounts"), namespace="accounts")),
     path("dashboard/", include(("apps.dashboard.urls", "dashboard"), namespace="dashboard")),
+    path("health/", include(("apps.dashboard.urls", "dashboard"), namespace="health")),
     path("advisories/", include(("apps.advisories.urls", "advisories"), namespace="advisories")),
     path("clusters/", include(("apps.clusters.urls", "clusters"), namespace="clusters")),
     path("approvals/", include(("apps.approvals.urls", "approvals"), namespace="approvals")),

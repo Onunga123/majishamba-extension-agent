@@ -25,9 +25,10 @@ db.sqlite3-journal
 *.swp
 *.swo
 
-# OS
-.DS_Store
-Thumbs.db
+# Debug / temp
+debug_model_output.txt
+test_llm.py
+test_advisory_llm.py
 
 # Test / lint artifacts
 .pytest_cache/
