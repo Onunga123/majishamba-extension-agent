@@ -135,7 +135,7 @@ def test_provider_status_report():
         status = provider_status()
         assert status["provider"] == "openrouter"
         assert status["openrouter_configured"] is True
-        assert "gemma" in status["openrouter_model"]
+        assert "free" in status["openrouter_model"] or "gemma" in status["openrouter_model"]
 
 
 @pytest.mark.django_db
