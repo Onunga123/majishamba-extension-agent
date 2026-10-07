@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Account review — Kachieng AI Agent{% endblock %}
+{% block content %}
+<div class="bg-white p-4 rounded shadow border border-stone-200">
+  <h1 class="text-lg font-semibold mb-3">Account review</h1>
+  <p class="text-sm text-stone-600 mb-4">Review and approve pending account registrations.</p>
+
+  {% if pending_accounts %}
+  <table class="w-full text-sm">
+    <thead class="bg-stone-100">
+      <tr>
+        <th class="text-left px-2 py-1">Username</th>
+        <th class="text-left px-2 py-1">Full name</th>
+        <th class="text-left px-2 py-1">Email</th>
+        <th class="text-left px-2 py-1">Requested role</th>
+        <th class="text-left px-2 py-1">Organization</th>
+        <th class="text-left px-2 py-1">Area</th>
+        <th class="px-2 py-1">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for account in pending_accounts %}
+      <tr class="border-t border-stone-200">
+        <td class="px-2 py-1 font-mono">{{ account.username }}</td>
+        <td class="px-2 py-1">{{ account.full_name }}</td>
+        <td class="px-2 py-1 text-xs">{{ account.email|default:"—" }}</td>
+        <td class="px-2 py-1">{{ account.get_requested_role_display }}</td>
+        <td class="px-2 py-1 text-xs">{{ account.organization|default:"—" }}</td>
+        <td class="px-2 py-1 text-xs">{{ account.sub_county }}, {{ account.ward }}</td>
+        <td class="px-2 py-1 text-xs whitespace-nowrap">
+          <details class="inline-block">
+            <summary class="text-emerald-700 hover:underline cursor-pointer">Approve…</summary>
+            <form method="post" action="{% url 'accounts:approve' account.id %}" class="mt-1">
+              {% csrf_token %}
+              <select name="effective_role" class="border border-stone-300 rounded px-1 py-0.5 text-xs">
+                <option value="extension_officer" {% if account.requested_role == 'extension_officer' %}selected{% endif %}>Extension Officer</option>
+                <option value="supervisor" {% if account.requested_role == 'supervisor' %}selected{% endif %}>Supervisor</option>
+                <option value="viewer" {% if account.requested_role == 'viewer' %}selected{% endif %}>Viewer</option>
+              </select>
+              <button type="submit" class="bg-emerald-700 text-white px-2 py-0.5 rounded text-xs hover:bg-emerald-800">Approve</button>
+            </form>
+          </details>
+          <details class="inline-block ml-1">
+            <summary class="text-red-600 hover:underline cursor-pointer">Reject…</summary>
+            <form method="post" action="{% url 'accounts:reject' account.id %}" class="mt-1">
+              {% csrf_token %}
+              <input type="text" name="rejection_reason" placeholder="Reason" class="border border-stone-300 rounded px-1 py-0.5 text-xs w-32">
+              <button type="submit" class="bg-red-600 text-white px-2 py-0.5 rounded text-xs hover:bg-red-700">Reject</button>
+            </form>
+          </details>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p class="text-sm text-stone-500 italic py-3">No pending accounts.</p>
+  {% endif %}
+</div>
+{% endblock %}

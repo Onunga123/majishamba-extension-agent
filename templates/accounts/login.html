@@ -1,23 +1,17 @@
 {% extends "base.html" %}
-{% block title %}Login — Kachieng AI Agent{% endblock %}
+{% block title %}Sign in — Kachieng AI Agent{% endblock %}
 {% block content %}
 <div class="max-w-md mx-auto mt-8 bg-white p-6 rounded shadow border border-stone-200">
-  <h1 class="text-xl font-semibold">Kachieng AI Agent</h1>
-  <p class="text-sm text-stone-600 mt-1 mb-4">{{ tagline }}</p>
-
-  <div class="bg-amber-50 border border-amber-300 text-amber-900 text-xs rounded p-2 mb-4">
-    <strong>Synthetic demo data:</strong> All household, plot, and farmer records are synthetic.
-    Locality names are confirmed by the project owner (who is from the area); farmer groups and
-    records are not real.
-  </div>
+  <h1 class="text-xl font-semibold">Sign in to Kachieng AI Agent</h1>
+  <p class="text-sm text-stone-600 mt-1 mb-2">Climate-smart advisories. Extension officers decide.</p>
+  <p class="text-sm text-stone-600 mb-4">Access agricultural advisories, field tasks and evidence review.</p>
 
   {% if demo_mode and demo_accounts %}
   <div class="mb-5">
     <h2 class="text-sm font-semibold text-stone-700 mb-2">Choose a demo account</h2>
     <p class="text-xs text-stone-500 mb-2">
       Clicking a card fills in the username. You must still type the password and submit the form.
-      Roles and permissions are always derived from the authenticated database user — never from
-      the card you click.
+      Roles and permissions are always derived from the authenticated database user.
     </p>
     <div class="space-y-2" role="radiogroup" aria-label="Demo account selection">
       {% for acct in demo_accounts %}
@@ -49,7 +43,7 @@
   <form method="post" class="space-y-3">
     {% csrf_token %}
     {% if form.errors %}
-      <div class="bg-red-50 border border-red-300 text-red-800 text-sm p-2 rounded">
+      <div class="bg-red-50 border border-red-300 text-red-800 text-sm p-2 rounded" role="alert">
         Please enter a correct username and password. Note that both fields may be case-sensitive.
       </div>
     {% endif %}
@@ -59,23 +53,18 @@
     </div>
     <div>
       <label class="block text-sm font-medium" for="id_password">Password</label>
-      <input id="id_password" name="password" type="password" class="w-full border border-stone-300 rounded px-3 py-2" autocomplete="current-password" required>
+      <div class="relative">
+        <input id="id_password" name="password" type="password" class="w-full border border-stone-300 rounded px-3 py-2 pr-10" autocomplete="current-password" required>
+        <button type="button" onclick="var p=document.getElementById('id_password');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁':'🙈'" class="absolute right-2 top-2 text-stone-500" aria-label="Show/hide password">👁</button>
+      </div>
     </div>
     <button type="submit" class="bg-emerald-700 text-white px-4 py-2 rounded hover:bg-emerald-800 w-full">
-      Login
+      Sign in
     </button>
   </form>
 
-  {% if demo_mode %}
-  <p class="mt-4 text-xs text-stone-500">
-    <strong>Demo mode is ON.</strong> Demo accounts are listed above for convenience.
-    In production, demo mode is OFF and these cards are hidden.
+  <p class="mt-4 text-sm text-stone-600 text-center">
+    Need an account? <a href="{% url 'accounts:register' %}" class="text-emerald-700 hover:underline">Create one</a>
   </p>
-  {% else %}
-  <p class="mt-4 text-xs text-stone-500">
-    Demo mode is OFF. To enable the account selector for local demos, set <code>DEMO_MODE=1</code>
-    in the environment.
-  </p>
-  {% endif %}
 </div>
 {% endblock %}

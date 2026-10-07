@@ -15,36 +15,47 @@
   <header class="bg-emerald-800 text-white shadow" role="banner">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <div>
+        {% if user.is_authenticated %}
         <a href="{% url 'dashboard:home' %}" class="font-bold text-lg tracking-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
           Kachieng AI Agent <span class="text-emerald-200">/ Climate-smart advisories</span>
         </a>
+        {% else %}
+        <span class="font-bold text-lg tracking-tight">
+          Kachieng AI Agent <span class="text-emerald-200">/ Climate-smart advisories</span>
+        </span>
+        {% endif %}
         <span class="block text-emerald-200 text-xs mt-0.5">
           Kachieng Ward · Nyatike Sub-County · Migori County, Kenya
         </span>
       </div>
+      {% if user.is_authenticated %}
       <nav class="flex flex-wrap gap-x-3 gap-y-1 text-sm" aria-label="Main">
         <a href="{% url 'dashboard:home' %}" class="hover:underline py-1">Dashboard</a>
         <a href="{% url 'dashboard:map' %}" class="hover:underline py-1">Map</a>
         <a href="{% url 'advisories:list' %}" class="hover:underline py-1">Advisories{% if nav_draft_advisory_count %} <span class="bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-1">{{ nav_draft_advisory_count }}</span>{% endif %}</a>
-        {% if user.is_authenticated and user.can_approve %}
+        {% if user.can_approve %}
           <a href="{% url 'advisories:deleted' %}" class="hover:underline py-1">Deleted</a>
+          <a href="{% url 'accounts:review' %}" class="hover:underline py-1">Review</a>
         {% endif %}
         <a href="{% url 'tasks:list' %}" class="hover:underline py-1">Tasks{% if nav_pending_task_count %} <span class="bg-emerald-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-1">{{ nav_pending_task_count }}</span>{% endif %}</a>
         <a href="{% url 'audit:list' %}" class="hover:underline py-1">Audit</a>
-        {% if user.is_authenticated and user.is_officer %}
+        {% if user.is_officer %}
           <a href="{% url 'integrations:index' %}" class="hover:underline py-1">Data</a>
         {% endif %}
-        {% if user.is_authenticated %}
-          <span class="text-emerald-200 hidden sm:inline">|</span>
-          <span class="text-emerald-100 py-1">{{ user.display_name }} ({{ user.get_role_display }})</span>
-          <form method="post" action="{% url 'accounts:logout' %}" class="inline">
-            {% csrf_token %}
-            <button type="submit" class="hover:underline py-1 text-emerald-100 hover:text-white">Logout</button>
-          </form>
-        {% else %}
-          <a href="{% url 'accounts:login' %}" class="hover:underline py-1">Login</a>
-        {% endif %}
+        <span class="text-emerald-200 hidden sm:inline">|</span>
+        <span class="text-emerald-100 py-1">{{ user.display_name }} ({{ user.get_role_display }})</span>
+        <form method="post" action="{% url 'accounts:logout' %}" class="inline">
+          {% csrf_token %}
+          <button type="submit" class="hover:underline py-1 text-emerald-100 hover:text-white">Logout</button>
+        </form>
       </nav>
+      {% else %}
+      <nav class="text-sm">
+        <a href="{% url 'accounts:login' %}" class="text-white hover:underline">Sign in</a>
+        <span class="text-emerald-200 mx-1">·</span>
+        <a href="{% url 'accounts:register' %}" class="text-white hover:underline">Create account</a>
+      </nav>
+      {% endif %}
     </div>
   </header>
 
