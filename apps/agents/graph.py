@@ -383,13 +383,19 @@ serving smallholder farmer clusters in Kachieng Ward, Migori County, Kenya.
 Draft an OFFICER-FACING advisory for cluster {state.get('cluster_id')} for the SHORT RAINS maize season.
 
 Use ONLY the following evidence. Do not invent data.
-Respond in strict JSON with fields:
-recommendation_type (one of: plant, delay, verify_locally, pest_monitoring, data_gap),
-summary (<=240 chars),
-body (3-5 paragraphs, with [Source: ...] citations in each paragraph where relevant),
-confidence (low/medium/high),
-limitations,
-evidence (array of {{source_type, source_ref, claim, source_url}}).
+
+IMPORTANT: Respond with ONLY a JSON object. No markdown, no code fences, no explanation before or after.
+The JSON must have exactly these fields:
+{{
+  "recommendation_type": "plant" | "delay" | "verify_locally" | "pest_monitoring" | "data_gap",
+  "summary": "short summary, max 240 characters",
+  "body": "3-5 paragraphs of advisory text with [Source: ...] citations",
+  "confidence": "low" | "medium" | "high",
+  "limitations": "any limitations or caveats",
+  "evidence": [
+    {{"source_type": "weather", "source_ref": "source name", "claim": "what it supports", "source_url": ""}}
+  ]
+}}
 
 EVIDENCE:
 - Plot history: {plot_summary}
@@ -398,7 +404,7 @@ EVIDENCE:
 - Pest alerts: {pest_summary}
 - Market prices: {market_summary}
 
-Output the JSON object only. Do not add prose outside the JSON."""
+Output ONLY the JSON object. Start with {{ and end with }}. No other text."""
 
 
 def _strip_code_fence(text: str) -> str:
@@ -569,24 +575,55 @@ def draft_advisory(state: AgentState) -> AgentState:
 def validate_output_schema(state: AgentState) -> AgentState:
     raw = state.get("raw_model_output", "")
     text = _strip_code_fence(raw)
-    # Try to extract a JSON object from the text (model may wrap in prose)
+
+    # Debug: log what the model actually returned (first 500 chars)
+    mode = state.get("generation_mode", "unknown")
+    logger.info("validate_output_schema: generation_mode=%s, raw_output_len=%d, first_200=%s",
+                mode, len(text), text[:200])
+
+    # Try to extract a JSON object from the text (model may wrap in prose, markdown, etc.)
+    data = None
+    parse_errors = []
+
+    # Attempt 1: direct JSON parse
     try:
         data = json.loads(text)
-    except json.JSONDecodeError:
-        # Try to find the first {...} block
+    except json.JSONDecodeError as exc:
+        parse_errors.append(f"direct parse: {exc}")
+
+    # Attempt 2: find the first {...} block
+    if data is None:
         start = text.find("{")
         end = text.rfind("}")
         if start >= 0 and end > start:
             try:
                 data = json.loads(text[start : end + 1])
             except json.JSONDecodeError as exc:
-                return {**state, "errors": [{"node": "validate_output_schema", "msg": f"JSON parse failed: {exc}"}]}
-        else:
-            return {**state, "errors": [{"node": "validate_output_schema", "msg": "No JSON found in model output"}]}
+                parse_errors.append(f"bracket extraction: {exc}")
+
+    # Attempt 3: try fixing common JSON issues (trailing commas, single quotes)
+    if data is None:
+        import re
+        # Remove trailing commas before } or ]
+        cleaned = re.sub(r',\s*([}\]])', r'\1', text)
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start >= 0 and end > start:
+            try:
+                data = json.loads(cleaned[start : end + 1])
+            except json.JSONDecodeError as exc:
+                parse_errors.append(f"cleaned parse: {exc}")
+
+    if data is None:
+        logger.warning("validate_output_schema: all JSON parse attempts failed. Errors: %s", parse_errors)
+        return {**state, "errors": [{"node": "validate_output_schema", "msg": f"JSON parse failed: {'; '.join(parse_errors[:3])}"}]}
+
+    # Validate against the Pydantic schema
     try:
         draft = AdvisoryDraft.model_validate(data)
     except ValidationError as exc:
-        return {**state, "errors": [{"node": "validate_output_schema", "msg": str(exc)}]}
+        logger.warning("validate_output_schema: Pydantic validation failed: %s", str(exc)[:500])
+        return {**state, "errors": [{"node": "validate_output_schema", "msg": str(exc)[:500]}]}
 
     # Stale-source detection
     fresh_warnings = state.get("warnings") or []
