@@ -239,7 +239,7 @@ MAJISHAMBA = {
     # Set LLM_PROVIDER=openrouter to use OpenRouter (cloud, needs API key)
     # Set LLM_PROVIDER=ollama to use Ollama (local, needs Ollama installed)
     "LLM_PROVIDER": env_str("LLM_PROVIDER", "none"),
-    "OPENROUTER_MODEL": env_str("OPENROUTER_MODEL", "google/gemma-4-31b-it:free"),
+    "OPENROUTER_MODEL": env_str("OPENROUTER_MODEL", "openrouter/free"),
     "OPENROUTER_TIMEOUT_SECONDS": int(env_str("OPENROUTER_TIMEOUT_SECONDS", "60")),
     "OPENROUTER_MAX_OUTPUT_TOKENS": int(env_str("OPENROUTER_MAX_OUTPUT_TOKENS", "1500")),
     # Ollama (optional, for judges/local use)

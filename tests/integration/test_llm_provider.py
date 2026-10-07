@@ -151,7 +151,7 @@ def test_paid_model_not_selected_automatically():
     """The default model is the free one, not a paid model."""
     from apps.agents.llm_provider import get_openrouter_model
     model = get_openrouter_model()
-    assert ":free" in model or model.startswith("google/gemma"), f"Default model should be free, got: {model}"
+    assert ":free" in model or model == "openrouter/free", f"Default model should be free, got: {model}"
 
 
 @pytest.mark.django_db

@@ -40,8 +40,8 @@ def get_openrouter_api_key() -> str:
 
 
 def get_openrouter_model() -> str:
-    """Return the configured OpenRouter model. Default: google/gemma-4-31b-it:free."""
-    return os.environ.get("OPENROUTER_MODEL", "google/gemma-4-31b-it:free")
+    """Return the configured OpenRouter model. Default: openrouter/free (auto-routes to best free model)."""
+    return os.environ.get("OPENROUTER_MODEL", "openrouter/free")
 
 
 def get_openrouter_timeout() -> int:
