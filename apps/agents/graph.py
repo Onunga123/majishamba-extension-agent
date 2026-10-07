@@ -378,35 +378,29 @@ def _build_prompt(state: AgentState) -> str:
         f"{mp[0].get('price_kes_per_90kg','?')} KES/90kg trend={mp[0].get('trend','?')} (src: {mp[0].get('source','?')})"
         if mp else "No market data"
     )
-    return f"""You are a climate-smart agriculture assistant for the Nyatike Sub-County Agricultural Office,
-serving smallholder farmer clusters in Kachieng Ward, Migori County, Kenya.
-Draft an OFFICER-FACING advisory for cluster {state.get('cluster_id')} for the SHORT RAINS maize season.
+    return f"""You are a climate-smart agriculture assistant. Draft a planting advisory for cluster {state.get('cluster_id')} (Kachieng Ward, Migori, Kenya) for the SHORT RAINS maize season.
 
-Use ONLY the following evidence. Do not invent data.
+Based on this evidence, write the advisory as a JSON object.
 
-Output ONLY a JSON object. Do NOT include any thinking, reasoning, or explanation.
-Do NOT use markdown. Start immediately with {{ and end with }}.
-
-The JSON must have exactly these fields:
-{{
-  "recommendation_type": "plant" | "delay" | "verify_locally" | "pest_monitoring" | "data_gap",
-  "summary": "short summary, max 240 characters",
-  "body": "3-5 paragraphs of advisory text with [Source: ...] citations",
-  "confidence": "low" | "medium" | "high",
-  "limitations": "any limitations or caveats",
-  "evidence": [
-    {{"source_type": "weather", "source_ref": "source name", "claim": "what it supports", "source_url": ""}}
-  ]
-}}
-
-EVIDENCE:
+Evidence:
 - Plot history: {plot_summary}
 - Crop calendar: {cc_summary}
 - Weather: {wx_summary}
 - Pest alerts: {pest_summary}
 - Market prices: {market_summary}
 
-Output ONLY the JSON object now. No thinking. No reasoning. Just the JSON."""
+Write the JSON now. Only JSON, nothing else.
+
+{{
+  "recommendation_type": "verify_locally",
+  "summary": "Short summary here",
+  "body": "Advisory body with [Source: ...] citations",
+  "confidence": "medium",
+  "limitations": "Any limitations",
+  "evidence": [{{"source_type": "weather", "source_ref": "source name", "claim": "what it supports", "source_url": ""}}]
+}}
+
+Replace the example values above with your advisory. Start with {{ and end with }}."""
 
 
 def _strip_code_fence(text: str) -> str:

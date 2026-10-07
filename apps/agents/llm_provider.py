@@ -171,9 +171,9 @@ def _call_openrouter(prompt: str, prompt_hash: str, started: float) -> dict[str,
 # Fallback free models — tried in order if the primary model fails (429, timeout, etc.)
 FALLBACK_FREE_MODELS = [
     "google/gemma-4-26b-a4b-it:free",
-    "nvidia/nemotron-3.5-lightning:free",
-    "liquid/lfm-2.5-2.6b:free",
     "google/gemma-4-31b-it:free",
+    "liquid/lfm-2.5-2.6b:free",
+    "apodex/apodex-1.1-mini:free",
 ]
 
 
