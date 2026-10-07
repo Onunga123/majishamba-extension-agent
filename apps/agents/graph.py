@@ -615,12 +615,16 @@ def validate_output_schema(state: AgentState) -> AgentState:
     except json.JSONDecodeError as exc:
         parse_errors.append(f"direct parse: {exc}")
 
-    # Attempt 2: look for the JSON object by finding "recommendation_type"
+    # Attempt 2: look for the JSON object by finding "recommendation_type":
+    # (with colon — distinguishes JSON key from thinking text that just mentions the name)
     # Free "thinking" models (nemotron) include reasoning text with braces
-    # BEFORE the actual JSON. Find the key field and walk backward to its { .
+    # BEFORE the actual JSON. Find the JSON key field and walk backward to its { .
     if data is None:
-        marker = '"recommendation_type"'
+        marker = '"recommendation_type":'
         idx = text.find(marker)
+        if idx < 0:
+            # Try with space: "recommendation_type" :
+            idx = text.find('"recommendation_type" :')
         if idx >= 0:
             # Walk backward from the marker to find the opening {
             for i in range(idx, max(idx - 200, -1), -1):
@@ -636,13 +640,13 @@ def validate_output_schema(state: AgentState) -> AgentState:
                                 chunk = text[i : j + 1]
                                 try:
                                     data = json.loads(chunk)
-                                    logger.info("validate_output_schema: JSON found via recommendation_type marker at char %d", i)
+                                    logger.info("validate_output_schema: JSON found via recommendation_type: marker at char %d", i)
                                 except json.JSONDecodeError:
                                     pass
                                 break
                     break
         if data is None:
-            parse_errors.append("recommendation_type marker not found or parse failed")
+            parse_errors.append("recommendation_type: marker not found or parse failed")
 
     # Attempt 3: find ALL { positions and try each from the last to the first
     if data is None:
@@ -666,8 +670,10 @@ def validate_output_schema(state: AgentState) -> AgentState:
     if data is None:
         import re
         cleaned = re.sub(r',\s*([}\]])', r'\1', text)
-        marker = '"recommendation_type"'
+        marker = '"recommendation_type":'
         idx = cleaned.find(marker)
+        if idx < 0:
+            idx = cleaned.find('"recommendation_type" :')
         if idx >= 0:
             for i in range(idx, max(idx - 200, -1), -1):
                 if cleaned[i] == "{":
