@@ -90,6 +90,9 @@ def call_llm(prompt: str) -> dict[str, Any] | None:
             logger.warning("LLM_PROVIDER=openrouter but OPENROUTER_API_KEY is not set — falling back to template.")
             return None
         result = _call_openrouter(prompt, prompt_hash, started)
+        if result is None:
+            # Primary model failed — try fallback free models
+            result = _call_openrouter_fallback(prompt, prompt_hash, started)
         return result
 
     elif provider == "ollama":
@@ -159,6 +162,80 @@ def _call_openrouter(prompt: str, prompt_hash: str, started: float) -> dict[str,
         return None
     except Exception as exc:
         logger.warning("OpenRouter call failed: %s", exc)
+        return None
+
+
+# Fallback free models — tried in order if the primary model fails (429, timeout, etc.)
+FALLBACK_FREE_MODELS = [
+    "google/gemma-4-26b-a4b-it:free",
+    "nvidia/nemotron-3.5-lightning:free",
+    "liquid/lfm-2.5-2.6b:free",
+    "google/gemma-4-31b-it:free",
+]
+
+
+def _call_openrouter_fallback(prompt: str, prompt_hash: str, started: float) -> dict[str, Any] | None:
+    """Try fallback free models if the primary model failed."""
+    primary_model = get_openrouter_model()
+    api_key = get_openrouter_api_key()
+    timeout = get_openrouter_timeout()
+    max_tokens = get_openrouter_max_tokens()
+
+    for model in FALLBACK_FREE_MODELS:
+        if model == primary_model:
+            continue  # Already tried
+        logger.info("Trying fallback model: %s", model)
+        # Small delay to avoid immediate rate-limit on the next model
+        time.sleep(1)
+        result = _call_openrouter_single(prompt, api_key, model, timeout, max_tokens, prompt_hash, started)
+        if result:
+            logger.info("Fallback model succeeded: %s", model)
+            return result
+    return None
+
+
+def _call_openrouter_single(prompt, api_key, model, timeout, max_tokens, prompt_hash, started) -> dict[str, Any] | None:
+    """Make a single OpenRouter API call to a specific model."""
+    import httpx
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://github.com/Onunga123/majishamba-extension-agent",
+        "X-Title": "Kachieng AI Agent",
+    }
+    body = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "temperature": 0.2,
+    }
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            resp = client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=body)
+            if resp.status_code == 429:
+                logger.warning("OpenRouter rate-limited (429) for model %s.", model)
+                return None
+            if resp.status_code != 200:
+                logger.warning("OpenRouter returned HTTP %s for model %s: %s", resp.status_code, model, resp.text[:200])
+                return None
+            data = resp.json()
+            choices = data.get("choices", [])
+            if not choices:
+                return None
+            text = choices[0].get("message", {}).get("content", "")
+            actual_model = data.get("model", model)
+            elapsed = round(time.time() - started, 2)
+            logger.info("OpenRouter call OK: model=%s, elapsed=%ss", actual_model, elapsed)
+            return {
+                "text": _strip_code_fence(text),
+                "model": actual_model,
+                "provider": "openrouter",
+                "elapsed_s": elapsed,
+                "prompt_hash": prompt_hash,
+            }
+    except Exception as exc:
+        logger.warning("OpenRouter call failed for model %s: %s", model, exc)
         return None
 
 
