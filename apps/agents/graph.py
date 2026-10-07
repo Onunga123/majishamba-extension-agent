@@ -600,49 +600,81 @@ def validate_output_schema(state: AgentState) -> AgentState:
     except json.JSONDecodeError as exc:
         parse_errors.append(f"direct parse: {exc}")
 
-    # Attempt 2: find ALL { positions and try each from the last to the first.
-    # Free models (nemotron, gemma) often include "thinking" text with braces
-    # BEFORE the actual JSON. The actual JSON object is usually the LAST
-    # complete {...} block in the text.
+    # Attempt 2: look for the JSON object by finding "recommendation_type"
+    # Free "thinking" models (nemotron) include reasoning text with braces
+    # BEFORE the actual JSON. Find the key field and walk backward to its { .
+    if data is None:
+        marker = '"recommendation_type"'
+        idx = text.find(marker)
+        if idx >= 0:
+            # Walk backward from the marker to find the opening {
+            for i in range(idx, max(idx - 200, -1), -1):
+                if text[i] == "{":
+                    # Now find the matching closing } by counting braces
+                    depth = 0
+                    for j in range(i, len(text)):
+                        if text[j] == "{":
+                            depth += 1
+                        elif text[j] == "}":
+                            depth -= 1
+                            if depth == 0:
+                                chunk = text[i : j + 1]
+                                try:
+                                    data = json.loads(chunk)
+                                    logger.info("validate_output_schema: JSON found via recommendation_type marker at char %d", i)
+                                except json.JSONDecodeError:
+                                    pass
+                                break
+                    break
+        if data is None:
+            parse_errors.append("recommendation_type marker not found or parse failed")
+
+    # Attempt 3: find ALL { positions and try each from the last to the first
     if data is None:
         brace_positions = [i for i, c in enumerate(text) if c == "{"]
         end_pos = text.rfind("}")
         if end_pos >= 0:
-            # Try each { from the last one backward, combined with the last }
             for start in reversed(brace_positions):
                 if start >= end_pos:
                     continue
                 chunk = text[start : end_pos + 1]
                 try:
                     data = json.loads(chunk)
-                    logger.info("validate_output_schema: JSON found at char %d (attempt from last brace)", start)
+                    logger.info("validate_output_schema: JSON found at char %d (last brace scan)", start)
                     break
                 except json.JSONDecodeError:
                     continue
             if data is None:
                 parse_errors.append("bracket extraction (all positions tried)")
 
-    # Attempt 3: fix trailing commas + retry from last brace
+    # Attempt 4: fix trailing commas + retry
     if data is None:
         import re
         cleaned = re.sub(r',\s*([}\]])', r'\1', text)
-        brace_positions = [i for i, c in enumerate(cleaned) if c == "{"]
-        end_pos = cleaned.rfind("}")
-        if end_pos >= 0:
-            for start in reversed(brace_positions):
-                if start >= end_pos:
-                    continue
-                chunk = cleaned[start : end_pos + 1]
-                try:
-                    data = json.loads(chunk)
-                    logger.info("validate_output_schema: JSON found after comma-fix at char %d", start)
+        marker = '"recommendation_type"'
+        idx = cleaned.find(marker)
+        if idx >= 0:
+            for i in range(idx, max(idx - 200, -1), -1):
+                if cleaned[i] == "{":
+                    depth = 0
+                    for j in range(i, len(cleaned)):
+                        if cleaned[j] == "{":
+                            depth += 1
+                        elif cleaned[j] == "}":
+                            depth -= 1
+                            if depth == 0:
+                                chunk = cleaned[i : j + 1]
+                                try:
+                                    data = json.loads(chunk)
+                                    logger.info("validate_output_schema: JSON found via marker+comma-fix at char %d", i)
+                                except json.JSONDecodeError:
+                                    pass
+                                break
                     break
-                except json.JSONDecodeError:
-                    continue
-            if data is None:
-                parse_errors.append("cleaned parse (all positions tried)")
+        if data is None:
+            parse_errors.append("cleaned parse (marker + comma-fix)")
 
-    # Attempt 4: look for ```json ... ``` code fences (some models wrap JSON in markdown)
+    # Attempt 5: code fences
     if data is None:
         import re
         match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)

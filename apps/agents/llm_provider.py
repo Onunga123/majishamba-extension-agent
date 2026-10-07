@@ -146,10 +146,13 @@ def _call_openrouter(prompt: str, prompt_hash: str, started: float) -> dict[str,
                 logger.warning("OpenRouter response has no choices.")
                 return None
             text = choices[0].get("message", {}).get("content", "")
+            if not text:
+                logger.warning("OpenRouter response has empty content (model returned null).")
+                return None
             # Get the actual model returned (may differ from requested)
             actual_model = data.get("model", model)
             elapsed = round(time.time() - started, 2)
-            logger.info("OpenRouter call OK: model=%s, elapsed=%ss, tokens_out=%d", actual_model, elapsed, len(text))
+            logger.info("OpenRouter call OK: model=%s, elapsed=%ss, chars=%d", actual_model, elapsed, len(text))
             return {
                 "text": _strip_code_fence(text),
                 "model": actual_model,
@@ -224,6 +227,9 @@ def _call_openrouter_single(prompt, api_key, model, timeout, max_tokens, prompt_
             if not choices:
                 return None
             text = choices[0].get("message", {}).get("content", "")
+            if not text:
+                logger.warning("OpenRouter response has empty content for model %s.", model)
+                return None
             actual_model = data.get("model", model)
             elapsed = round(time.time() - started, 2)
             logger.info("OpenRouter call OK: model=%s, elapsed=%ss", actual_model, elapsed)
