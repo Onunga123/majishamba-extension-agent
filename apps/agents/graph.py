@@ -576,43 +576,71 @@ def validate_output_schema(state: AgentState) -> AgentState:
     raw = state.get("raw_model_output", "")
     text = _strip_code_fence(raw)
 
-    # Debug: log what the model actually returned (first 500 chars)
     mode = state.get("generation_mode", "unknown")
     logger.info("validate_output_schema: generation_mode=%s, raw_output_len=%d, first_200=%s",
                 mode, len(text), text[:200])
 
-    # Try to extract a JSON object from the text (model may wrap in prose, markdown, etc.)
     data = None
     parse_errors = []
 
-    # Attempt 1: direct JSON parse
+    # Attempt 1: direct JSON parse (model returned pure JSON)
     try:
         data = json.loads(text)
     except json.JSONDecodeError as exc:
         parse_errors.append(f"direct parse: {exc}")
 
-    # Attempt 2: find the first {...} block
+    # Attempt 2: find ALL { positions and try each from the last to the first.
+    # Free models (nemotron, gemma) often include "thinking" text with braces
+    # BEFORE the actual JSON. The actual JSON object is usually the LAST
+    # complete {...} block in the text.
     if data is None:
-        start = text.find("{")
-        end = text.rfind("}")
-        if start >= 0 and end > start:
-            try:
-                data = json.loads(text[start : end + 1])
-            except json.JSONDecodeError as exc:
-                parse_errors.append(f"bracket extraction: {exc}")
+        brace_positions = [i for i, c in enumerate(text) if c == "{"]
+        end_pos = text.rfind("}")
+        if end_pos >= 0:
+            # Try each { from the last one backward, combined with the last }
+            for start in reversed(brace_positions):
+                if start >= end_pos:
+                    continue
+                chunk = text[start : end_pos + 1]
+                try:
+                    data = json.loads(chunk)
+                    logger.info("validate_output_schema: JSON found at char %d (attempt from last brace)", start)
+                    break
+                except json.JSONDecodeError:
+                    continue
+            if data is None:
+                parse_errors.append("bracket extraction (all positions tried)")
 
-    # Attempt 3: try fixing common JSON issues (trailing commas, single quotes)
+    # Attempt 3: fix trailing commas + retry from last brace
     if data is None:
         import re
-        # Remove trailing commas before } or ]
         cleaned = re.sub(r',\s*([}\]])', r'\1', text)
-        start = cleaned.find("{")
-        end = cleaned.rfind("}")
-        if start >= 0 and end > start:
+        brace_positions = [i for i, c in enumerate(cleaned) if c == "{"]
+        end_pos = cleaned.rfind("}")
+        if end_pos >= 0:
+            for start in reversed(brace_positions):
+                if start >= end_pos:
+                    continue
+                chunk = cleaned[start : end_pos + 1]
+                try:
+                    data = json.loads(chunk)
+                    logger.info("validate_output_schema: JSON found after comma-fix at char %d", start)
+                    break
+                except json.JSONDecodeError:
+                    continue
+            if data is None:
+                parse_errors.append("cleaned parse (all positions tried)")
+
+    # Attempt 4: look for ```json ... ``` code fences (some models wrap JSON in markdown)
+    if data is None:
+        import re
+        match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
+        if match:
             try:
-                data = json.loads(cleaned[start : end + 1])
+                data = json.loads(match.group(1))
+                logger.info("validate_output_schema: JSON found in code fence")
             except json.JSONDecodeError as exc:
-                parse_errors.append(f"cleaned parse: {exc}")
+                parse_errors.append(f"code fence: {exc}")
 
     if data is None:
         logger.warning("validate_output_schema: all JSON parse attempts failed. Errors: %s", parse_errors)
