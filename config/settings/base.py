@@ -10,6 +10,17 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+# Load .env file if it exists (for local dev — production uses real env vars).
+# This ensures LLM_PROVIDER, OPENROUTER_API_KEY, etc. are available to the
+# Django dev server without manual env var export.
+_env_file = BASE_DIR / ".env"
+if _env_file.exists():
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(_env_file)
+    except ImportError:
+        pass  # python-dotenv not installed — rely on real env vars
+
 
 def env_bool(name: str, default: bool = False) -> bool:
     val = os.environ.get(name)
