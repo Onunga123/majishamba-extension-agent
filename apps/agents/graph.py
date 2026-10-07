@@ -543,25 +543,38 @@ def _fallback_template(state: AgentState) -> str:
 def draft_advisory(state: AgentState) -> AgentState:
     """Draft an advisory using the configured LLM provider (OpenRouter or Ollama).
     Falls back to deterministic template if no provider is configured or the call fails."""
-    from apps.agents.llm_provider import call_llm
+    from apps.agents.llm_provider import call_llm, get_llm_provider, is_openrouter_configured
     prompt = _build_prompt(state)
     prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:16]
     started = time.time()
+
+    # Log what provider we're trying
+    provider = get_llm_provider()
+    or_configured = is_openrouter_configured()
+    logger.info("draft_advisory: LLM_PROVIDER=%s, openrouter_configured=%s, prompt_len=%d", provider, or_configured, len(prompt))
+
     out = call_llm(prompt)
     elapsed_s = round(time.time() - started, 2)
-    if out and out["text"]:
-        provider = out.get("provider", "unknown")
+
+    if out and out.get("text"):
+        model_provider = out.get("provider", "unknown")
+        model_name = out.get("model", "unknown")
+        logger.info("draft_advisory: LLM succeeded: provider=%s, model=%s, elapsed=%ss, output_len=%d",
+                    model_provider, model_name, elapsed_s, len(out["text"]))
         return {
             **state,
             "raw_model_output": out["text"],
-            "generation_mode": f"llm_{provider}",
+            "generation_mode": f"llm_{model_provider}",
             "model_metadata": {
-                "model": out["model"],
-                "provider": provider,
+                "model": model_name,
+                "provider": model_provider,
                 "elapsed_s": elapsed_s,
                 "prompt_hash": prompt_hash,
             },
         }
+    else:
+        logger.warning("draft_advisory: LLM call returned None (provider=%s). Using fallback template.", provider)
+
     # Fallback
     fallback_json = _fallback_template(state)
     return {
