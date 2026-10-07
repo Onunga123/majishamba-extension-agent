@@ -223,6 +223,17 @@ MAJISHAMBA = {
     ),
     "MAP_MAX_ZOOM": 20,
     "MAP_API_KEY": env_str("KACHIENG_MAP_API_KEY", ""),
+    # --- LLM provider config ---
+    # Default: none (falls back to deterministic template)
+    # Set LLM_PROVIDER=openrouter to use OpenRouter (cloud, needs API key)
+    # Set LLM_PROVIDER=ollama to use Ollama (local, needs Ollama installed)
+    "LLM_PROVIDER": env_str("LLM_PROVIDER", "none"),
+    "OPENROUTER_MODEL": env_str("OPENROUTER_MODEL", "google/gemma-4-31b-it:free"),
+    "OPENROUTER_TIMEOUT_SECONDS": int(env_str("OPENROUTER_TIMEOUT_SECONDS", "60")),
+    "OPENROUTER_MAX_OUTPUT_TOKENS": int(env_str("OPENROUTER_MAX_OUTPUT_TOKENS", "800")),
+    # Ollama (optional, for judges/local use)
+    "OLLAMA_HOST": env_str("OLLAMA_HOST", "http://127.0.0.1:11434"),
+    "OLLAMA_MODEL": env_str("OLLAMA_MODEL", "qwen2.5:7b-instruct"),
     # --- Weather provider config ---
     # Default: Open-Meteo (free, no API key, CC-BY 4.0, 10k calls/day)
     "WEATHER_PROVIDER": env_str("WEATHER_PROVIDER", "open_meteo"),

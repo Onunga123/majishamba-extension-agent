@@ -535,20 +535,23 @@ def _fallback_template(state: AgentState) -> str:
 
 
 def draft_advisory(state: AgentState) -> AgentState:
-    """Draft an advisory using Qwen2.5-7B-Instruct via Ollama; fall back to template."""
+    """Draft an advisory using the configured LLM provider (OpenRouter or Ollama).
+    Falls back to deterministic template if no provider is configured or the call fails."""
+    from apps.agents.llm_provider import call_llm
     prompt = _build_prompt(state)
     prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:16]
     started = time.time()
-    out = None if SKIP_OLLAMA else _try_ollama(prompt)
+    out = call_llm(prompt)
     elapsed_s = round(time.time() - started, 2)
     if out and out["text"]:
+        provider = out.get("provider", "unknown")
         return {
             **state,
             "raw_model_output": out["text"],
-            "generation_mode": "ollama_qwen",
+            "generation_mode": f"llm_{provider}",
             "model_metadata": {
                 "model": out["model"],
-                "host": out["host"],
+                "provider": provider,
                 "elapsed_s": elapsed_s,
                 "prompt_hash": prompt_hash,
             },

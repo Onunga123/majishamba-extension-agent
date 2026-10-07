@@ -343,7 +343,7 @@ def create_draft_advisory_record(
         model_run_id=model_metadata.get("prompt_hash", ""),
         model_prompt_hash=model_metadata.get("prompt_hash", ""),
         generation_seconds=model_metadata.get("elapsed_s"),
-        generation_mode=model_metadata.get("model", "").startswith("qwen") and "ollama_qwen" or "fallback_template",
+        generation_mode=model_metadata.get("provider", "fallback") and f"llm_{model_metadata.get('provider', 'fallback')}" if model_metadata.get("provider") else ("fallback_template" if not model_metadata.get("model") or model_metadata["model"] == "fallback_template" else "llm_unknown"),
         created_by_id=actor_id,
     )
     for ev in evidence_links:
