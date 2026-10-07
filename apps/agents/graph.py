@@ -581,13 +581,15 @@ def validate_output_schema(state: AgentState) -> AgentState:
                 mode, len(text), text[:200])
 
     # DEBUG: Write the raw model output to a file so we can inspect it
+    # Only capture LLM output (not fallback template) so we can debug parse failures
     try:
         import os
         debug_path = os.path.join(os.path.dirname(__file__), "..", "..", "debug_model_output.txt")
-        with open(debug_path, "w", encoding="utf-8") as f:
-            f.write(f"=== generation_mode: {mode} ===\n")
-            f.write(f"=== raw_output_len: {len(text)} ===\n")
-            f.write(text)
+        if mode.startswith("llm_"):
+            with open(debug_path, "w", encoding="utf-8") as f:
+                f.write(f"=== generation_mode: {mode} ===\n")
+                f.write(f"=== raw_output_len: {len(text)} ===\n")
+                f.write(text)
     except Exception:
         pass
 
