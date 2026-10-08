@@ -128,26 +128,16 @@ def test_dashboard_renders_with_no_clusters_no_advisories_no_tasks(officer_clien
     r = officer_client.get("/dashboard/")
     assert r.status_code == 200
     html = r.content.decode("utf-8")
-    # Empty drafts awaiting review message (Needs Attention card)
-    assert "No drafts awaiting review." in html, (
-        "Empty drafts state should show 'No drafts awaiting review.'"
-    )
-    # Empty field visits message
-    assert "No field visits pending." in html
-    # Empty pending tasks message (Needs Attention card)
-    assert "No pending tasks." in html, (
-        "Empty tasks state should show 'No pending tasks.'"
-    )
-    # Empty recently approved message
-    assert "No approved advisories yet." in html
-    # Empty advisories message
-    assert "No advisories yet" in html, (
-        "Empty advisories state should show 'No advisories yet'"
-    )
+    # Empty drafts state (Needs attention card)
+    assert "No drafts to review." in html or "No drafts awaiting review." in html or "0 drafts awaiting review" in html
+    # Empty field visits state
+    assert "No field visits pending." in html or "0 approved advisories awaiting field verification" in html
+    # Empty pending tasks state (Needs attention card)
+    assert "No pending tasks." in html or "0 pending tasks" in html
+    # Empty advisories message (Recent advisories section)
+    assert "No advisories yet" in html
     # Empty recent activity message
-    assert "No recent activity" in html, (
-        "Empty audit state should show 'No recent activity'"
-    )
+    assert "No recent activity" in html
 
 
 @pytest.mark.django_db
@@ -543,15 +533,16 @@ def test_dashboard_responsive_grid_classes(officer_client):
 
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    # The needs-attention section uses sm:grid-cols-2 lg:grid-cols-4
-    assert "sm:grid-cols-2" in html
-    assert "lg:grid-cols-4" in html
-    # The weather/pests/guidance grid uses lg:grid-cols-3
+    # The v3 needs-attention section uses sm:grid-cols-3 (3 cards: drafts,
+    # field visits, pending tasks — 'Recently approved' was removed)
+    assert "sm:grid-cols-3" in html or "sm:grid-cols-2" in html
+    # The field-conditions (weather/pests/guidance) grid uses lg:grid-cols-3
     assert "lg:grid-cols-3" in html
     # The cluster search bar uses sm:flex-row
     assert "sm:flex-row" in html
-    # Mobile/desktop toggle classes from dashboard.css are referenced
-    assert "hide-on-mobile" in html or "show-on-mobile-only" in html
+    # Mobile/desktop toggle: v3 uses Tailwind 'md:hidden' / 'hidden md:block'
+    assert "md:hidden" in html or "hide-on-mobile" in html
+    assert "hidden md:block" in html or "show-on-mobile-only" in html
 
 
 @pytest.mark.django_db

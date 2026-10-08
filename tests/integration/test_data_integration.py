@@ -287,7 +287,11 @@ def test_dashboard_shows_no_current_pest_notice_when_only_synthetic(officer_clie
 
 @pytest.mark.django_db
 def test_dashboard_shows_kalro_permission_pending(officer_client):
-    """The dashboard must show KALRO permission-pending state for agronomic guidance."""
+    """The dashboard must show KALRO permission-pending state for agronomic
+    guidance. The v3 dashboard uses user-friendly wording ('currently unavailable',
+    'awaiting authorization') rather than the internal technical phrase
+    'permission-pending for KALRO maize manual ingestion' (which is kept on
+    the dedicated Guidance details page)."""
     call_command("loaddata", "data/fixtures/migori_crop_calendars.json",
                  "data/fixtures/migori_kachieng_clusters.json",
                  "data/fixtures/migori_kachieng_plots.json",
@@ -295,8 +299,23 @@ def test_dashboard_shows_kalro_permission_pending(officer_client):
     call_command("seed_kachieng_clusters", stdout=StringIO())
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    assert "permission-pending for KALRO maize manual ingestion" in html
+    # The dashboard must show KALRO-related text indicating permission is pending.
+    # The v3 wording is operational, not technical — the detailed licence phrase
+    # is on /dashboard/guidance/ (progressive disclosure).
+    assert "KALRO" in html, "Dashboard must mention KALRO for the guidance section"
+    assert "unavailable" in html.lower() or "awaiting authorization" in html.lower() or "permission pending" in html.lower(), (
+        "Dashboard must indicate KALRO guidance is unavailable / awaiting authorization"
+    )
+    # The 'Local planting dates not specified' notice must still be present
     assert "Local planting dates not specified in this source" in html
+    # The detailed 'permission-pending for KALRO maize manual ingestion' phrase
+    # is no longer on the dashboard — it's on the Guidance details page.
+    # Verify the Guidance details page still has it.
+    r2 = officer_client.get("/dashboard/guidance/")
+    html2 = r2.content.decode("utf-8")
+    assert "permission-pending for KALRO maize manual ingestion" in html2, (
+        "Guidance details page must contain the technical permission-pending phrase"
+    )
 
 
 @pytest.mark.django_db

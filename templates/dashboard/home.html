@@ -3,14 +3,13 @@
 {% block title %}Dashboard — Kachieng AI Agent{% endblock %}
 {% block content %}
 
-<div class="mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-  <div>
-    <h1 class="text-2xl font-semibold text-stone-900">Kachieng Ward</h1>
-    <p class="text-sm text-stone-600">
-      Nyatike Sub-County · Migori County · Kenya
-    </p>
-  </div>
-  <div class="text-xs text-stone-500 flex items-center gap-3">
+{# PAGE HEADER — Where am I? (location + last updated + refresh) #}
+<header class="mb-6">
+  <h1 class="text-2xl font-semibold text-stone-900">Kachieng Ward</h1>
+  <p class="text-sm text-stone-600 mt-1">
+    Nyatike Sub-County · Migori County · Kenya
+  </p>
+  <p class="text-xs text-stone-500 mt-2 flex items-center gap-3">
     <span>
       Last updated: <time datetime="{{ last_updated|date:'c' }}">{{ last_updated|date:"Y-m-d H:i" }}</time>
     </span>
@@ -18,314 +17,262 @@
        class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
       ↻ Refresh
     </a>
-  </div>
-</div>
+  </p>
+</header>
 
-<section class="mb-6" aria-labelledby="needs-attention-heading">
+{# NEEDS YOUR ATTENTION — What requires my action? (summary + action links) #}
+<section class="mb-8" aria-labelledby="needs-attention-heading">
   <h2 id="needs-attention-heading" class="text-lg font-semibold text-stone-900 mb-3">
     Needs your attention
   </h2>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
 
     {# --- Drafts awaiting review --- #}
-    <div class="attention-card {% if needs_attention.drafts_count > 0 %}has-items{% else %}empty{% endif %}">
-      <div class="flex items-start justify-between gap-2">
-        <div>
-          <p class="text-xs font-medium text-stone-500 uppercase tracking-wide">Drafts awaiting review</p>
-          <p class="text-2xl font-semibold text-stone-900 mt-1">{{ needs_attention.drafts_count }}</p>
-        </div>
-        <span class="status-badge status-draft" title="Draft advisories need human review">Draft</span>
+    <div class="bg-white border border-stone-200 rounded p-4 {% if needs_attention.drafts_count > 0 %}border-l-4 border-l-amber-500{% endif %}">
+      <div class="flex items-baseline justify-between">
+        <p class="text-xs font-medium text-stone-500 uppercase tracking-wide">Drafts awaiting review</p>
+        <span class="text-2xl font-semibold text-stone-900">{{ needs_attention.drafts_count }}</span>
       </div>
-      {% if needs_attention.drafts_awaiting_review %}
-        <ul class="mt-3 text-sm divide-y divide-stone-100">
-          {% for a in needs_attention.drafts_awaiting_review %}
-          <li class="py-1.5">
-            <a href="{% url 'advisories:detail' a.id %}"
-               class="block hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-              <div class="font-medium text-stone-800 truncate">
-                {{ a.cluster.locality|default:a.cluster.cluster_id }}
-              </div>
-              <div class="text-xs text-stone-500">#{{ a.id }} · {{ a.created_at|date:"M j, H:i" }}</div>
-            </a>
-          </li>
-          {% endfor %}
-        </ul>
-        {% if can_approve %}
-        <a href="{% url 'advisories:list' %}?status=draft"
-           class="inline-block mt-2 text-xs text-emerald-700 hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-          Review drafts →
-        </a>
-        {% endif %}
+      <p class="text-sm text-stone-600 mt-2">
+        {{ needs_attention.drafts_summary|default:"0 drafts awaiting review" }}
+      </p>
+      {% if needs_attention.drafts_count > 0 and can_approve %}
+      <a href="{% url 'advisories:list' %}?status=draft"
+         class="inline-block mt-2 text-sm text-emerald-700 hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+        Review drafts →
+      </a>
+      {% elif needs_attention.drafts_count > 0 %}
+      <a href="{% url 'advisories:list' %}?status=draft"
+         class="inline-block mt-2 text-sm text-stone-600 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+        View drafts →
+      </a>
       {% else %}
-        <p class="text-xs text-stone-500 mt-3 italic">No drafts awaiting review.</p>
+      <p class="text-xs text-stone-400 mt-2 italic">No drafts to review.</p>
       {% endif %}
     </div>
 
     {# --- Field visits required --- #}
-    <div class="attention-card {% if needs_attention.field_visits_count > 0 %}has-items{% else %}empty{% endif %}">
-      <div class="flex items-start justify-between gap-2">
-        <div>
-          <p class="text-xs font-medium text-stone-500 uppercase tracking-wide">Field visits required</p>
-          <p class="text-2xl font-semibold text-stone-900 mt-1">{{ needs_attention.field_visits_count }}</p>
-        </div>
-        <span class="status-badge status-approved" title="Approved advisories with an open follow-up task">Approved</span>
+    <div class="bg-white border border-stone-200 rounded p-4 {% if needs_attention.field_visits_count > 0 %}border-l-4 border-l-emerald-500{% endif %}">
+      <div class="flex items-baseline justify-between">
+        <p class="text-xs font-medium text-stone-500 uppercase tracking-wide">Field visits required</p>
+        <span class="text-2xl font-semibold text-stone-900">{{ needs_attention.field_visits_count }}</span>
       </div>
-      {% if needs_attention.field_visits_required %}
-        <ul class="mt-3 text-sm divide-y divide-stone-100">
-          {% for a in needs_attention.field_visits_required %}
-          <li class="py-1.5">
-            <a href="{% url 'advisories:detail' a.id %}"
-               class="block hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-              <div class="font-medium text-stone-800 truncate">
-                {{ a.cluster.locality|default:a.cluster.cluster_id }}
-              </div>
-              <div class="text-xs text-stone-500">#{{ a.id }} · approved {{ a.updated_at|date:"M j" }}</div>
-            </a>
-          </li>
-          {% endfor %}
-        </ul>
+      <p class="text-sm text-stone-600 mt-2">
+        {{ needs_attention.field_visits_summary|default:"0 approved advisories awaiting field verification" }}
+      </p>
+      {% if needs_attention.field_visits_count > 0 %}
+      <a href="{% url 'tasks:list' %}"
+         class="inline-block mt-2 text-sm text-emerald-700 hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+        Open tasks →
+      </a>
       {% else %}
-        <p class="text-xs text-stone-500 mt-3 italic">No field visits pending.</p>
+      <p class="text-xs text-stone-400 mt-2 italic">No field visits pending.</p>
       {% endif %}
     </div>
 
     {# --- Pending tasks --- #}
-    <div class="attention-card {% if needs_attention.pending_tasks_count > 0 %}has-items{% else %}empty{% endif %}">
-      <div class="flex items-start justify-between gap-2">
-        <div>
-          <p class="text-xs font-medium text-stone-500 uppercase tracking-wide">Pending tasks</p>
-          <p class="text-2xl font-semibold text-stone-900 mt-1">{{ needs_attention.pending_tasks_count }}</p>
-        </div>
-        <span class="status-badge status-deferred" title="Open follow-up tasks">Task</span>
+    <div class="bg-white border border-stone-200 rounded p-4 {% if needs_attention.pending_tasks_count > 0 %}border-l-4 border-l-amber-500{% endif %}">
+      <div class="flex items-baseline justify-between">
+        <p class="text-xs font-medium text-stone-500 uppercase tracking-wide">Pending tasks</p>
+        <span class="text-2xl font-semibold text-stone-900">{{ needs_attention.pending_tasks_count }}</span>
       </div>
-      {% if needs_attention.pending_tasks %}
-        <ul class="mt-3 text-sm divide-y divide-stone-100">
-          {% for t in needs_attention.pending_tasks %}
-          <li class="py-1.5">
-            <a href="{% url 'tasks:detail' t.id %}"
-               class="block hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-              <div class="font-medium text-stone-800 truncate">{{ t.get_task_type_display }}</div>
-              <div class="text-xs text-stone-500">
-                Due {{ t.deadline|default:"(no deadline)" }}{% if t.is_overdue %} · <span class="text-red-700 font-medium">Overdue</span>{% endif %}
-              </div>
-            </a>
-          </li>
-          {% endfor %}
-        </ul>
-        <a href="{% url 'tasks:list' %}"
-           class="inline-block mt-2 text-xs text-emerald-700 hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-          All tasks →
-        </a>
+      <p class="text-sm text-stone-600 mt-2">
+        {{ needs_attention.pending_tasks_summary|default:"0 pending tasks" }}
+      </p>
+      {% if needs_attention.pending_tasks_count > 0 %}
+      <a href="{% url 'tasks:list' %}"
+         class="inline-block mt-2 text-sm text-emerald-700 hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+        All tasks →
+      </a>
       {% else %}
-        <p class="text-xs text-stone-500 mt-3 italic">No pending tasks.</p>
-      {% endif %}
-    </div>
-
-    {# --- Recently approved advisories --- #}
-    <div class="attention-card {% if needs_attention.recently_approved_count > 0 %}has-items{% else %}empty{% endif %}">
-      <div class="flex items-start justify-between gap-2">
-        <div>
-          <p class="text-xs font-medium text-stone-500 uppercase tracking-wide">Recently approved</p>
-          <p class="text-2xl font-semibold text-stone-900 mt-1">{{ needs_attention.recently_approved_count }}</p>
-        </div>
-        <span class="status-badge status-approved" title="Approved advisories">Approved</span>
-      </div>
-      {% if needs_attention.recently_approved %}
-        <ul class="mt-3 text-sm divide-y divide-stone-100">
-          {% for a in needs_attention.recently_approved %}
-          <li class="py-1.5">
-            <a href="{% url 'advisories:detail' a.id %}"
-               class="block hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-              <div class="font-medium text-stone-800 truncate">
-                {{ a.cluster.locality|default:a.cluster.cluster_id }}
-              </div>
-              <div class="text-xs text-stone-500">#{{ a.id }} · {{ a.updated_at|date:"M j" }}</div>
-            </a>
-          </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-xs text-stone-500 mt-3 italic">No approved advisories yet.</p>
+      <p class="text-xs text-stone-400 mt-2 italic">No pending tasks.</p>
       {% endif %}
     </div>
   </div>
 </section>
 
-<section class="mb-6 bg-white border border-stone-200 rounded p-4 shadow-sm">
-  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-    <div class="flex-1">
+{# PRIMARY CTA — What can I do next? (Request advisory + workflow) #}
+<section class="mb-8 bg-white border border-stone-200 rounded p-5">
+  <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+    <div class="flex-1 max-w-2xl">
       <h2 class="text-base font-semibold text-stone-900">
-        Request a climate-smart planting advisory
+        Request a climate-smart advisory
       </h2>
-      <p class="text-sm text-stone-700 mt-1">
-        The system gathers available plot, crop-calendar, weather, pest and market information,
-        then creates a sourced <strong>draft</strong> for your review.
-        Nothing is sent to farmers automatically — you approve every advisory.
+      <p class="text-sm text-stone-700 mt-1.5">
+        The system gathers available plot, crop-calendar, weather, pest and market information
+        and creates a sourced draft for your review. Human review and approval are required
+        before any operational follow-up.
       </p>
-      {# Workflow status legend — distinguishes AI vs human states #}
       <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
         <span class="font-medium text-stone-600">Workflow:</span>
-        <span class="workflow-badge workflow-ai-draft" title="AI-generated; not yet reviewed by a human">
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
+              style="background:#fff7ed;color:#9a3412;border:1px dashed #fed7aa"
+              title="AI-generated; not yet reviewed by a human">
           AI draft
         </span>
-        <span class="text-stone-400">→</span>
-        <span class="workflow-badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a" title="A human officer has reviewed the draft">
+        <span class="text-stone-400" aria-hidden="true">→</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
+              style="background:#fef3c7;color:#92400e;border:1px solid #fde68a"
+              title="A human officer has reviewed the draft">
           Reviewed
         </span>
-        <span class="text-stone-400">→</span>
-        <span class="workflow-badge workflow-human-approved" title="A human officer has approved this advisory">
+        <span class="text-stone-400" aria-hidden="true">→</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
+              style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0"
+              title="A human officer has approved this advisory">
           Approved
         </span>
-        <span class="text-stone-400">→</span>
-        <span class="workflow-badge" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd" title="Field findings have been submitted against the approved advisory">
+        <span class="text-stone-400" aria-hidden="true">→</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
+              style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd"
+              title="Field findings have been submitted against the approved advisory">
           Field-verified
         </span>
       </div>
     </div>
-    <div class="flex flex-col sm:flex-row gap-2 lg:flex-col lg:items-stretch">
-      {% if can_request_advisory %}
-      <a href="{% url 'advisories:request' %}"
-         class="btn-primary"
-         aria-label="Request a new climate-smart advisory">
-        + Request advisory
-      </a>
-      {% else %}
-      <p class="text-xs text-stone-500 italic lg:text-right lg:max-w-[16rem]">
-        You are signed in as <strong>{{ user.get_role_display }}</strong> — read-only.
-        Requesting advisories requires an officer or supervisor account.
-      </p>
-      {% endif %}
-    </div>
+    {% if can_request_advisory %}
+    <a href="{% url 'advisories:request' %}"
+       class="inline-flex items-center justify-center gap-2 px-5 py-2.5 min-h-[44px] bg-emerald-700 text-white font-semibold rounded border border-emerald-700 shadow-sm hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 whitespace-nowrap"
+       aria-label="Request a new climate-smart advisory">
+      + Request advisory
+    </a>
+    {% else %}
+    <p class="text-xs text-stone-500 italic lg:text-right lg:max-w-[16rem]">
+      Signed in as <strong>{{ user.get_role_display }}</strong> — read-only.
+      Requesting advisories requires an officer or supervisor account.
+    </p>
+    {% endif %}
   </div>
 </section>
 
-<section class="bg-white border border-stone-200 rounded shadow-sm mb-6">
-  <div class="p-4 border-b border-stone-200">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-      <h2 class="text-lg font-semibold text-stone-900">
-        Clusters <span class="text-stone-400 font-normal text-base">({{ cluster_count }})</span>
-      </h2>
-      <a href="{% url 'dashboard:map' %}"
-         class="text-sm text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-        View map →
-      </a>
-    </div>
+{# CLUSTERS — What is the state of my farmer clusters? #}
+<section class="mb-8" aria-labelledby="clusters-heading">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+    <h2 id="clusters-heading" class="text-lg font-semibold text-stone-900">
+      Clusters <span class="text-stone-400 font-normal text-base">({{ cluster_count }})</span>
+    </h2>
+    <a href="{% url 'dashboard:map' %}"
+       class="text-sm text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+      View map →
+    </a>
+  </div>
 
-    {# Search + filters #}
-    <form method="get" class="flex flex-col sm:flex-row gap-2" aria-label="Filter clusters">
-      <div class="flex-1">
-        <label for="cluster-search" class="sr-only">Search by cluster name or KACH ID</label>
-        <input id="cluster-search" name="q" type="search" value="{{ search_q }}"
-               placeholder="Search by cluster name or KACH ID"
-               class="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition">
-      </div>
-      <input type="hidden" name="status" value="{{ status_filter }}">
-      <button type="submit" class="btn-secondary">
-        Search
-      </button>
-      {% if search_q or status_filter != 'all' %}
-      <a href="?status=all"
-         class="btn-secondary text-stone-600"
-         aria-label="Clear active filters">
-        ✕ Clear filters
-      </a>
+  {# Search + filters — one row #}
+  <form method="get" class="flex flex-col sm:flex-row gap-2 mb-3" aria-label="Filter clusters">
+    <div class="flex-1">
+      <label for="cluster-search" class="sr-only">Search by cluster name or KACH ID</label>
+      <input id="cluster-search" name="q" type="search" value="{{ search_q }}"
+             placeholder="Search by cluster name or KACH ID"
+             class="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition">
+    </div>
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    <button type="submit" class="px-4 py-2 min-h-[36px] text-sm bg-white border border-stone-300 rounded text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+      Search
+    </button>
+    {% if search_q or status_filter != 'all' %}
+    <a href="?status=all"
+       class="px-3 py-2 text-sm text-stone-600 hover:text-stone-900 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded self-center"
+       aria-label="Clear active filters">
+      ✕ Clear filters
+    </a>
+    {% endif %}
+  </form>
+
+  {# Status filter chips #}
+  <div class="flex flex-wrap gap-1 mb-4" role="group" aria-label="Cluster status filter">
+    {% for value, label in status_filter_choices %}
+      {% if value == status_filter %}
+        <span class="inline-block px-3 py-1 text-xs rounded-full bg-emerald-700 text-white font-semibold"
+              aria-current="page">{{ label }}</span>
+      {% else %}
+        <a href="?status={{ value }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}"
+           class="inline-block px-3 py-1 text-xs rounded-full bg-white text-stone-700 border border-stone-200 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+          {{ label }}
+        </a>
       {% endif %}
-    </form>
-
-    {# Status filter chips #}
-    <div class="flex flex-wrap gap-1 mt-3" role="group" aria-label="Cluster status filter">
-      {% for value, label in status_filter_choices %}
-        {% if value == status_filter %}
-          <span class="filter-chip active" aria-current="page">{{ label }}</span>
-        {% else %}
-          <a href="?status={{ value }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}"
-             class="filter-chip">{{ label }}</a>
-        {% endif %}
-      {% endfor %}
-    </div>
+    {% endfor %}
   </div>
 
   {% if filtered_cluster_count == 0 %}
-    <div class="empty-state">
-      <p class="empty-title">No clusters match your filter</p>
-      <p>
+    <div class="text-center py-8 text-stone-500">
+      <p class="font-medium text-stone-600">No clusters match your filter</p>
+      <p class="text-sm mt-1">
         <a href="?status=all" class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Clear filters</a>
         to see all {{ cluster_count }} clusters.
       </p>
     </div>
   {% else %}
 
-    {# Desktop: responsive table — hidden on mobile #}
-    <div class="hide-on-mobile overflow-x-auto">
-      <table class="cluster-table">
+    {# Desktop: table — hidden on mobile #}
+    <div class="hidden md:block overflow-x-auto">
+      <table class="w-full text-sm border-collapse">
         <caption class="sr-only">Farmer clusters in Kachieng Ward</caption>
         <thead>
-          <tr>
-            <th scope="col">Cluster</th>
-            <th scope="col">KACH ID</th>
-            <th scope="col">Status</th>
-            <th scope="col">Next action</th>
-            <th scope="col" class="text-right">Households</th>
-            <th scope="col" class="text-right">Plots</th>
-            <th scope="col">Updated</th>
-            <th scope="col" class="text-right"><span class="sr-only">Actions</span></th>
+          <tr class="bg-stone-50 border-b border-stone-200">
+            <th scope="col" class="text-left px-3 py-2 text-xs font-semibold text-stone-600 uppercase tracking-wide">Cluster</th>
+            <th scope="col" class="text-left px-3 py-2 text-xs font-semibold text-stone-600 uppercase tracking-wide">KACH ID</th>
+            <th scope="col" class="text-left px-3 py-2 text-xs font-semibold text-stone-600 uppercase tracking-wide">Status</th>
+            <th scope="col" class="text-left px-3 py-2 text-xs font-semibold text-stone-600 uppercase tracking-wide">Next action</th>
+            <th scope="col" class="text-right px-3 py-2 text-xs font-semibold text-stone-600 uppercase tracking-wide">Households</th>
+            <th scope="col" class="text-right px-3 py-2 text-xs font-semibold text-stone-600 uppercase tracking-wide">Plots</th>
+            <th scope="col" class="text-left px-3 py-2 text-xs font-semibold text-stone-600 uppercase tracking-wide">Updated</th>
+            <th scope="col" class="text-right px-3 py-2"><span class="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody>
         {% for cs in cluster_stats %}
-          <tr>
-            <td>
+          <tr class="border-b border-stone-100 hover:bg-stone-50">
+            <td class="px-3 py-2.5">
               <div class="font-medium text-stone-900">{{ cs.cluster.locality|default:"—" }}</div>
               {% if cs.cluster.name %}<div class="text-xs text-stone-500">{{ cs.cluster.name }}</div>{% endif %}
             </td>
-            <td class="font-mono text-xs text-stone-600">{{ cs.cluster.cluster_id }}</td>
-            <td>
+            <td class="px-3 py-2.5 font-mono text-xs text-stone-600">{{ cs.cluster.cluster_id }}</td>
+            <td class="px-3 py-2.5">
               {% if cs.latest_advisory_status %}
-                <span class="status-badge
-                  {% if cs.latest_advisory_status == 'approved' %}status-approved
-                  {% elif cs.latest_advisory_status == 'rejected' %}status-rejected
-                  {% elif cs.latest_advisory_status == 'draft' %}status-draft
-                  {% else %}status-deferred{% endif %}">
-                  {{ cs.latest_advisory_status|title }}
+                <span class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium
+                  {% if cs.latest_advisory_status == 'approved' %}bg-emerald-100 text-emerald-800
+                  {% elif cs.latest_advisory_status == 'rejected' %}bg-red-100 text-red-800
+                  {% elif cs.latest_advisory_status == 'draft' %}bg-amber-100 text-amber-900
+                  {% elif cs.latest_advisory_status == 'needs_evidence' %}bg-amber-100 text-amber-900
+                  {% else %}bg-stone-100 text-stone-700{% endif %}">
+                  {% if cs.latest_advisory_status == 'needs_evidence' %}Needs evidence{% else %}{{ cs.latest_advisory_status|title }}{% endif %}
                 </span>
               {% else %}
                 <span class="text-stone-400 text-xs italic">no advisory</span>
               {% endif %}
             </td>
-            <td class="text-sm font-medium text-stone-800">{{ cs.next_action }}</td>
-            <td class="text-right tabular-nums">{{ cs.household_count }}</td>
-            <td class="text-right tabular-nums">{{ cs.plot_count }}</td>
-            <td class="text-xs text-stone-500">
+            <td class="px-3 py-2.5 text-sm text-stone-700">{{ cs.next_action }}</td>
+            <td class="px-3 py-2.5 text-right tabular-nums">{{ cs.household_count }}</td>
+            <td class="px-3 py-2.5 text-right tabular-nums">{{ cs.plot_count }}</td>
+            <td class="px-3 py-2.5 text-xs text-stone-500">
               {% if cs.latest_advisory_updated %}{{ cs.latest_advisory_updated|date:"M j" }}{% else %}—{% endif %}
             </td>
-            <td class="text-right">
-              <div class="inline-flex items-center gap-1">
-                <a href="{% url 'clusters:detail' cs.cluster.cluster_id %}"
-                   class="btn-secondary text-xs"
-                   aria-label="View cluster {{ cs.cluster.cluster_id }}">
-                  View
+            <td class="px-3 py-2.5 text-right">
+              <div class="inline-flex items-center gap-2">
+                {# Contextual primary action — depends on cluster state #}
+                <a href="{{ cs.contextual_action.primary_url }}"
+                   class="inline-flex items-center px-3 py-1 min-h-[32px] text-xs font-medium rounded
+                          {% if cs.contextual_action.primary_label == 'Request' %}bg-emerald-700 text-white hover:bg-emerald-800
+                          {% elif cs.contextual_action.primary_label == 'Review' %}bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-200
+                          {% elif cs.contextual_action.primary_label == 'Field visit' %}bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-200
+                          {% else %}bg-white text-stone-700 border border-stone-300 hover:bg-stone-50{% endif %} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                   aria-label="{{ cs.contextual_action.primary_aria }}">
+                  {{ cs.contextual_action.primary_label }}
                 </a>
-                {% if can_request_advisory %}
-                <a href="{% url 'advisories:request' %}?cluster={{ cs.cluster.cluster_id }}"
-                   class="btn-secondary text-xs"
-                   style="background:#ecfdf5;color:#065f46;border-color:#a7f3d0"
-                   aria-label="Request advisory for {{ cs.cluster.cluster_id }}">
-                  Request
-                </a>
-                {% endif %}
                 {# ⋮ menu — secondary actions #}
-                <div class="ellipsis-menu">
+                <div class="relative">
                   <details>
-                    <summary aria-label="More actions for {{ cs.cluster.cluster_id }}">
+                    <summary class="list-none w-7 h-7 inline-flex items-center justify-center rounded text-stone-500 hover:bg-stone-200 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                             aria-label="More actions for {{ cs.cluster.cluster_id }}">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
                     </summary>
-                    <div class="menu-list" role="menu">
-                      <a href="{% url 'clusters:detail' cs.cluster.cluster_id %}" role="menuitem">Open cluster page</a>
-                      <a href="{% url 'advisories:list' %}?cluster={{ cs.cluster.cluster_id }}" role="menuitem">View advisories</a>
-                      {% if can_request_advisory %}
-                      <a href="{% url 'advisories:request' %}?cluster={{ cs.cluster.cluster_id }}" role="menuitem">Request advisory</a>
-                      {% endif %}
-                      <a href="{% url 'tasks:list' %}" role="menuitem">View tasks</a>
+                    <div class="absolute right-0 top-full mt-1 min-w-[11rem] bg-white border border-stone-200 rounded shadow-lg z-20 py-1" role="menu">
+                      {% for item in cs.contextual_action.secondary %}
+                        <a href="{{ item.url }}" role="menuitem"
+                           class="block w-full text-left px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-700">
+                          {{ item.label }}
+                        </a>
+                      {% endfor %}
                     </div>
                   </details>
                 </div>
@@ -338,20 +285,20 @@
     </div>
 
     {# Mobile: cluster cards — hidden on desktop #}
-    <div class="show-on-mobile-only p-3">
+    <div class="md:hidden space-y-2">
       {% for cs in cluster_stats %}
-      <div class="cluster-card">
+      <div class="bg-white border border-stone-200 rounded p-3">
         <div class="flex items-start justify-between gap-2">
           <div class="flex-1 min-w-0">
             <div class="font-medium text-stone-900">{{ cs.cluster.locality|default:"—" }}</div>
             <div class="text-xs text-stone-500 font-mono">{{ cs.cluster.cluster_id }}</div>
           </div>
           {% if cs.latest_advisory_status %}
-            <span class="status-badge
-              {% if cs.latest_advisory_status == 'approved' %}status-approved
-              {% elif cs.latest_advisory_status == 'rejected' %}status-rejected
-              {% elif cs.latest_advisory_status == 'draft' %}status-draft
-              {% else %}status-deferred{% endif %}">
+            <span class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium
+              {% if cs.latest_advisory_status == 'approved' %}bg-emerald-100 text-emerald-800
+              {% elif cs.latest_advisory_status == 'rejected' %}bg-red-100 text-red-800
+              {% elif cs.latest_advisory_status == 'draft' %}bg-amber-100 text-amber-900
+              {% else %}bg-stone-100 text-stone-700{% endif %}">
               {{ cs.latest_advisory_status|title }}
             </span>
           {% else %}
@@ -363,22 +310,18 @@
         </div>
         <div class="text-xs text-stone-500 mt-1">
           HH: {{ cs.household_count }} · Plots: {{ cs.plot_count }}
-          {% if cs.latest_advisory_updated %}· Updated {{ cs.latest_advisory_updated|date:"M j" }}{% endif %}
+          {% if cs.latest_advisory_updated %} · Updated {{ cs.latest_advisory_updated|date:"M j" }}{% endif %}
         </div>
         <div class="mt-3 flex items-center gap-2">
-          <a href="{% url 'clusters:detail' cs.cluster.cluster_id %}"
-             class="btn-secondary text-xs flex-1"
-             aria-label="View cluster {{ cs.cluster.cluster_id }}">
-            View
+          <a href="{{ cs.contextual_action.primary_url }}"
+             class="inline-flex items-center justify-center flex-1 px-3 py-2 min-h-[36px] text-xs font-medium rounded
+                    {% if cs.contextual_action.primary_label == 'Request' %}bg-emerald-700 text-white
+                    {% elif cs.contextual_action.primary_label == 'Review' %}bg-amber-100 text-amber-900 border border-amber-200
+                    {% elif cs.contextual_action.primary_label == 'Field visit' %}bg-emerald-100 text-emerald-800 border border-emerald-200
+                    {% else %}bg-white text-stone-700 border border-stone-300{% endif %} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+             aria-label="{{ cs.contextual_action.primary_aria }}">
+            {{ cs.contextual_action.primary_label }}
           </a>
-          {% if can_request_advisory %}
-          <a href="{% url 'advisories:request' %}?cluster={{ cs.cluster.cluster_id }}"
-             class="btn-primary text-xs"
-             style="padding:0.375rem 0.875rem;min-height:36px;background:#047857"
-             aria-label="Request advisory for {{ cs.cluster.cluster_id }}">
-            Request
-          </a>
-          {% endif %}
         </div>
       </div>
       {% endfor %}
@@ -386,223 +329,306 @@
   {% endif %}
 </section>
 
-<section class="bg-white border border-stone-200 rounded shadow-sm mb-6">
-  <div class="p-4 border-b border-stone-200 flex items-center justify-between">
-    <h2 class="text-lg font-semibold text-stone-900">Recent advisories</h2>
+{# RECENT ADVISORIES — What advisories were recently created/approved? #}
+<section class="mb-8" aria-labelledby="advisories-heading">
+  <div class="flex items-center justify-between mb-3">
+    <h2 id="advisories-heading" class="text-lg font-semibold text-stone-900">Recent advisories</h2>
     <a href="{% url 'advisories:list' %}"
        class="text-sm text-emerald-700 hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
       View all advisories →
     </a>
   </div>
-  <div class="p-4">
-    {% if not advisories_by_status.draft and not advisories_by_status.approved and not advisories_by_status.rejected %}
-      <div class="empty-state">
-        <p class="empty-title">No advisories yet</p>
-        <p>{% if can_request_advisory %}Request your first advisory above.{% else %}Advisories will appear here once officers create them.{% endif %}</p>
+
+  {% if not advisories_by_status.draft and not advisories_by_status.field_verification and not advisories_by_status.approved and not advisories_by_status.rejected %}
+    <div class="text-center py-8 text-stone-500">
+      <p class="font-medium text-stone-600">No advisories yet</p>
+      <p class="text-sm mt-1">{% if can_request_advisory %}Request your first advisory above.{% else %}Advisories will appear here once officers create them.{% endif %}</p>
+    </div>
+  {% else %}
+    <div class="space-y-5">
+
+      {# --- Draft group --- #}
+      {% if advisories_by_status.draft %}
+      <div>
+        <h3 class="text-sm font-semibold text-stone-700 mb-2">
+          Draft <span class="text-stone-400 font-normal">({{ advisories_by_status.draft|length }})</span>
+        </h3>
+        <ul class="bg-white border border-stone-200 rounded divide-y divide-stone-100 overflow-hidden">
+          {% for a in advisories_by_status.draft %}
+          <li class="p-3 hover:bg-stone-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span class="font-medium text-stone-900">{{ a.cluster.locality|default:a.cluster.cluster_id }}</span>
+                <span class="text-xs text-stone-500 font-mono">#{{ a.id }}</span>
+                <span class="text-xs text-stone-600">{{ a.get_recommendation_type_display }}</span>
+                <span class="text-xs text-stone-400">· {{ a.created_at|date:"M j, H:i" }}</span>
+              </div>
+              <div class="mt-1 flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded"
+                      style="background:#fff7ed;color:#9a3412;border:1px dashed #fed7aa">
+                  AI-generated draft
+                </span>
+                <span class="text-xs text-stone-500">— human review required</span>
+              </div>
+            </div>
+            <a href="{% url 'advisories:detail' a.id %}"
+               class="inline-flex items-center px-3 py-1.5 min-h-[32px] text-xs font-medium rounded bg-white text-stone-700 border border-stone-300 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 whitespace-nowrap"
+               aria-label="Open advisory {{ a.id }}">
+              Open →
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
       </div>
-    {% else %}
-      <div class="space-y-4">
-        {% for status_key, items in advisories_by_status.items %}
-          {% if items %}
-          <div>
-            <h3 class="text-sm font-semibold text-stone-700 mb-2 flex items-center gap-2">
-              {{ status_key|title }}
-              <span class="text-stone-400 font-normal">({{ items|length }})</span>
-            </h3>
-            <ul class="divide-y divide-stone-100 border border-stone-200 rounded overflow-hidden">
-              {% for a in items %}
-              <li class="p-3 hover:bg-stone-50">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <div class="flex-1 min-w-0">
-                    <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                      <span class="font-medium text-stone-900">{{ a.cluster.locality|default:a.cluster.cluster_id }}</span>
-                      <span class="text-xs text-stone-500 font-mono">#{{ a.id }}</span>
-                      <span class="text-xs text-stone-600">{{ a.get_recommendation_type_display }}</span>
-                      <span class="text-xs text-stone-400">· {{ a.created_at|date:"M j, H:i" }}</span>
-                    </div>
-                    {# AI / human label — transparent workflow status #}
-                    {% if status_key == 'draft' %}
-                      <div class="mt-1">
-                        <span class="workflow-badge workflow-ai-draft">AI-generated draft</span>
-                        <span class="text-xs text-stone-500 ml-1">— human review required</span>
-                      </div>
-                    {% elif status_key == 'approved' %}
-                      <div class="mt-1">
-                        <span class="workflow-badge workflow-human-approved">Human-approved</span>
-                        <span class="text-xs text-stone-500 ml-1">— field verification pending</span>
-                      </div>
-                    {% elif status_key == 'rejected' %}
-                      <div class="mt-1">
-                        <span class="workflow-badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">Rejected by reviewer</span>
-                      </div>
-                    {% endif %}
-                  </div>
-                  <div class="flex items-center gap-2 shrink-0">
-                    <a href="{% url 'advisories:detail' a.id %}"
-                       class="btn-secondary text-xs"
-                       aria-label="Open advisory {{ a.id }}">
-                      Open
-                    </a>
-                    {# Approve / Request changes / Reject — only for approvers, only on drafts, with confirmation #}
-                    {% if status_key == 'draft' and can_approve %}
-                    <a href="{% url 'approvals:gate' a.id %}"
-                       class="btn-secondary text-xs"
-                       style="background:#ecfdf5;color:#065f46;border-color:#a7f3d0"
-                       aria-label="Review and approve or reject advisory {{ a.id }}">
-                      Review
-                    </a>
-                    {% endif %}
-                  </div>
-                </div>
-              </li>
-              {% endfor %}
-            </ul>
-          </div>
-          {% endif %}
-        {% endfor %}
+      {% endif %}
+
+      {# --- Field verification group --- #}
+      {% if advisories_by_status.field_verification %}
+      <div>
+        <h3 class="text-sm font-semibold text-stone-700 mb-2">
+          Field verification <span class="text-stone-400 font-normal">({{ advisories_by_status.field_verification|length }})</span>
+        </h3>
+        <ul class="bg-white border border-stone-200 rounded divide-y divide-stone-100 overflow-hidden">
+          {% for a in advisories_by_status.field_verification %}
+          <li class="p-3 hover:bg-stone-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span class="font-medium text-stone-900">{{ a.cluster.locality|default:a.cluster.cluster_id }}</span>
+                <span class="text-xs text-stone-500 font-mono">#{{ a.id }}</span>
+                <span class="text-xs text-stone-600">{{ a.get_recommendation_type_display }}</span>
+                <span class="text-xs text-stone-400">· {{ a.created_at|date:"M j, H:i" }}</span>
+              </div>
+              <div class="mt-1 flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded"
+                      style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">
+                  Human-approved
+                </span>
+                <span class="text-xs text-stone-500">— field verification pending</span>
+              </div>
+            </div>
+            <a href="{% url 'advisories:detail' a.id %}"
+               class="inline-flex items-center px-3 py-1.5 min-h-[32px] text-xs font-medium rounded bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 whitespace-nowrap"
+               aria-label="Open advisory {{ a.id }}">
+              Field visit →
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
       </div>
-    {% endif %}
-  </div>
+      {% endif %}
+
+      {# --- Approved (no open task) group --- #}
+      {% if advisories_by_status.approved %}
+      <div>
+        <h3 class="text-sm font-semibold text-stone-700 mb-2">
+          Approved <span class="text-stone-400 font-normal">({{ advisories_by_status.approved|length }})</span>
+        </h3>
+        <ul class="bg-white border border-stone-200 rounded divide-y divide-stone-100 overflow-hidden">
+          {% for a in advisories_by_status.approved %}
+          <li class="p-3 hover:bg-stone-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span class="font-medium text-stone-900">{{ a.cluster.locality|default:a.cluster.cluster_id }}</span>
+                <span class="text-xs text-stone-500 font-mono">#{{ a.id }}</span>
+                <span class="text-xs text-stone-600">{{ a.get_recommendation_type_display }}</span>
+                <span class="text-xs text-stone-400">· {{ a.created_at|date:"M j, H:i" }}</span>
+              </div>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded"
+                      style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">
+                  Human-approved
+                </span>
+              </div>
+            </div>
+            <a href="{% url 'advisories:detail' a.id %}"
+               class="inline-flex items-center px-3 py-1.5 min-h-[32px] text-xs font-medium rounded bg-white text-stone-700 border border-stone-300 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 whitespace-nowrap"
+               aria-label="Open advisory {{ a.id }}">
+              Open →
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {# --- Rejected group --- #}
+      {% if advisories_by_status.rejected %}
+      <div>
+        <h3 class="text-sm font-semibold text-stone-700 mb-2">
+          Rejected <span class="text-stone-400 font-normal">({{ advisories_by_status.rejected|length }})</span>
+        </h3>
+        <ul class="bg-white border border-stone-200 rounded divide-y divide-stone-100 overflow-hidden">
+          {% for a in advisories_by_status.rejected %}
+          <li class="p-3 hover:bg-stone-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span class="font-medium text-stone-900">{{ a.cluster.locality|default:a.cluster.cluster_id }}</span>
+                <span class="text-xs text-stone-500 font-mono">#{{ a.id }}</span>
+                <span class="text-xs text-stone-600">{{ a.get_recommendation_type_display }}</span>
+                <span class="text-xs text-stone-400">· {{ a.created_at|date:"M j, H:i" }}</span>
+              </div>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded"
+                      style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">
+                  Rejected by reviewer
+                </span>
+              </div>
+            </div>
+            <a href="{% url 'advisories:detail' a.id %}"
+               class="inline-flex items-center px-3 py-1.5 min-h-[32px] text-xs font-medium rounded bg-white text-stone-700 border border-stone-300 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 whitespace-nowrap"
+               aria-label="Open advisory {{ a.id }}">
+              Open →
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+    </div>
+  {% endif %}
 </section>
 
-<section class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+{# FIELD CONDITIONS & GUIDANCE — What external conditions matter? #}
+<section class="mb-8" aria-labelledby="field-conditions-heading">
+  <h2 id="field-conditions-heading" class="text-lg font-semibold text-stone-900 mb-3">
+    Field conditions &amp; guidance
+  </h2>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-  {# --- Weather --- #}
-  <div class="bg-white border border-stone-200 rounded shadow-sm p-4">
-    <h2 class="text-base font-semibold text-stone-900 mb-1">Weather</h2>
-    {% if weather_panel.kind == "real" %}
-      {% with sig=weather_panel.signal %}
-        <p class="text-sm font-medium text-stone-800">{{ sig.product_type|default:sig.source_authority }}</p>
-        <p class="text-xs text-stone-500 mt-1">
-          Source: {{ sig.source_authority }}{% if sig.geographic_scope %} · {{ sig.geographic_scope }} ({{ sig.coverage_level|default:"—" }}){% endif %}
+    {# --- Weather --- #}
+    <div class="bg-white border border-stone-200 rounded p-4">
+      <h3 class="text-sm font-semibold text-stone-900 mb-2">Weather</h3>
+      {% if weather_panel.kind == "real" %}
+        {% with sig=weather_panel.signal %}
+        <p class="text-sm text-stone-700">{{ sig.product_type|default:sig.source_authority }}</p>
+        <p class="text-xs text-stone-500 mt-1">{{ sig.geographic_scope|default:"Regional" }}</p>
+        <p class="text-sm text-stone-700 mt-2">
+          {{ sig.forecast_summary|truncatewords:18 }}
         </p>
-        <p class="text-xs text-stone-500">
-          {% if sig.publication_date %}Issued: {{ sig.publication_date }}{% endif %}
-          {% if sig.valid_from %} · Valid: {{ sig.valid_from }} to {{ sig.valid_to|default:"(open)" }}{% endif %}
-        </p>
-        <p class="text-sm mt-2 text-stone-700">{{ sig.forecast_summary|truncatewords:18 }}</p>
-        <p class="text-sm mt-1">
+        <p class="text-sm text-stone-700 mt-1">
           Rainfall amount: <strong>{{ weather_panel.rainfall_display }}</strong>
-          {% if sig.rainfall_period_note %}<span class="text-xs text-stone-500">({{ sig.rainfall_period_note }})</span>{% endif %}
+        </p>
+        <p class="text-xs text-stone-500 mt-2">
+          Source: {{ sig.source_authority }}
+          {% if sig.publication_date %} · Issued: {{ sig.publication_date }}{% endif %}
         </p>
         {% if weather_panel.is_regional %}
-          <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
-            Regional forecast covering Migori — not a Nyatike station observation.
-          </p>
+        <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
+          Regional forecast covering Migori — not a Nyatike station observation.
+        </p>
         {% endif %}
         <a href="{% url 'dashboard:data_sources' %}"
            class="inline-block text-xs text-emerald-700 hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
           Weather details →
         </a>
-      {% endwith %}
-    {% else %}
-      <p class="text-sm font-medium text-stone-700">{{ weather_panel.no_notice.message }}</p>
-      <p class="text-xs text-stone-500 mt-1">
-        Source: Kenya Meteorological Department (meteo.go.ke) — manual retrieval required.
-      </p>
-      <p class="text-xs text-stone-500 mt-1">
-        Impact: advisories will rely on officer field observation until a verified KMD bulletin is ingested.
-      </p>
-      <a href="{% url 'dashboard:data_sources' %}"
-         class="inline-block text-xs text-emerald-700 hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-        Weather details →
-      </a>
-    {% endif %}
-  </div>
+        {% endwith %}
+      {% else %}
+        <p class="text-sm text-stone-700">{{ weather_panel.no_notice.message }}</p>
+        <p class="text-xs text-stone-500 mt-2">
+          Source: Kenya Meteorological Department (meteo.go.ke) — manual retrieval required.
+        </p>
+        <p class="text-xs text-stone-500 mt-1">
+          Impact: advisories rely on officer field observation until a verified KMD bulletin is ingested.
+        </p>
+        <a href="{% url 'dashboard:data_sources' %}"
+           class="inline-block text-xs text-emerald-700 hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+          Weather details →
+        </a>
+      {% endif %}
+    </div>
 
-  {# --- Pests --- #}
-  <div class="bg-white border border-stone-200 rounded shadow-sm p-4">
-    <h2 class="text-base font-semibold text-stone-900 mb-1">Pest alerts</h2>
-    {% if pest_panel.kind == "real" %}
-      {% with alert=pest_panel.alert %}
-        <p class="text-sm font-medium text-stone-800">{{ alert.pest }}</p>
+    {# --- Pest alerts --- #}
+    <div class="bg-white border border-stone-200 rounded p-4">
+      <h3 class="text-sm font-semibold text-stone-900 mb-2">Pest alerts</h3>
+      {% if pest_panel.kind == "real" %}
+        {% with alert=pest_panel.alert %}
+        <p class="text-sm text-stone-700">{{ alert.pest }}</p>
         <p class="text-xs text-stone-500 mt-1">
           Source: {{ alert.source_authority }}{% if alert.product_type %} · {{ alert.product_type }}{% endif %}
         </p>
-        <p class="text-xs text-stone-500">
+        <p class="text-sm text-stone-700 mt-2">Severity: <strong>{{ pest_panel.severity_display }}</strong></p>
+        {% if alert.advisory %}
+        <p class="text-sm text-stone-700 mt-1">{{ alert.advisory|truncatewords:18 }}</p>
+        {% endif %}
+        <p class="text-xs text-stone-500 mt-2">
           {% if alert.publication_date %}Issued: {{ alert.publication_date }}{% endif %}
-          {% if alert.valid_from %} · Valid: {{ alert.valid_from }} to {{ alert.valid_to|default:"(open)" }}{% endif %}
         </p>
-        <p class="text-sm mt-2">Severity: <strong>{{ pest_panel.severity_display }}</strong></p>
-        {% if alert.advisory %}<p class="text-sm mt-1 text-stone-700">{{ alert.advisory|truncatewords:18 }}</p>{% endif %}
         <a href="{% url 'dashboard:data_sources' %}"
            class="inline-block text-xs text-emerald-700 hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-          Data sources →
+          Sources checked →
         </a>
-      {% endwith %}
-    {% else %}
-      <p class="text-sm font-medium text-stone-700">{{ pest_panel.no_notice.message }}</p>
-      <p class="text-xs text-stone-500 mt-1">Continue local scouting.</p>
-      <p class="text-xs text-stone-500 mt-1">
-        Sources checked: KEPHIS, KALRO, Migori County Dept. of Agriculture — no public alert API; manual retrieval required.
-      </p>
-      <a href="{% url 'dashboard:data_sources' %}"
-         class="inline-block text-xs text-emerald-700 hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-        Data sources →
-      </a>
-    {% endif %}
-  </div>
+        {% endwith %}
+      {% else %}
+        <p class="text-sm text-stone-700">{{ pest_panel.no_notice.message }}</p>
+        <p class="text-xs text-stone-500 mt-2">This does not mean pests are absent. Continue local scouting.</p>
+        <a href="{% url 'dashboard:data_sources' %}"
+           class="inline-block text-xs text-emerald-700 hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+          Sources checked →
+        </a>
+      {% endif %}
+    </div>
 
-  {# --- Agronomic guidance --- #}
-  <div class="bg-white border border-stone-200 rounded shadow-sm p-4">
-    <h2 class="text-base font-semibold text-stone-900 mb-1">Agronomic guidance</h2>
-    <p class="text-sm font-medium text-stone-700">{{ kalro_state.message }}</p>
-    <p class="text-xs text-stone-500 mt-1">Permission pending for KALRO maize manual ingestion.</p>
-    <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
-      ⚠ Local planting dates not specified in this source.
-    </p>
-    <a href="{% url 'dashboard:guidance' %}"
-       class="inline-block text-xs text-emerald-700 hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-      Guidance details →
-    </a>
+    {# --- Agronomic guidance --- #}
+    <div class="bg-white border border-stone-200 rounded p-4">
+      <h3 class="text-sm font-semibold text-stone-900 mb-2">Agronomic guidance</h3>
+      <p class="text-sm text-stone-700">KALRO maize guidance currently unavailable</p>
+      <p class="text-xs text-stone-500 mt-2">
+        This source has not yet been authorized for use.
+      </p>
+      <p class="text-xs text-stone-500 mt-1">
+        Status: Awaiting authorization
+      </p>
+      <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
+        ⚠ Local planting dates not specified in this source.
+      </p>
+      <a href="{% url 'dashboard:guidance' %}"
+         class="inline-block text-xs text-emerald-700 hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+        Guidance details →
+      </a>
+    </div>
   </div>
 </section>
 
-<section class="bg-white border border-stone-200 rounded shadow-sm mb-6">
-  <div class="p-4 border-b border-stone-200 flex items-center justify-between">
-    <h2 class="text-lg font-semibold text-stone-900">Recent activity</h2>
+{# RECENT ACTIVITY — What happened recently? #}
+<section class="mb-8" aria-labelledby="activity-heading">
+  <div class="flex items-center justify-between mb-3">
+    <h2 id="activity-heading" class="text-lg font-semibold text-stone-900">Recent activity</h2>
     <a href="{% url 'audit:list' %}"
        class="text-sm text-emerald-700 hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-      Full audit log →
+      Audit log →
     </a>
   </div>
-  <div class="p-4">
-    {% if recent_events %}
-      <ul class="audit-timeline">
-        {% for e in recent_events %}
-        <li>
-          <div class="text-sm">
-            <span class="font-medium text-stone-900">{{ e.actor_name }}</span>
-            <span class="text-stone-700">{{ e.action_human }}</span>
-            {% if e.object_label %}<span class="font-medium text-stone-800">{{ e.object_label }}</span>{% endif %}
-          </div>
-          <div class="text-xs text-stone-500 mt-0.5">
-            <time datetime="{{ e.when_iso }}">{{ e.when_display|date:"M j, Y · H:i" }}</time>
-            {% if e.result_badge %}
-              <span class="ml-2 status-badge
-                {% if e.result_badge == 'approved' %}status-approved
-                {% elif e.result_badge == 'rejected' %}status-rejected
-                {% elif e.result_badge == 'deleted' %}status-rejected
-                {% elif e.result_badge == 'completed' %}status-approved
-                {% elif e.result_badge == 'verified' %}status-approved
-                {% else %}status-deferred{% endif %}">
-                {{ e.result_badge }}
-              </span>
-            {% endif %}
-          </div>
-        </li>
-        {% endfor %}
-      </ul>
-      <p class="text-xs text-stone-400 mt-3 italic">
-        Raw tool-call traces are kept for the advisory detail page and the staff-only technical view.
-      </p>
-    {% else %}
-      <div class="empty-state">
-        <p class="empty-title">No recent activity</p>
-        <p>Activity will appear here as officers work on advisories and tasks.</p>
-      </div>
-    {% endif %}
-  </div>
+  {% if recent_events %}
+    <ul class="bg-white border border-stone-200 rounded divide-y divide-stone-100">
+      {% for e in recent_events %}
+      <li class="p-3 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
+        <div class="text-sm">
+          <span class="font-medium text-stone-900">{{ e.actor_name|title }}</span>
+          <span class="text-stone-700"> {{ e.action_human }}</span>
+          {% if e.object_label %}<span class="font-medium text-stone-800">{{ e.object_label }}</span>{% endif %}
+        </div>
+        <div class="text-xs text-stone-500 flex items-center gap-2">
+          <time datetime="{{ e.when_iso }}">{{ e.when_display|date:"M j, Y · H:i" }}</time>
+          {% if e.result_badge %}
+            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full
+              {% if e.result_badge == 'approved' or e.result_badge == 'completed' or e.result_badge == 'verified' or e.result_badge == 'restored' or e.result_badge == 'finished' %}bg-emerald-100 text-emerald-800
+              {% elif e.result_badge == 'rejected' or e.result_badge == 'deleted' or e.result_badge == 'failed' %}bg-red-100 text-red-800
+              {% elif e.result_badge == 'edited' or e.result_badge == 'ingested' or e.result_badge == 'created' or e.result_badge == 'started' %}bg-stone-100 text-stone-700
+              {% else %}bg-stone-100 text-stone-700{% endif %}">
+              {{ e.result_badge }}
+            </span>
+          {% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="text-center py-8 text-stone-500">
+      <p class="font-medium text-stone-600">No recent activity</p>
+      <p class="text-sm mt-1">Activity will appear here as officers work on advisories and tasks.</p>
+    </div>
+  {% endif %}
 </section>
 
 {% endblock %}
