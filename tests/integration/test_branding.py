@@ -18,13 +18,25 @@ def test_login_page_shows_kachieng_ai_agent():
 
 
 @pytest.mark.django_db
-def test_login_page_shows_tagline():
-    """The login page must show the tagline."""
+def test_login_page_shows_service_description():
+    """The login page must show the minimal service description line below the header.
+    (The old taglines 'Climate-smart advisories. Extension officers decide.' and
+    'Access agricultural advisories, field tasks and evidence review.' have been
+    removed from the login card as part of the minimal-auth redesign.)"""
     c = Client()
     r = c.get("/accounts/login/")
     html = r.content.decode("utf-8")
-    assert "Climate-smart advisories" in html, "Login page must show the tagline"
-    assert "Extension officers decide" in html
+    # The new base_auth.html includes a single short description line below the header.
+    assert "Climate-smart agricultural advisories for extension officers in Kachieng Ward." in html, (
+        "Login page must show the short service description line below the header"
+    )
+    # The old card-level taglines must NOT appear
+    assert "Climate-smart advisories. Extension officers decide." not in html, (
+        "Old tagline should have been removed from the login card"
+    )
+    assert "Access agricultural advisories, field tasks and evidence review" not in html, (
+        "Old second tagline should have been removed from the login card"
+    )
 
 
 @pytest.mark.django_db

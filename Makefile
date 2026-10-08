@@ -38,7 +38,7 @@ db: ## Run migrations
         @echo "==> Applying migrations"
         @$(BIN)/python manage.py migrate --noinput
 
-fixtures: ## Load synthetic Kachieng fixtures + seed 14 clusters + demo users
+fixtures: ## Load synthetic Kachieng fixtures + seed 14 clusters
         @echo "==> Loading synthetic fixtures (clusters, plots, calendars, weather, pests, markets)"
         @$(BIN)/python manage.py loaddata \
                 data/fixtures/migori_kachieng_clusters.json \
@@ -50,7 +50,7 @@ fixtures: ## Load synthetic Kachieng fixtures + seed 14 clusters + demo users
                 --ignorenonexistent || true
         @echo "==> Seeding 14 Kachieng pilot clusters (idempotent; preserves KACH-01..KACH-03 data)"
         @$(BIN)/python manage.py seed_kachieng_clusters || true
-        @echo "==> Seeding demo officer + cluster assignments (passwords set only on first creation)"
+        @echo "==> (Synthetic demo accounts are no longer seeded. Use 'python manage.py create_officer' for real accounts.)"
         @$(BIN)/python scripts/load_demo_data.py || true
 
 ollama: ## Pull Qwen2.5-7B-Instruct if Ollama is installed; otherwise mark degraded mode

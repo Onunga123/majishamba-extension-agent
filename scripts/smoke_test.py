@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 """Smoke test: run the agent pipeline end-to-end for KACH-01.
 Used by the build to confirm the system actually works.
+
+Requires a real officer account to exist. Create one with:
+
+    python manage.py create_officer --username smoke_officer --full-name "Smoke Test" --role extension_officer
+    python manage.py changepassword smoke_officer
+
+Or set SMOKE_OFFICER_USERNAME to use a different existing account.
 """
 from __future__ import annotations
 
@@ -19,7 +26,15 @@ from apps.audit.models import AuditEvent
 
 
 def main() -> int:
-    officer = User.objects.get(username="nyatike_officer")
+    username = os.environ.get("SMOKE_OFFICER_USERNAME", "smoke_officer")
+    try:
+        officer = User.objects.get(username=username)
+    except User.DoesNotExist:
+        print(f"FAILED — user {username!r} does not exist.")
+        print(f"  Create one with:")
+        print(f"    python manage.py create_officer --username {username} --full-name 'Smoke Test' --role extension_officer")
+        print(f"    python manage.py changepassword {username}")
+        return 2
     result = run_advisory_pipeline(
         cluster_id="KACH-01", ward="Kachieng", sub_county="Nyatike", county="Migori", actor=officer,
     )

@@ -8,14 +8,15 @@
 #   2. Installs the project + dev deps
 #   3. Applies migrations (SQLite by default — works without PostgreSQL)
 #   4. Loads synthetic Kachieng Ward fixtures
-#   5. Seeds the demo officer / supervisor / viewer
+#   5. Seeds 14 Kachieng pilot clusters
 #   6. Pulls qwen2.5:7b-instruct via Ollama if installed (skipped gracefully otherwise)
 #   7. Starts the Django dev server on http://127.0.0.1:8000
 #
-# Demo logins:
-#   nyatike_officer    / majishamba-demo-2025  (extension_officer — can request + approve)
-#   nyatike_supervisor / majishamba-demo-2025  (supervisor — can approve)
-#   nyatike_viewer     / majishamba-demo-2025  (viewer — read-only)
+# Synthetic demo accounts are NO LONGER seeded. To create a real officer for
+# local testing, run:
+#   .venv\Scripts\python.exe manage.py create_officer --username jdoe `
+#       --full-name "John Doe" --role extension_officer --sub-county Nyatike --ward Kachieng
+#   .venv\Scripts\python.exe manage.py changepassword jdoe
 
 $ErrorActionPreference = "Stop"
 
@@ -40,7 +41,7 @@ Write-Host "==> Step 3: Apply migrations" -ForegroundColor Cyan
 .venv\Scripts\python.exe manage.py migrate --noinput
 if ($LASTEXITCODE -ne 0) { Write-Error "Migrations failed"; exit 1 }
 
-Write-Host "==> Step 4: Load synthetic Kachieng fixtures + seed 14 clusters + demo users" -ForegroundColor Cyan
+Write-Host "==> Step 4: Load synthetic Kachieng fixtures + seed 14 clusters" -ForegroundColor Cyan
 .venv\Scripts\python.exe manage.py loaddata `
     data\fixtures\migori_kachieng_clusters.json `
     data\fixtures\migori_kachieng_plots.json `
@@ -51,6 +52,10 @@ Write-Host "==> Step 4: Load synthetic Kachieng fixtures + seed 14 clusters + de
     --ignorenonexistent
 .venv\Scripts\python.exe manage.py seed_kachieng_clusters
 .venv\Scripts\python.exe scripts\load_demo_data.py
+Write-Host "    (Synthetic demo accounts are no longer seeded.)" -ForegroundColor Yellow
+Write-Host "    To create a real officer for testing, run:" -ForegroundColor Yellow
+Write-Host "      .venv\Scripts\python.exe manage.py create_officer --username jdoe --full-name 'John Doe' --role extension_officer" -ForegroundColor Yellow
+Write-Host "      .venv\Scripts\python.exe manage.py changepassword jdoe" -ForegroundColor Yellow
 
 Write-Host "==> Step 5: Ollama (optional)" -ForegroundColor Cyan
 $ollamaCmd = Get-Command ollama -ErrorAction SilentlyContinue
@@ -66,6 +71,7 @@ if ($ollamaCmd) {
 }
 
 Write-Host "==> Step 6: Start Django dev server" -ForegroundColor Cyan
-Write-Host "    Open http://127.0.0.1:8000 and log in as nyatike_officer / majishamba-demo-2025" -ForegroundColor Green
+Write-Host "    Open http://127.0.0.1:8000/accounts/login/ and sign in with your real officer account." -ForegroundColor Green
+Write-Host "    (No synthetic demo accounts are seeded. Use 'create_officer' to make one.)" -ForegroundColor Yellow
 $env:MAJISHAMBA_SKIP_OLLAMA = "0"  # Let the agent try Ollama in the demo
 .venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000

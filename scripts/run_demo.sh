@@ -17,7 +17,7 @@ echo "==> Installing deps"
 echo "==> Migrate"
 "$VENV/bin/python" manage.py migrate --noinput
 
-echo "==> Load fixtures + seed 14 Kachieng clusters + demo users"
+echo "==> Load fixtures + seed 14 Kachieng clusters"
 "$VENV/bin/python" manage.py loaddata \
   data/fixtures/migori_kachieng_clusters.json \
   data/fixtures/migori_kachieng_plots.json \
@@ -28,6 +28,9 @@ echo "==> Load fixtures + seed 14 Kachieng clusters + demo users"
   --ignorenonexistent || true
 "$VENV/bin/python" manage.py seed_kachieng_clusters || true
 "$VENV/bin/python" scripts/load_demo_data.py || true
+echo "==> (No synthetic demo accounts are seeded. To create a real officer for testing, run:"
+echo "       python manage.py create_officer --username jdoe --full-name 'John Doe' --role extension_officer)"
+echo "       python manage.py changepassword jdoe)"
 
 echo "==> Ollama (optional)"
 bash scripts/setup_ollama.sh || true

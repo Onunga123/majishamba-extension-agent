@@ -2,11 +2,9 @@
 {% block title %}Sign in — Kachieng AI Agent{% endblock %}
 {% block content %}
 <div class="bg-white p-6 rounded shadow border border-stone-200">
-  <h1 class="text-xl font-semibold">Sign in to Kachieng AI Agent</h1>
-  <p class="text-sm text-stone-600 mt-1 mb-2">Climate-smart advisories. Extension officers decide.</p>
-  <p class="text-sm text-stone-600 mb-6">Access agricultural advisories, field tasks and evidence review.</p>
+  <h1 class="text-xl font-semibold">Sign in</h1>
 
-  <form method="post" class="space-y-4" novalidate>
+  <form method="post" class="space-y-4 mt-4" novalidate>
     {% csrf_token %}
     {% if form.errors %}
       <div class="bg-red-50 border border-red-300 text-red-800 text-sm p-3 rounded" role="alert" aria-live="assertive">
@@ -38,7 +36,7 @@
 
   <div class="mt-6 pt-4 border-t border-stone-200 text-center space-y-1">
     <p class="text-sm text-stone-600">
-      Need an account? <a href="{% url 'accounts:register' %}" class="text-emerald-700 hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Request access</a>
+      Need an account? <a href="{% url 'accounts:register' %}" class="text-emerald-700 hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Create one</a>
     </p>
   </div>
 </div>

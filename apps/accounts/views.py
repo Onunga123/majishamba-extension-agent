@@ -45,7 +45,7 @@ class RegistrationForm(forms.ModelForm):
     )
     organization = forms.CharField(
         max_length=160, required=False,
-        help_text="Office or organization (e.g. 'Nyatike Sub-County Agricultural Office')",
+        help_text="Office or organization (e.g. sub-county agricultural office)",
         widget=forms.TextInput(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
     )
     email = forms.EmailField(

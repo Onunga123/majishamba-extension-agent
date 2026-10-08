@@ -24,9 +24,9 @@
 
 **Camera.** Browser at the login page.
 
-**Narration.** "The named Nyatike extension officer logs in. Three demo users are seeded — officer, supervisor, viewer. We log in as the officer."
+**Narration.** "The named Nyatike extension officer logs in. We log in as the officer."
 
-**Action.** Type `nyatike_officer` / `majishamba-demo-2025` (or click the demo account card labelled "Jane Awuor — Extension Officer" to fill the username). Click Login. Land on the dashboard showing 14 Kachieng locality-based farmer clusters (KACH-01 through KACH-14).
+**Action.** Type the officer username and password you set up via `python manage.py create_officer` + `changepassword` (the setup scripts no longer seed demo accounts). Click Sign in. Land on the dashboard showing 14 Kachieng locality-based farmer clusters (KACH-01 through KACH-14).
 
 **Narration.** "14 locality-based farmer clusters in Kachieng Ward. Locality names are confirmed by the project owner, who is from the area. Farmer groups and household records are synthetic. We click 'Request advisory' for KACH-01."
 

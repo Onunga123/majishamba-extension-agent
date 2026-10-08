@@ -237,13 +237,13 @@ def test_existing_legitimate_accounts_still_work():
     """Existing approved accounts can still log in."""
     from apps.accounts.models import User as U
     u, _ = U.objects.get_or_create(
-        username="nyatike_officer",
-        defaults={"role": "extension_officer", "full_name": "Jane Awuor", "sub_county": "Nyatike", "ward": "Kachieng", "is_staff": True},
+        username="legitimate_officer",
+        defaults={"role": "extension_officer", "full_name": "Legitimate Officer", "sub_county": "Nyatike", "ward": "Kachieng", "is_staff": True},
     )
-    u.set_password("majishamba-demo-2025")
+    u.set_password("strong-test-password-1")
     u.save()
     c = Client()
-    r = c.post("/accounts/login/", {"username": "nyatike_officer", "password": "majishamba-demo-2025"})
+    r = c.post("/accounts/login/", {"username": "legitimate_officer", "password": "strong-test-password-1"})
     assert r.status_code == 302
 
 

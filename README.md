@@ -46,11 +46,17 @@ Both commands will:
 3. Apply migrations (defaults to **SQLite** so the demo runs without PostgreSQL/PostGIS).
 4. Load synthetic Kachieng Ward fixtures (3 original clusters KACH-01..KACH-03 with 14 households/12 plots, plus weather/pest/market signals).
 5. **Seed 14 Kachieng pilot clusters** via the idempotent `seed_kachieng_clusters` management command (renames KACH-01..KACH-03 to the locally-confirmed register; creates KACH-04..KACH-14 with 3 households + 1 plot each).
-6. Seed the named demo officer `nyatike_officer` (password set on first creation only — re-runs do not reset passwords).
-7. Pull `qwen2.5:7b-instruct` via **Ollama** if installed (skipped gracefully otherwise — the deterministic fallback takes over).
-8. Start Django dev server on http://127.0.0.1:8000 with `DEMO_MODE=1` so the login page shows the demo account selector.
+6. Pull `qwen2.5:7b-instruct` via **Ollama** if installed (skipped gracefully otherwise — the deterministic fallback takes over).
+7. Start Django dev server on http://127.0.0.1:8000.
 
-Open http://127.0.0.1:8000 and log in via the demo account selector (or manually as `nyatike_officer / majishamba-demo-2025`).
+The script **does not seed any demo accounts.** To create a real officer for local testing:
+
+```bash
+python manage.py create_officer --username jdoe --full-name "John Doe" --role extension_officer
+python manage.py changepassword jdoe
+```
+
+Then open http://127.0.0.1:8000/accounts/login/ and sign in with the account you just created.
 
 > If Ollama is not installed, the agent logs `WARN: Ollama not installed` and falls back to a deterministic template generator. The demo still works end-to-end — the model is *one* of two drafting modes.
 
@@ -275,27 +281,37 @@ majishamba/
 
 ---
 
-## Demo logins
+## Creating an officer account
 
-| Username | Password (set on first creation only) | Role |
-|---|---|---|
-| `nyatike_officer` | `majishamba-demo-2025` | Extension Officer (can request + approve) |
-| `nyatike_supervisor` | `majishamba-demo-2025` | Supervisor (can approve) |
-| `nyatike_viewer` | `majishamba-demo-2025` | Viewer (read-only) |
-
-> The `DEMO_MODE` flag (default ON in development, OFF in production) gates the demo-only account selector on the login page. With `DEMO_MODE=1`, the login page shows three clickable cards (officer/supervisor/viewer) that populate the username field. The user still has to type the password and submit the standard Django auth form. **Roles are always derived from the authenticated database user — never from the card selection.** Selecting the officer card does not grant officer permissions unless you actually log in as `nyatike_officer`.
-
-### To enable/disable DEMO_MODE
+The setup scripts no longer seed any synthetic demo accounts. To create a real
+officer for local testing or production, use the management command and then
+set a password interactively (the password is never stored in scripts or
+fixtures):
 
 ```bash
-# Enable (default in development):
-export DEMO_MODE=1   # or set in .env
-
-# Disable (default in production):
-export DEMO_MODE=0
+python manage.py create_officer --username jdoe --full-name "John Doe" --role extension_officer
+python manage.py changepassword jdoe
 ```
 
-Or set `MAJISHAMBA["DEMO_MODE"]` in your settings module.
+The account is created with an unusable password — login will fail until you
+run `changepassword`. Roles: `extension_officer`, `supervisor`, `viewer`.
+
+### Cleaning up old synthetic demo accounts
+
+If you are upgrading from an older deployment that still has the synthetic
+demo accounts (`nyatike_officer`, `nyatike_supervisor`, `nyatike_viewer`),
+you can list, deactivate, or delete them safely with the
+`cleanup_demo_accounts` management command (see its `--help` for full
+options). The command is read-only by default; pass `--confirm` to apply
+changes. Audit history is preserved (the `AuditEvent.actor` FK uses
+`on_delete=SET_NULL`, so deleting a user leaves the audit row behind with a
+NULL actor rather than cascading the delete).
+
+```bash
+python manage.py cleanup_demo_accounts                # list only
+python manage.py cleanup_demo_accounts --confirm      # deactivate (reversible)
+python manage.py cleanup_demo_accounts --confirm --delete  # hard delete (audit rows preserved)
+```
 
 ---
 

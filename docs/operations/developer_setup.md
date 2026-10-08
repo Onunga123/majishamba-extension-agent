@@ -17,18 +17,28 @@ cd majishamba
 make demo
 ```
 
-Open http://127.0.0.1:8000 and log in as `nyatike_officer / majishamba-demo-2025`.
+Open http://127.0.0.1:8000/accounts/login/ and sign in with a real officer
+account. To create one:
+
+```bash
+.venv/bin/python manage.py create_officer --username jdoe --full-name "John Doe" --role extension_officer
+.venv/bin/python manage.py changepassword jdoe
+```
 
 ## Step-by-step (if `make demo` fails)
 
 ```bash
 make install           # create .venv and install deps
 make db                # apply migrations (SQLite)
-make fixtures          # load synthetic Kachieng fixtures
-.venv/bin/python scripts/load_demo_data.py  # seed demo officer/supervisor/viewer
+make fixtures          # load synthetic Kachieng fixtures + seed 14 clusters
 make ollama            # pull qwen2.5:7b-instruct if Ollama is installed
 make run               # start Django dev server
 ```
+
+The setup scripts no longer seed any synthetic demo accounts. Use
+`python manage.py create_officer` to create a real account for testing
+(see above). To clean up leftover synthetic demo accounts from an older
+deploy, run `python manage.py cleanup_demo_accounts --dry-run`.
 
 ## Running tests
 

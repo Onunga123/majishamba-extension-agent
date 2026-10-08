@@ -76,7 +76,7 @@ The production settings (`config/settings/production.py`) enforce:
 - `SECURE_REFERRER_POLICY=same-origin`
 - `SECURE_CONTENT_TYPE_NOSNIFF=True`
 - `X_FRAME_OPTIONS=DENY` — no iframe embedding
-- `DEMO_MODE=False` — no demo account cards on login
+- `DEMO_MODE=False` — no synthetic-demo banners on dashboard; login page never shows demo content (the synthetic demo accounts `nyatike_officer`/`nyatike_supervisor`/`nyatike_viewer` are no longer seeded by any script)
 - Synthetic test scenarios hidden from dashboard
 - Structured JSON logging (no secrets in logs)
 - Secret-key required (raises RuntimeError if not set)

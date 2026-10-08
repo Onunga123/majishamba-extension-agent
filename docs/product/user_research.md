@@ -1,6 +1,6 @@
 # User research — Nyatike extension officer (synthetic profile)
 
-> Note: this profile is a composite of publicly-known extension-officer workflows in Kenyan sub-county agricultural offices. No real officer's personal data is used. The named demo officer `nyatike_officer` is a synthetic persona.
+> Note: this profile is a composite of publicly-known extension-officer workflows in Kenyan sub-county agricultural offices. No real officer's personal data is used. The persona name "Jane Awuor" is a synthetic placeholder used only in this document; no demo account with that name is seeded in the system.
 
 ## Persona
 

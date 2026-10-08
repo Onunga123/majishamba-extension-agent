@@ -276,7 +276,7 @@ Tests: 124 passing, 1 skipped
 | Clusters (14-cluster seeding, idempotency) | 11 | ✅ PASS |
 | Data integration (provenance, honest states, KALRO) | 21 | ✅ PASS |
 | LLM provider (OpenRouter, Ollama, fallback) | 10 | ✅ PASS |
-| Login (DEMO_MODE, viewer, CSRF, next URL) | 10 | ✅ PASS |
+| Login (no demo content, viewer, CSRF, next URL) | 11 | ✅ PASS |
 | Map (no Google, OSM attribution, synthetic excluded) | 8 | ✅ PASS |
 | Open-Meteo (API ingestion, null vs zero, idempotent) | 13 | ✅ PASS |
 | Pipeline (agent, approval gate, prompt injection) | 14 | ✅ PASS |
