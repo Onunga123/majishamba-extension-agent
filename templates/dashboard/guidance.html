@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Guidance — Kachieng AI Agent{% endblock %}
+{% block content %}
+
+<div class="max-w-3xl mx-auto bg-white p-6 rounded shadow border border-stone-200">
+  <h1 class="text-xl font-semibold mb-3">Agronomic guidance — KALRO permission status</h1>
+
+  <p class="text-sm text-stone-700 mb-3">
+    <strong>{{ kalro_state.message }}</strong>
+  </p>
+
+  <p class="text-sm text-stone-700 mb-2">
+    {{ kalro_state.bibliographic_recorded|default:"Bibliographic record on file." }}
+  </p>
+  <p class="text-sm text-stone-700 mb-2">
+    {{ kalro_state.extraction_deferred|default:"Content extraction deferred pending permission." }}
+  </p>
+
+  <p class="text-sm text-stone-700 mb-3">
+    <strong>Licence basis:</strong> {{ kalro_state.licence_basis }}
+  </p>
+
+  {% if kalro_state.source_url %}
+  <p class="text-sm mb-3">
+    <a href="{{ kalro_state.source_url }}" target="_blank" rel="noopener"
+       class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+      Open KALRO publication page ↗
+    </a>
+    <span class="text-xs text-stone-500">(publication page only — content not ingested)</span>
+  </p>
+  {% endif %}
+
+  <div class="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-900">
+    <p>
+      ⚠ <strong>Local planting dates are not specified in this source.</strong>
+      The officer must verify local agro-climatic applicability with the extension office before
+      communicating planting dates to farmers.
+    </p>
+  </div>
+
+  <h2 class="text-base font-semibold mt-5 mb-1">Why permission is pending</h2>
+  <p class="text-sm text-stone-700 mb-3">
+    The KALRO Maize Extension Manual (2021) is © KALRO with all rights reserved. The system
+    has not ingested the manual's content into the advisory pipeline because permission to
+    reuse has not yet been granted. The bibliographic record is held on file so that if and
+    when permission is granted, the source can be cited correctly in advisories.
+  </p>
+  <p class="text-sm text-stone-700">
+    In the meantime, advisories cite only the publicly-available sources the system has
+    already integrated (KMD bulletins, KEPHIS/KALRO/Migori County pest notices via officer
+    field reports or official publications, Open-Meteo weather data). See
+    <a href="{% url 'dashboard:data_sources' %}" class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">data sources</a>
+    for the full list.
+  </p>
+
+  <p class="mt-6">
+    <a href="{% url 'dashboard:home' %}" class="text-sm text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">← Back to dashboard</a>
+  </p>
+</div>
+
+{% endblock %}

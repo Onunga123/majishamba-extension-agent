@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Data sources — Kachieng AI Agent{% endblock %}
+{% block content %}
+
+<div class="max-w-3xl mx-auto bg-white p-6 rounded shadow border border-stone-200">
+  <h1 class="text-xl font-semibold mb-3">Data sources</h1>
+  <p class="text-sm text-stone-600 mb-4">
+    Detailed notes on the weather, pest, and market authorities the Kachieng AI Agent
+    consults. Technical and licence notes that were previously on the dashboard are
+    now kept here so the main page stays operational.
+  </p>
+
+  <h2 class="text-base font-semibold mt-5 mb-1">Weather — Kenya Meteorological Department (KMD)</h2>
+  <p class="text-sm text-stone-700 mb-2">
+    {{ weather_no_notice.message|default:"No current verified KMD bulletin has been ingested for this area." }}
+  </p>
+  <p class="text-sm text-stone-700 mb-2">
+    {{ weather_no_notice.manual_retrieval_note|default:"Manual retrieval from meteo.go.ke required." }}
+  </p>
+  <p class="text-sm text-stone-700 mb-2">
+    <strong>Authority:</strong> Kenya Meteorological Department (meteo.go.ke) — no public API; manual
+    retrieval required. Officers ingest bulletin metadata via the
+    <a href="{% url 'integrations:kmd_ingest' %}" class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">KMD ingest form</a>.
+  </p>
+
+  {% if synthetic_weather and demo_mode %}
+  <details class="mt-3">
+    <summary class="text-sm text-amber-800 cursor-pointer font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 rounded">
+      Show synthetic weather test scenario (development only)
+    </summary>
+    <div class="text-sm text-stone-700 bg-amber-50 border border-amber-200 rounded p-3 mt-2">
+      <p><strong>{{ synthetic_weather.product_type }}</strong> (synthetic)</p>
+      <p>{{ synthetic_weather.forecast_summary }}</p>
+      <p class="text-xs text-stone-500 mt-1">
+        Used to exercise the agent's fallback path; <strong>not for production decisions</strong>.
+      </p>
+    </div>
+  </details>
+  {% endif %}
+
+  <h2 class="text-base font-semibold mt-5 mb-1">Pest notices — KEPHIS, KALRO, Migori County Dept. of Agriculture</h2>
+  <p class="text-sm text-stone-700 mb-2">
+    {{ pest_no_notice.message|default:"No current verified official pest notice available for this area." }}
+  </p>
+  <p class="text-sm text-stone-700 mb-2">
+    {{ pest_no_notice.scouting_note|default:"Local scouting and extension-officer verification remain necessary." }}
+  </p>
+  <p class="text-sm text-stone-700 mb-2">
+    <strong>Authorities checked:</strong> KEPHIS, KALRO, Migori County Dept. of Agriculture.
+    No public alert API; manual retrieval required. Officers submit field reports via the
+    <a href="{% url 'integrations:pest_report' %}" class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">pest field report form</a>.
+  </p>
+
+  {% if synthetic_pest and demo_mode %}
+  <details class="mt-3">
+    <summary class="text-sm text-amber-800 cursor-pointer font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 rounded">
+      Show synthetic pest test scenario (development only)
+    </summary>
+    <div class="text-sm text-stone-700 bg-amber-50 border border-amber-200 rounded p-3 mt-2">
+      <p><strong>{{ synthetic_pest.pest }}</strong> (synthetic)</p>
+      <p>{{ synthetic_pest.advisory }}</p>
+      <p class="text-xs text-stone-500 mt-1">
+        Used to exercise the agent's fallback path; <strong>not for production decisions</strong>.
+      </p>
+    </div>
+  </details>
+  {% endif %}
+
+  <h2 class="text-base font-semibold mt-5 mb-1">Market prices</h2>
+  <p class="text-sm text-stone-700 mb-2">
+    Market price signals are ingested from public market information sources and officer
+    field reports. No automated API is currently configured for market data.
+  </p>
+
+  <h2 class="text-base font-semibold mt-5 mb-1">Agronomic guidance</h2>
+  <p class="text-sm text-stone-700 mb-2">
+    KALRO maize manual ingestion is permission-pending. See the
+    <a href="{% url 'dashboard:guidance' %}" class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">guidance page</a>
+    for the bibliographic record, licence basis, and the open KALRO publication page.
+  </p>
+
+  <h2 class="text-base font-semibold mt-5 mb-1">Synthetic data disclaimer</h2>
+  <p class="text-sm text-stone-700">
+    All household, plot, weather, pest and market records in this repository are synthetic.
+    No real household names, plot coordinates, phone numbers, or yields are used.
+    Locality names in Kachieng Ward are confirmed by the project owner but no government
+    classification is claimed. Synthetic test scenarios appear on this page only when
+    <code>DEMO_MODE</code> is on (development) — they are hidden in production.
+  </p>
+
+  <p class="mt-6">
+    <a href="{% url 'dashboard:home' %}" class="text-sm text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">← Back to dashboard</a>
+  </p>
+</div>
+
+{% endblock %}

@@ -77,13 +77,13 @@
   </main>
 
   <footer class="bg-stone-900 text-stone-300 text-xs" role="contentinfo">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between gap-1">
-      <span>Kachieng AI Agent — MIT licence · Climate-smart advisories for Kachieng Ward, Migori County, Kenya.
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+      <span>Synthetic household &amp; plot data only — no real household records used.
+        <a href="{% url 'dashboard:about' %}" class="text-stone-400 hover:text-stone-200 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-200 rounded">About / legal</a>
         {% if user.is_authenticated and user.is_staff %}
-          · <a href="{% url 'agents:graph' %}" class="text-stone-400 hover:text-stone-200 underline">Agent graph (staff only)</a>
+          · <a href="{% url 'agents:graph' %}" class="text-stone-400 hover:text-stone-200 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-200 rounded">Agent graph (staff only)</a>
         {% endif %}
       </span>
-      <span class="text-stone-400">Synthetic household &amp; plot data only — no real household records used.</span>
     </div>
   </footer>
 </body>

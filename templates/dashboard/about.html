@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}About — Kachieng AI Agent{% endblock %}
+{% block content %}
+
+<div class="max-w-3xl mx-auto bg-white p-6 rounded shadow border border-stone-200">
+  <h1 class="text-xl font-semibold mb-3">About Kachieng AI Agent</h1>
+
+  <h2 class="text-base font-semibold mt-4 mb-1">What the system does</h2>
+  <p class="text-sm text-stone-700 mb-3">
+    Kachieng AI Agent is a climate-smart advisory system built for the Nyatike Sub-County
+    Agricultural Office in Migori County, Kenya. It serves smallholder farmer clusters in
+    Kachieng Ward. The system combines an MCP-based agentic pipeline, custom MCP server,
+    LangGraph orchestration, an open-weights model run, and a strict human approval gate
+    — so every advisory is sourced, auditable, and approved by an extension officer before
+    any follow-up action.
+  </p>
+  <p class="text-sm text-stone-700 mb-3">
+    When an officer requests an advisory for a cluster, the agent gathers plot history,
+    crop calendar, weather, pest and market signals via read-only MCP tools, then drafts
+    a sourced recommendation. The draft is reviewed and either approved, rejected, deferred,
+    or marked as needing more evidence. Only after approval does the system create a
+    follow-up task — nothing is sent to farmers automatically.
+  </p>
+
+  <h2 class="text-base font-semibold mt-5 mb-1">Roles and permissions</h2>
+  <ul class="text-sm text-stone-700 list-disc ml-5 space-y-1">
+    <li><strong>Extension Officer</strong> — request advisories, review drafts, manage field tasks.</li>
+    <li><strong>Supervisor</strong> — review and approve advisories, verify field findings.</li>
+    <li><strong>Viewer</strong> — read-only access to dashboards, advisories, tasks, and audit.</li>
+  </ul>
+
+  <h2 class="text-base font-semibold mt-5 mb-1">Licence and legal</h2>
+  <p class="text-sm text-stone-700 mb-2">
+    Kachieng AI Agent is released under the <strong>MIT licence</strong>.
+  </p>
+  <pre class="text-xs text-stone-600 bg-stone-100 border border-stone-200 rounded p-3 overflow-x-auto">MIT License
+
+Copyright (c) 2025 MajiShamba Team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</pre>
+
+  <h2 class="text-base font-semibold mt-5 mb-1">Synthetic data notice</h2>
+  <p class="text-sm text-stone-700">
+    All household, plot, weather, pest and market records in this repository are
+    <strong>synthetic</strong>. No real household names, plot coordinates, phone numbers,
+    or yields are used. Locality names in Kachieng Ward are confirmed by the project owner
+    but no government classification is claimed. See
+    <a href="{% url 'dashboard:data_sources' %}" class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">data sources</a>
+    for details.
+  </p>
+
+  <h2 class="text-base font-semibold mt-5 mb-1">More</h2>
+  <ul class="text-sm text-stone-700 list-disc ml-5 space-y-1">
+    <li><a href="{% url 'dashboard:guidance' %}" class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Agronomic guidance — KALRO permission status</a></li>
+    <li><a href="{% url 'dashboard:data_sources' %}" class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Data sources — weather, pest, market authorities</a></li>
+    <li><a href="{% url 'audit:list' %}" class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Full audit log</a></li>
+    <li><a href="{% url 'dashboard:home' %}" class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Back to dashboard</a></li>
+  </ul>
+</div>
+
+{% endblock %}
