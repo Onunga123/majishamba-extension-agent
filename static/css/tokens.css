@@ -1,0 +1,133 @@
+/* ============================================================
+   Kachieng AI Agent — Design Tokens
+   ============================================================
+   A centralized, token-based color system inspired by Kenya's natural
+   environment: vegetation, soil, water, sky, and sunlight.
+
+   Color philosophy:
+     - Warm neutral foundation (not pure white everywhere)
+     - Deep forest navigation/branding
+     - Restrained agricultural green for primary actions + success
+     - Sky-blue for environmental/weather information
+     - Amber for attention/draft states
+     - Accessible red ONLY for genuine errors or destructive actions
+
+   Balance target (approximate):
+     - 65–75% neutral/light surfaces
+     - 15–20% dark text / structural colors
+     - 5–10% green/brand accents
+     - Small amounts of semantic status colors
+
+   All tokens are WCAG 2.2 AA contrast-verified against their intended
+   backgrounds.
+   ============================================================ */
+
+:root {
+  /* ----- Brand / Primary ----- */
+  --color-primary: #176B45;          /* deep agricultural green — primary buttons, active nav, important links */
+  --color-primary-hover: #125437;    /* hover state — slightly darker */
+  --color-primary-active: #0F3D2E;   /* pressed state — deep forest */
+  --color-primary-soft: #E8F3ED;     /* soft sage — selected nav bg, informational surfaces */
+  --color-primary-tint: #F3F8F5;     /* very subtle green tint — row hover */
+
+  /* ----- Deep Forest (branding, navigation, strong headings) ----- */
+  --color-forest: #0F3D2E;           /* deep forest green — branding, dark surfaces */
+  --color-forest-text: #FFFFFF;      /* white text on forest surfaces */
+  --color-forest-muted: #A8C5B5;     /* muted text on forest surfaces */
+
+  /* ----- Soft Sage (subtle highlighted sections) ----- */
+  --color-sage: #E8F3ED;
+  --color-sage-soft: #EEF6F0;        /* 'Needs your attention' section background */
+
+  /* ----- Warm Sand / Soil (warm contextual surface) ----- */
+  --color-sand: #F7F3EA;             /* warm contextual surface — prevents cold/white feel */
+  --color-sand-border: #E8E0CE;
+
+  /* ----- Sky / Water (environmental, weather, map) ----- */
+  --color-sky: #256B8A;              /* sky/water blue — weather, map, environmental data */
+  --color-sky-text: #175A73;
+  --color-sky-soft: #EFF7FA;         /* weather panel background */
+
+  /* ----- Background system (layered, not pure white) ----- */
+  --color-background: #F7F9F7;       /* application background — warm-neutral sage tint */
+  --color-surface: #FFFFFF;          /* primary content surface (cards) */
+  --color-surface-muted: #F1F5F2;    /* secondary surface */
+  --color-surface-warm: #F7F3EA;     /* warm contextual surface */
+
+  /* ----- Typography ----- */
+  --color-text: #17211D;             /* primary text — deep charcoal-green (not pure black) */
+  --color-text-secondary: #52605A;   /* secondary text */
+  --color-text-muted: #6B7670;       /* muted metadata */
+  --color-text-disabled: #8B9490;    /* disabled text */
+  --color-text-on-forest: #FFFFFF;   /* text on deep-forest surfaces */
+  --color-text-on-forest-muted: #C8D6CD;
+
+  /* ----- Borders (subtle neutral/green-gray) ----- */
+  --color-border: #DCE4DF;           /* default subtle border */
+  --color-border-strong: #C3CFC7;    /* slightly stronger border */
+  --color-border-forest: rgba(255, 255, 255, 0.12); /* border on dark forest surfaces */
+
+  /* ----- Semantic status colors ----- */
+  /* Draft / Needs review — amber */
+  --color-draft: #C58A00;
+  --color-draft-text: #7A5200;
+  --color-draft-soft: #FFF4D6;
+  --color-draft-border: #E8C97A;
+
+  /* Approved / Success — accessible green */
+  --color-success: #218A58;
+  --color-success-text: #176B45;
+  --color-success-soft: #E8F5EC;
+  --color-success-border: #A8D4BC;
+
+  /* Field verification — blue */
+  --color-info: #256B8A;
+  --color-info-text: #175A73;
+  --color-info-soft: #EAF3F7;
+  --color-info-border: #B8D4E0;
+
+  /* Warning / Limited information — amber (same as draft family) */
+  --color-warning: #C58A00;
+  --color-warning-text: #7A5200;
+  --color-warning-soft: #FFF4D6;
+
+  /* Error / Critical — restrained red */
+  --color-danger: #9B2C2C;
+  --color-danger-text: #9B2C2C;
+  --color-danger-soft: #FDECEC;
+  --color-danger-border: #F0BFBF;
+
+  /* Neutral / No advisory — neutral gray */
+  --color-neutral: #58635E;
+  --color-neutral-text: #58635E;
+  --color-neutral-soft: #F1F3F2;
+  --color-neutral-border: #D5DBD7;
+
+  /* ----- Shadows (extremely subtle) ----- */
+  --shadow-xs: 0 1px 2px rgba(15, 61, 46, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 61, 46, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(15, 61, 46, 0.08), 0 2px 4px -1px rgba(15, 61, 46, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 61, 46, 0.10), 0 4px 6px -2px rgba(15, 61, 46, 0.05);
+
+  /* ----- Spacing scale (kept from existing system) ----- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  /* ----- Radius ----- */
+  --radius-sm: 0.25rem;
+  --radius: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-full: 9999px;
+
+  /* ----- Font sizes (typography hierarchy) ----- */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+}

@@ -25,124 +25,110 @@
   </div>
 </header>
 
-{# NEEDS YOUR ATTENTION — What requires my action? (summary + action links) #}
-<section class="mb-8" aria-labelledby="needs-attention-heading">
-  <h2 id="needs-attention-heading" class="text-lg font-semibold text-stone-900 mb-3">
+{# NEEDS YOUR ATTENTION — warm sage contextual surface (not another plain white card) #}
+<section class="surface-attention mb-8" aria-labelledby="needs-attention-heading">
+  <h2 id="needs-attention-heading" class="text-lg font-semibold mb-3" style="color: var(--color-forest);">
     Needs your attention
   </h2>
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
 
     {# --- Drafts awaiting review --- #}
-    <div class="bg-white border border-stone-200 rounded p-4 {% if needs_attention.drafts_count > 0 %}border-l-4 border-l-amber-500{% endif %}">
+    <div class="attention-card {% if needs_attention.drafts_count > 0 %}has-attention{% else %}is-empty{% endif %}">
       <div class="flex items-baseline justify-between">
-        <p class="text-xs font-medium text-stone-500 uppercase tracking-wide">Drafts awaiting review</p>
-        <span class="text-2xl font-semibold text-stone-900">{{ needs_attention.drafts_count }}</span>
+        <p class="attention-label">Drafts awaiting review</p>
+        <span class="attention-count">{{ needs_attention.drafts_count }}</span>
       </div>
-      <p class="text-sm text-stone-600 mt-2">
+      <p class="attention-summary">
         {{ needs_attention.drafts_summary|default:"0 drafts awaiting review" }}
       </p>
       {% if needs_attention.drafts_count > 0 and can_approve %}
       <a href="{% url 'advisories:list' %}?status=draft"
-         class="inline-block mt-2 text-sm text-emerald-700 hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+         class="inline-block mt-2 text-sm font-medium hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
+         style="color: var(--color-primary);">
         Review drafts →
       </a>
       {% elif needs_attention.drafts_count > 0 %}
       <a href="{% url 'advisories:list' %}?status=draft"
-         class="inline-block mt-2 text-sm text-stone-600 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+         class="inline-block mt-2 text-sm hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
+         style="color: var(--color-text-secondary);">
         View drafts →
       </a>
       {% else %}
-      <p class="text-xs text-stone-400 mt-2 italic">No drafts to review.</p>
+      <p class="text-xs mt-2 italic" style="color: var(--color-text-muted);">No drafts to review.</p>
       {% endif %}
     </div>
 
     {# --- Field visits required --- #}
-    <div class="bg-white border border-stone-200 rounded p-4 {% if needs_attention.field_visits_count > 0 %}border-l-4 border-l-emerald-500{% endif %}">
+    <div class="attention-card {% if needs_attention.field_visits_count > 0 %}has-field-visit{% else %}is-empty{% endif %}">
       <div class="flex items-baseline justify-between">
-        <p class="text-xs font-medium text-stone-500 uppercase tracking-wide">Field visits required</p>
-        <span class="text-2xl font-semibold text-stone-900">{{ needs_attention.field_visits_count }}</span>
+        <p class="attention-label">Field visits required</p>
+        <span class="attention-count">{{ needs_attention.field_visits_count }}</span>
       </div>
-      <p class="text-sm text-stone-600 mt-2">
+      <p class="attention-summary">
         {{ needs_attention.field_visits_summary|default:"0 approved advisories awaiting field verification" }}
       </p>
       {% if needs_attention.field_visits_count > 0 %}
       <a href="{% url 'tasks:list' %}"
-         class="inline-block mt-2 text-sm text-emerald-700 hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+         class="inline-block mt-2 text-sm font-medium hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
+         style="color: var(--color-primary);">
         Open tasks →
       </a>
       {% else %}
-      <p class="text-xs text-stone-400 mt-2 italic">No field visits pending.</p>
+      <p class="text-xs mt-2 italic" style="color: var(--color-text-muted);">No field visits pending.</p>
       {% endif %}
     </div>
 
     {# --- Pending tasks --- #}
-    <div class="bg-white border border-stone-200 rounded p-4 {% if needs_attention.pending_tasks_count > 0 %}border-l-4 border-l-amber-500{% endif %}">
+    <div class="attention-card {% if needs_attention.pending_tasks_count > 0 %}has-tasks{% else %}is-empty{% endif %}">
       <div class="flex items-baseline justify-between">
-        <p class="text-xs font-medium text-stone-500 uppercase tracking-wide">Pending tasks</p>
-        <span class="text-2xl font-semibold text-stone-900">{{ needs_attention.pending_tasks_count }}</span>
+        <p class="attention-label">Pending tasks</p>
+        <span class="attention-count">{{ needs_attention.pending_tasks_count }}</span>
       </div>
-      <p class="text-sm text-stone-600 mt-2">
+      <p class="attention-summary">
         {{ needs_attention.pending_tasks_summary|default:"0 pending tasks" }}
       </p>
       {% if needs_attention.pending_tasks_count > 0 %}
       <a href="{% url 'tasks:list' %}"
-         class="inline-block mt-2 text-sm text-emerald-700 hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+         class="inline-block mt-2 text-sm font-medium hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
+         style="color: var(--color-primary);">
         All tasks →
       </a>
       {% else %}
-      <p class="text-xs text-stone-400 mt-2 italic">No pending tasks.</p>
+      <p class="text-xs mt-2 italic" style="color: var(--color-text-muted);">No pending tasks.</p>
       {% endif %}
     </div>
   </div>
 </section>
 
-{# PRIMARY CTA — What can I do next? (Request advisory + workflow) #}
-<section class="mb-8 bg-white border border-stone-200 rounded p-5">
+{# PRIMARY CTA — primary action + workflow legend #}
+<section class="surface mb-8 p-5">
   <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
     <div class="flex-1 max-w-2xl">
-      <h2 class="text-base font-semibold text-stone-900">
+      <h2 class="text-base font-semibold" style="color: var(--color-text);">
         Request a climate-smart advisory
       </h2>
-      <p class="text-sm text-stone-700 mt-1.5">
+      <p class="text-sm mt-1.5" style="color: var(--color-text-secondary);">
         The system gathers available plot, crop-calendar, weather, pest and market information
         and creates a sourced draft for your review. Human review and approval are required
         before any operational follow-up.
       </p>
       <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
-        <span class="font-medium text-stone-600">Workflow:</span>
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
-              style="background:#fff7ed;color:#9a3412;border:1px dashed #fed7aa"
-              title="AI-generated; not yet reviewed by a human">
-          AI draft
-        </span>
-        <span class="text-stone-400" aria-hidden="true">→</span>
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
-              style="background:#fef3c7;color:#92400e;border:1px solid #fde68a"
-              title="A human officer has reviewed the draft">
-          Reviewed
-        </span>
-        <span class="text-stone-400" aria-hidden="true">→</span>
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
-              style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0"
-              title="A human officer has approved this advisory">
-          Approved
-        </span>
-        <span class="text-stone-400" aria-hidden="true">→</span>
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
-              style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd"
-              title="Field findings have been submitted against the approved advisory">
-          Field-verified
-        </span>
+        <span class="font-medium" style="color: var(--color-text-muted);">Workflow:</span>
+        <span class="workflow-pill workflow-ai-draft" title="AI-generated; not yet reviewed by a human">AI draft</span>
+        <span style="color: var(--color-text-muted);" aria-hidden="true">→</span>
+        <span class="workflow-pill workflow-reviewed" title="A human officer has reviewed the draft">Reviewed</span>
+        <span style="color: var(--color-text-muted);" aria-hidden="true">→</span>
+        <span class="workflow-pill workflow-human-approved" title="A human officer has approved this advisory">Approved</span>
+        <span style="color: var(--color-text-muted);" aria-hidden="true">→</span>
+        <span class="workflow-pill workflow-field-verified" title="Field findings have been submitted against the approved advisory">Field-verified</span>
       </div>
     </div>
     {% if can_request_advisory %}
-    <a href="{% url 'advisories:request' %}"
-       class="inline-flex items-center justify-center gap-2 px-5 py-2.5 min-h-[44px] bg-emerald-700 text-white font-semibold rounded border border-emerald-700 shadow-sm hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 whitespace-nowrap"
-       aria-label="Request a new climate-smart advisory">
+    <a href="{% url 'advisories:request' %}" class="btn-primary whitespace-nowrap" aria-label="Request a new climate-smart advisory">
       + Request advisory
     </a>
     {% else %}
-    <p class="text-xs text-stone-500 italic lg:text-right lg:max-w-[16rem]">
+    <p class="text-xs italic lg:text-right lg:max-w-[16rem]" style="color: var(--color-text-muted);">
       Signed in as <strong>{{ user.get_role_display }}</strong> — read-only.
       Requesting advisories requires an officer or supervisor account.
     </p>
@@ -494,113 +480,119 @@
   {% endif %}
 </section>
 
-{# FIELD CONDITIONS & GUIDANCE — What external conditions matter? #}
+{# FIELD CONDITIONS & GUIDANCE — differentiated by information type #}
 <section class="mb-8" aria-labelledby="field-conditions-heading">
-  <h2 id="field-conditions-heading" class="text-lg font-semibold text-stone-900 mb-3">
+  <h2 id="field-conditions-heading" class="text-lg font-semibold mb-3" style="color: var(--color-text);">
     Field conditions &amp; guidance
   </h2>
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-    {# --- Weather --- #}
-    <div class="bg-white border border-stone-200 rounded p-4">
-      <h3 class="text-sm font-semibold text-stone-900 mb-2">Weather</h3>
+    {# --- Weather (sky-blue surface — environmental information) --- #}
+    <div class="surface-weather p-4">
+      <h3 class="text-sm font-semibold mb-2" style="color: var(--color-sky-text);">Weather</h3>
       {% if weather_panel.kind == "real" %}
         {% with sig=weather_panel.signal %}
-        <p class="text-sm text-stone-700">{{ sig.product_type|default:sig.source_authority }}</p>
-        <p class="text-xs text-stone-500 mt-1">{{ sig.geographic_scope|default:"Regional" }}</p>
-        <p class="text-sm text-stone-700 mt-2">
+        <p class="text-sm" style="color: var(--color-text);">{{ sig.product_type|default:sig.source_authority }}</p>
+        <p class="text-xs mt-1" style="color: var(--color-text-muted);">{{ sig.geographic_scope|default:"Regional" }}</p>
+        <p class="text-sm mt-2" style="color: var(--color-text-secondary);">
           {{ sig.forecast_summary|truncatewords:18 }}
         </p>
-        <p class="text-sm text-stone-700 mt-1">
-          Rainfall amount: <strong>{{ weather_panel.rainfall_display }}</strong>
+        <p class="text-sm mt-1" style="color: var(--color-text-secondary);">
+          Rainfall amount: <strong style="color: var(--color-text);">{{ weather_panel.rainfall_display }}</strong>
         </p>
-        <p class="text-xs text-stone-500 mt-2">
+        <p class="text-xs mt-2" style="color: var(--color-text-muted);">
           Source: {{ sig.source_authority }}
           {% if sig.publication_date %} · Issued: {{ sig.publication_date }}{% endif %}
         </p>
         {% if weather_panel.is_regional %}
-        <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
+        <p class="text-xs rounded px-2 py-1 mt-2" style="background-color: var(--color-draft-soft); color: var(--color-draft-text); border: 1px solid var(--color-draft-border);">
           Regional forecast covering Migori — not a Nyatike station observation.
         </p>
         {% endif %}
         <a href="{% url 'dashboard:data_sources' %}"
-           class="inline-block text-xs text-emerald-700 hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+           class="inline-block text-xs hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
+           style="color: var(--color-primary);">
           Weather details →
         </a>
         {% endwith %}
       {% else %}
-        <p class="text-sm text-stone-700">{{ weather_panel.no_notice.message }}</p>
-        <p class="text-xs text-stone-500 mt-2">
+        <p class="text-sm" style="color: var(--color-text);">{{ weather_panel.no_notice.message }}</p>
+        <p class="text-xs mt-2" style="color: var(--color-text-muted);">
           Source: Kenya Meteorological Department (meteo.go.ke) — manual retrieval required.
         </p>
-        <p class="text-xs text-stone-500 mt-1">
+        <p class="text-xs mt-1" style="color: var(--color-text-muted);">
           Impact: advisories rely on officer field observation until a verified KMD bulletin is ingested.
         </p>
         <a href="{% url 'dashboard:data_sources' %}"
-           class="inline-block text-xs text-emerald-700 hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+           class="inline-block text-xs hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
+           style="color: var(--color-primary);">
           Weather details →
         </a>
       {% endif %}
     </div>
 
-    {# --- Pest alerts --- #}
-    <div class="bg-white border border-stone-200 rounded p-4">
-      <h3 class="text-sm font-semibold text-stone-900 mb-2">Pest alerts</h3>
+    {# --- Pest alerts (neutral surface — not red/amber when there's no alert) --- #}
+    <div class="surface p-4">
+      <h3 class="text-sm font-semibold mb-2" style="color: var(--color-text);">Pest alerts</h3>
       {% if pest_panel.kind == "real" %}
         {% with alert=pest_panel.alert %}
-        <p class="text-sm text-stone-700">{{ alert.pest }}</p>
-        <p class="text-xs text-stone-500 mt-1">
+        <p class="text-sm" style="color: var(--color-text);">{{ alert.pest }}</p>
+        <p class="text-xs mt-1" style="color: var(--color-text-muted);">
           Source: {{ alert.source_authority }}{% if alert.product_type %} · {{ alert.product_type }}{% endif %}
         </p>
-        <p class="text-sm text-stone-700 mt-2">Severity: <strong>{{ pest_panel.severity_display }}</strong></p>
+        <p class="text-sm mt-2" style="color: var(--color-text-secondary);">Severity: <strong style="color: var(--color-text);">{{ pest_panel.severity_display }}</strong></p>
         {% if alert.advisory %}
-        <p class="text-sm text-stone-700 mt-1">{{ alert.advisory|truncatewords:18 }}</p>
+        <p class="text-sm mt-1" style="color: var(--color-text-secondary);">{{ alert.advisory|truncatewords:18 }}</p>
         {% endif %}
-        <p class="text-xs text-stone-500 mt-2">
+        <p class="text-xs mt-2" style="color: var(--color-text-muted);">
           {% if alert.publication_date %}Issued: {{ alert.publication_date }}{% endif %}
         </p>
         <a href="{% url 'dashboard:data_sources' %}"
-           class="inline-block text-xs text-emerald-700 hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+           class="inline-block text-xs hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
+           style="color: var(--color-primary);">
           Sources checked →
         </a>
         {% endwith %}
       {% else %}
-        <p class="text-sm text-stone-700">{{ pest_panel.no_notice.message }}</p>
-        <p class="text-xs text-stone-500 mt-2">This does not mean pests are absent. Continue local scouting.</p>
+        <p class="text-sm" style="color: var(--color-text);">{{ pest_panel.no_notice.message }}</p>
+        <p class="text-xs mt-2" style="color: var(--color-text-muted);">This does not mean pests are absent. Continue local scouting.</p>
         <a href="{% url 'dashboard:data_sources' %}"
-           class="inline-block text-xs text-emerald-700 hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+           class="inline-block text-xs hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
+           style="color: var(--color-primary);">
           Sources checked →
         </a>
       {% endif %}
     </div>
 
-    {# --- Agronomic guidance --- #}
-    <div class="bg-white border border-stone-200 rounded p-4">
-      <h3 class="text-sm font-semibold text-stone-900 mb-2">Agronomic guidance</h3>
-      <p class="text-sm text-stone-700">KALRO maize guidance currently unavailable</p>
-      <p class="text-xs text-stone-500 mt-2">
+    {# --- Agronomic guidance (sage surface — agricultural relationship) --- #}
+    <div class="surface-guidance p-4">
+      <h3 class="text-sm font-semibold mb-2" style="color: var(--color-success-text);">Agronomic guidance</h3>
+      <p class="text-sm" style="color: var(--color-text);">KALRO maize guidance currently unavailable</p>
+      <p class="text-xs mt-2" style="color: var(--color-text-muted);">
         This source has not yet been authorized for use.
       </p>
-      <p class="text-xs text-stone-500 mt-1">
+      <p class="text-xs mt-1" style="color: var(--color-text-muted);">
         Status: Awaiting authorization
       </p>
-      <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
+      <p class="text-xs rounded px-2 py-1 mt-2" style="background-color: var(--color-draft-soft); color: var(--color-draft-text); border: 1px solid var(--color-draft-border);">
         ⚠ Local planting dates not specified in this source.
       </p>
       <a href="{% url 'dashboard:guidance' %}"
-         class="inline-block text-xs text-emerald-700 hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+         class="inline-block text-xs hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
+         style="color: var(--color-primary);">
         Guidance details →
       </a>
     </div>
   </div>
 </section>
 
-{# RECENT ACTIVITY — What happened recently? #}
+{# RECENT ACTIVITY — mostly neutral, color only for meaningful states #}
 <section class="mb-8" aria-labelledby="activity-heading">
   <div class="flex items-center justify-between mb-3">
-    <h2 id="activity-heading" class="text-lg font-semibold text-stone-900">Recent activity</h2>
+    <h2 id="activity-heading" class="text-lg font-semibold" style="color: var(--color-text);">Recent activity</h2>
     <a href="{% url 'audit:list' %}"
-       class="text-sm text-emerald-700 hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+       class="text-sm hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
+       style="color: var(--color-primary);">
       Audit log →
     </a>
   </div>

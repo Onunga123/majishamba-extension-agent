@@ -8,14 +8,15 @@
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css">
   <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 </head>
-<body class="bg-stone-50 text-stone-800 min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col" style="background-color: var(--color-background); color: var(--color-text);">
   <a href="#main-content" class="skip-link">Skip to main content</a>
 
-  {# Global application header #}
-  <header class="bg-white border-b border-stone-200 sticky top-0 z-30" role="banner">
+  {# Global application header — deep forest dark bar (v5 design tokens) #}
+  <header class="app-header sticky top-0 z-30" role="banner">
     <div class="max-w-7xl mx-auto px-4">
       {# Row 1: application identity (left) + user menu (right) #}
       <div class="flex items-center justify-between py-3 gap-3">
@@ -26,20 +27,21 @@
                   aria-label="Open navigation menu"
                   aria-expanded="false"
                   aria-controls="primary-nav"
-                  class="md:hidden inline-flex items-center justify-center w-10 h-10 text-stone-700 hover:bg-stone-100 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+                  class="md:hidden inline-flex items-center justify-center w-10 h-10 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  style="color: var(--color-forest-muted);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
 
           {# Application identity: Kachieng AI Agent / Climate-smart advisories (no geography) #}
           {% if user.is_authenticated %}
-          <a href="{% url 'dashboard:home' %}" class="flex items-baseline gap-2 min-w-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-            <span class="font-semibold text-base text-stone-900 whitespace-nowrap">Kachieng AI Agent</span>
-            <span class="text-stone-500 text-sm hidden sm:inline">Climate-smart advisories</span>
+          <a href="{% url 'dashboard:home' %}" class="flex items-baseline gap-2 min-w-0 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+            <span class="app-name text-base whitespace-nowrap">Kachieng AI Agent</span>
+            <span class="app-subtitle text-sm hidden sm:inline">Climate-smart advisories</span>
           </a>
           {% else %}
           <span class="flex items-baseline gap-2 min-w-0">
-            <span class="font-semibold text-base text-stone-900 whitespace-nowrap">Kachieng AI Agent</span>
-            <span class="text-stone-500 text-sm hidden sm:inline">Climate-smart advisories</span>
+            <span class="app-name text-base whitespace-nowrap">Kachieng AI Agent</span>
+            <span class="app-subtitle text-sm hidden sm:inline">Climate-smart advisories</span>
           </span>
           {% endif %}
         </div>
@@ -49,47 +51,41 @@
         <div class="flex items-center gap-1">
           {# User menu (details-based dropdown for keyboard accessibility) #}
           <details class="relative" id="user-menu">
-            <summary class="list-none flex items-center gap-2 px-2 py-1.5 rounded hover:bg-stone-100 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+            <summary class="user-menu-summary"
                      aria-label="Open user menu for {{ user.display_name }}"
                      role="button"
                      aria-haspopup="menu"
                      aria-expanded="false">
-              {# Avatar circle with initials #}
-              <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-700 text-white text-xs font-semibold"
-                    aria-hidden="true">
+              <span class="user-avatar" aria-hidden="true">
                 {{ user.display_name|slice:":1"|title }}
               </span>
-              {# Name + role (hidden on narrow screens, replaced by avatar only) #}
               <span class="hidden sm:flex sm:flex-col sm:items-start sm:leading-tight">
-                <span class="text-sm font-medium text-stone-900">{{ user.display_name }}</span>
-                <span class="text-xs text-stone-500">{{ user.get_role_display }} ▾</span>
+                <span class="text-sm font-medium" style="color: var(--color-text-on-forest);">{{ user.display_name }}</span>
+                <span class="text-xs" style="color: var(--color-forest-muted);">{{ user.get_role_display }} ▾</span>
               </span>
-              <span class="sm:hidden text-stone-500" aria-hidden="true">▾</span>
+              <span class="sm:hidden" style="color: var(--color-forest-muted);" aria-hidden="true">▾</span>
             </summary>
-            {# Dropdown menu #}
-            <div class="absolute right-0 top-full mt-1 min-w-[12rem] bg-white border border-stone-200 rounded shadow-lg z-40 py-1"
+            {# Dropdown menu (light surface inside the dark header) #}
+            <div class="user-menu-dropdown"
                  role="menu"
                  aria-label="User menu">
-              <div class="px-3 py-2 border-b border-stone-100 sm:hidden">
-                <div class="text-sm font-medium text-stone-900">{{ user.display_name }}</div>
-                <div class="text-xs text-stone-500">{{ user.get_role_display }}</div>
+              <div class="px-3 py-2 border-b sm:hidden" style="border-color: var(--color-border);">
+                <div class="text-sm font-medium" style="color: var(--color-text);">{{ user.display_name }}</div>
+                <div class="text-xs" style="color: var(--color-text-muted);">{{ user.get_role_display }}</div>
               </div>
-              <a href="{% url 'accounts:profile' %}" role="menuitem"
-                 class="block w-full text-left px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-700">
+              <a href="{% url 'accounts:profile' %}" role="menuitem">
                 Profile
               </a>
               {% if user.is_staff %}
-              <a href="{% url 'agents:graph' %}" role="menuitem"
-                 class="block w-full text-left px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-700">
-                Agent graph <span class="text-xs text-stone-400">(staff only)</span>
+              <a href="{% url 'agents:graph' %}" role="menuitem">
+                Agent graph <span class="text-xs" style="color: var(--color-text-muted);">(staff only)</span>
               </a>
               {% endif %}
-              <div class="border-t border-stone-100 my-1"></div>
+              <div class="my-1" style="border-top: 1px solid var(--color-border);"></div>
               {# Logout is a secondary account action — present but not visually prominent #}
               <form method="post" action="{% url 'accounts:logout' %}" class="block">
                 {% csrf_token %}
-                <button type="submit" role="menuitem"
-                        class="block w-full text-left px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-700">
+                <button type="submit" role="menuitem">
                   Logout
                 </button>
               </form>
@@ -98,35 +94,33 @@
         </div>
         {% else %}
         <nav class="text-sm flex items-center gap-3" aria-label="Account">
-          <a href="{% url 'accounts:login' %}" class="text-stone-700 hover:text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Sign in</a>
-          <a href="{% url 'accounts:register' %}" class="text-stone-700 hover:text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Create account</a>
+          <a href="{% url 'accounts:login' %}" class="hover:underline rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" style="color: var(--color-text-on-forest);">Sign in</a>
+          <a href="{% url 'accounts:register' %}" class="hover:underline rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" style="color: var(--color-text-on-forest);">Create account</a>
         </nav>
         {% endif %}
       </div>
 
       {# Row 2: primary navigation (horizontal). Hidden on mobile by default; toggled by menu button. #}
       {% if user.is_authenticated %}
-      <nav id="primary-nav" aria-label="Primary"
-           class="border-t border-stone-100 -mx-4 px-4 md:block{% if request.GET.nav == 'open' %}{% endif %}"
-           role="navigation">
+      <nav id="primary-nav" aria-label="Primary" role="navigation"
+           class="md:block -mx-4 px-4 border-t" style="border-color: var(--color-border-forest);">
         <ul class="flex flex-col md:flex-row md:items-center md:gap-1 py-2 md:py-0 md:min-h-[44px]">
-          {# Active state: aria-current="page" + emerald underline, not color alone #}
+          {# Active state: aria-current="page" + primary background, not color alone #}
           {% url 'dashboard:home' as dashboard_url %}
           <li>
             <a href="{{ dashboard_url }}"
-               class="block md:inline-flex md:items-center md:px-3 md:py-2.5 md:text-sm md:font-medium md:border-b-2 md:border-transparent md:hover:border-emerald-600 md:hover:bg-stone-50 py-2 text-stone-700 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded
-               {% if request.resolver_match.url_name == 'home' and request.resolver_match.app_name == 'dashboard' %}md:border-emerald-700 md:text-emerald-700 md:bg-emerald-50/50 text-emerald-700 font-medium{% endif %}"
+               class="app-nav-link block py-2 md:inline-flex md:items-center
+               {% if request.resolver_match.url_name == 'home' and request.resolver_match.app_name == 'dashboard' %}is-active{% endif %}"
                {% if request.resolver_match.url_name == 'home' and request.resolver_match.app_name == 'dashboard' %}aria-current="page"{% endif %}>
               Dashboard
             </a>
           </li>
 
-          {# Clusters — link to the map page for now (no dedicated clusters list page exists yet) #}
           {% url 'dashboard:map' as map_url %}
           <li>
             <a href="{{ map_url }}"
-               class="block md:inline-flex md:items-center md:px-3 md:py-2.5 md:text-sm md:font-medium md:border-b-2 md:border-transparent md:hover:border-emerald-600 md:hover:bg-stone-50 py-2 text-stone-700 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded
-               {% if request.resolver_match.url_name == 'map' %}md:border-emerald-700 md:text-emerald-700 md:bg-emerald-50/50 text-emerald-700 font-medium{% endif %}"
+               class="app-nav-link block py-2 md:inline-flex md:items-center
+               {% if request.resolver_match.url_name == 'map' %}is-active{% endif %}"
                {% if request.resolver_match.url_name == 'map' %}aria-current="page"{% endif %}>
               Map
             </a>
@@ -135,13 +129,12 @@
           {% url 'advisories:list' as advisories_url %}
           <li>
             <a href="{{ advisories_url }}"
-               class="block md:inline-flex md:items-center md:px-3 md:py-2.5 md:text-sm md:font-medium md:border-b-2 md:border-transparent md:hover:border-emerald-600 md:hover:bg-stone-50 py-2 text-stone-700 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded
-               {% if request.resolver_match.app_name == 'advisories' %}md:border-emerald-700 md:text-emerald-700 md:bg-emerald-50/50 text-emerald-700 font-medium{% endif %}"
+               class="app-nav-link block py-2 md:inline-flex md:items-center
+               {% if request.resolver_match.app_name == 'advisories' %}is-active{% endif %}"
                {% if request.resolver_match.app_name == 'advisories' %}aria-current="page"{% endif %}>
               Advisories
-              {# Subtle count badge — only shown when there's a meaningful current count #}
               {% if nav_draft_advisory_count > 0 %}
-              <span class="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-900 border border-amber-200"
+              <span class="nav-count-badge ml-1.5"
                     aria-label="{{ nav_draft_advisory_count }} draft advisories awaiting review"
                     title="{{ nav_draft_advisory_count }} drafts awaiting review">
                 {{ nav_draft_advisory_count }}
@@ -153,12 +146,12 @@
           {% url 'tasks:list' as tasks_url %}
           <li>
             <a href="{{ tasks_url }}"
-               class="block md:inline-flex md:items-center md:px-3 md:py-2.5 md:text-sm md:font-medium md:border-b-2 md:border-transparent md:hover:border-emerald-600 md:hover:bg-stone-50 py-2 text-stone-700 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded
-               {% if request.resolver_match.app_name == 'tasks' %}md:border-emerald-700 md:text-emerald-700 md:bg-emerald-50/50 text-emerald-700 font-medium{% endif %}"
+               class="app-nav-link block py-2 md:inline-flex md:items-center
+               {% if request.resolver_match.app_name == 'tasks' %}is-active{% endif %}"
                {% if request.resolver_match.app_name == 'tasks' %}aria-current="page"{% endif %}>
               Tasks
               {% if nav_pending_task_count > 0 %}
-              <span class="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200"
+              <span class="nav-count-badge is-success ml-1.5"
                     aria-label="{{ nav_pending_task_count }} pending follow-up tasks"
                     title="{{ nav_pending_task_count }} pending tasks">
                 {{ nav_pending_task_count }}
@@ -171,8 +164,8 @@
           {% if user.is_officer %}
           <li>
             <a href="{{ data_url }}"
-               class="block md:inline-flex md:items-center md:px-3 md:py-2.5 md:text-sm md:font-medium md:border-b-2 md:border-transparent md:hover:border-emerald-600 md:hover:bg-stone-50 py-2 text-stone-700 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded
-               {% if request.resolver_match.app_name == 'integrations' %}md:border-emerald-700 md:text-emerald-700 md:bg-emerald-50/50 text-emerald-700 font-medium{% endif %}"
+               class="app-nav-link block py-2 md:inline-flex md:items-center
+               {% if request.resolver_match.app_name == 'integrations' %}is-active{% endif %}"
                {% if request.resolver_match.app_name == 'integrations' %}aria-current="page"{% endif %}>
               Data &amp; Sources
             </a>
@@ -182,8 +175,8 @@
           {% url 'audit:list' as audit_url %}
           <li>
             <a href="{{ audit_url }}"
-               class="block md:inline-flex md:items-center md:px-3 md:py-2.5 md:text-sm md:font-medium md:border-b-2 md:border-transparent md:hover:border-emerald-600 md:hover:bg-stone-50 py-2 text-stone-700 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded
-               {% if request.resolver_match.app_name == 'audit' %}md:border-emerald-700 md:text-emerald-700 md:bg-emerald-50/50 text-emerald-700 font-medium{% endif %}"
+               class="app-nav-link block py-2 md:inline-flex md:items-center
+               {% if request.resolver_match.app_name == 'audit' %}is-active{% endif %}"
                {% if request.resolver_match.app_name == 'audit' %}aria-current="page"{% endif %}>
               Audit
             </a>
@@ -198,10 +191,10 @@
     {% if messages %}
       <div class="mb-4 space-y-1" role="status" aria-live="polite">
         {% for m in messages %}
-          <div class="px-3 py-2 rounded text-sm
-                      {% if m.tags == 'error' %}bg-red-100 text-red-800 border border-red-300
-                      {% elif m.tags == 'success' %}bg-emerald-100 text-emerald-800 border border-emerald-300
-                      {% else %}bg-stone-100 text-stone-700 border border-stone-300{% endif %}">
+          <div class="px-3 py-2 rounded text-sm"
+               style="{% if m.tags == 'error' %}background-color: var(--color-danger-soft); color: var(--color-danger-text); border: 1px solid var(--color-danger-border);
+                      {% elif m.tags == 'success' %}background-color: var(--color-success-soft); color: var(--color-success-text); border: 1px solid var(--color-success-border);
+                      {% else %}background-color: var(--color-surface-muted); color: var(--color-text-secondary); border: 1px solid var(--color-border);{% endif %}">
             {{ m }}
           </div>
         {% endfor %}

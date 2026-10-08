@@ -115,98 +115,15 @@
   background: #fafaf9; /* stone-50 */
 }
 
-/* Primary CTA — strong visual emphasis, single obvious action */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  min-height: 44px;  /* WCAG 2.5.5 target size */
-  background: #047857; /* emerald-700 */
-  color: #ffffff;
-  font-weight: 600;
-  border-radius: var(--radius);
-  border: 1px solid #047857;
-  box-shadow: var(--shadow-sm);
-  transition: background-color 0.15s ease;
-}
-.btn-primary:hover { background: #065f46; }
-.btn-primary:focus-visible {
-  outline: 2px solid #047857;
-  outline-offset: 2px;
-}
+/* Primary CTA, secondary, and danger buttons are defined later in the v5
+   semantic component section using design tokens. The v2 definitions were
+   removed to avoid confusion and ensure the v5 token-based versions win. */
 
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.375rem 0.875rem;
-  min-height: 36px;
-  background: #ffffff;
-  color: #374151;
-  font-weight: 500;
-  border: 1px solid #d6d3d1;
-  border-radius: var(--radius);
-  transition: background-color 0.15s ease;
-}
-.btn-secondary:hover { background: #fafaf9; }
-.btn-secondary:focus-visible {
-  outline: 2px solid #047857;
-  outline-offset: 2px;
-}
+/* Filter chip — v5 token-based version defined later */
 
-.btn-danger {
-  background: #991b1b;
-  color: #ffffff;
-  border-color: #991b1b;
-}
-.btn-danger:hover { background: #7f1d1d; }
+/* Cluster table (desktop) — v5 token-based version defined later */
 
-/* Filter chip — active vs inactive */
-.filter-chip {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  border-radius: 9999px;
-  border: 1px solid #e7e5e4;
-  background: #ffffff;
-  color: #44403c;
-  transition: background-color 0.15s ease;
-  min-height: 28px;
-  line-height: 1.25;
-}
-.filter-chip:hover { background: #fafaf9; }
-.filter-chip:focus-visible { outline: 2px solid #047857; outline-offset: 2px; }
-.filter-chip.active {
-  background: #047857;
-  color: #ffffff;
-  border-color: #047857;
-  font-weight: 600;
-}
-
-/* Cluster table (desktop) */
-.cluster-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-.cluster-table th {
-  text-align: left;
-  padding: 0.5rem 0.75rem;
-  font-weight: 600;
-  color: #57534e;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  border-bottom: 1px solid #e7e5e4;
-  background: #fafaf9;
-}
-.cluster-table td {
-  padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid #f5f5f4;
-  vertical-align: middle;
-}
-.cluster-table tr:hover td { background: #fafaf9; }
-.cluster-table tr:focus-within td { background: #fffbeb; } /* subtle highlight when a cell in the row has focus */
-
-/* Cluster card (mobile) — used when < sm breakpoint */
+/* Cluster card (mobile) — v5 token-based version defined later */
 .cluster-card {
   background: #ffffff;
   border: 1px solid #e7e5e4;
@@ -377,4 +294,548 @@ dialog.confirm-dialog p {
 .nav-link-active {
   font-weight: 600;
   color: #047857; /* emerald-700 */
+}
+
+/* ============================================================
+   v5 SEMANTIC COMPONENT CLASSES (token-based)
+   ============================================================
+   These classes wrap the design tokens from tokens.css into reusable
+   components so templates don't hardcode colors. This is the v5
+   "agricultural operations" theme.
+   ============================================================ */
+
+/* ----- Application background ----- */
+body {
+  background-color: var(--color-background);
+  color: var(--color-text);
+}
+
+/* ----- Global header (deep forest dark bar) ----- */
+.app-header {
+  background-color: var(--color-forest);
+  color: var(--color-text-on-forest);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.app-header a, .app-header button {
+  color: var(--color-text-on-forest);
+}
+.app-header .app-name {
+  color: var(--color-text-on-forest);
+  font-weight: 600;
+}
+.app-header .app-subtitle {
+  color: var(--color-forest-muted);
+}
+
+/* ----- Primary nav (in dark forest header) ----- */
+.app-nav-link {
+  color: var(--color-forest-muted);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.app-nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-on-forest);
+}
+.app-nav-link:focus-visible {
+  outline: 2px solid var(--color-text-on-forest);
+  outline-offset: 2px;
+}
+.app-nav-link.is-active {
+  background-color: var(--color-primary);
+  color: var(--color-text-on-forest);
+  font-weight: 600;
+}
+.app-nav-link.is-active:hover {
+  background-color: var(--color-primary-hover);
+}
+
+/* ----- Count badge (subtle, in nav) ----- */
+.nav-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  background-color: var(--color-draft-soft);
+  color: var(--color-draft-text);
+  border: 1px solid var(--color-draft-border);
+}
+.nav-count-badge.is-success {
+  background-color: var(--color-success-soft);
+  color: var(--color-success-text);
+  border-color: var(--color-success-border);
+}
+
+/* ----- User menu (in dark forest header) ----- */
+.user-menu-summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--color-text-on-forest);
+  transition: background-color 0.15s ease;
+}
+.user-menu-summary:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+.user-menu-summary:focus-visible {
+  outline: 2px solid var(--color-text-on-forest);
+  outline-offset: 2px;
+}
+.user-menu-summary::-webkit-details-marker { display: none; }
+details#user-menu[open] > .user-menu-summary {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+.user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  color: var(--color-text-on-forest);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.user-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.25rem;
+  min-width: 12rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 40;
+  padding: 0.25rem 0;
+}
+.user-menu-dropdown a, .user-menu-dropdown button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.user-menu-dropdown a:hover, .user-menu-dropdown button:hover {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+/* ----- Surfaces ----- */
+.surface { background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); }
+.surface-muted { background-color: var(--color-surface-muted); border: 1px solid var(--color-border); border-radius: var(--radius); }
+.surface-warm { background-color: var(--color-surface-warm); border: 1px solid var(--color-sand-border); border-radius: var(--radius); }
+.surface-attention { background-color: var(--color-sage-soft); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; }
+.surface-weather { background-color: var(--color-sky-soft); border: 1px solid var(--color-info-border); border-radius: var(--radius); }
+.surface-guidance { background-color: var(--color-sage); border: 1px solid var(--color-success-border); border-radius: var(--radius); }
+
+/* ----- Attention card (Needs your attention) ----- */
+.attention-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.875rem 1rem;
+  box-shadow: var(--shadow-xs);
+}
+.attention-card.has-attention {
+  border-left: 3px solid var(--color-draft);
+}
+.attention-card.has-field-visit {
+  border-left: 3px solid var(--color-info);
+}
+.attention-card.has-tasks {
+  border-left: 3px solid var(--color-draft);
+}
+.attention-card.is-empty {
+  border-left: 3px solid var(--color-border-strong);
+  background-color: var(--color-surface-muted);
+}
+.attention-card .attention-count {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-forest);
+  line-height: 1.2;
+}
+.attention-card.is-empty .attention-count {
+  color: var(--color-text-muted);
+}
+.attention-card .attention-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.attention-card .attention-summary {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.5rem;
+}
+
+/* ----- Status badges (semantic, with text label + icon — never color alone) ----- */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.status-pill::before {
+  content: "";
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  flex-shrink: 0;
+}
+.status-pill.status-draft {
+  background-color: var(--color-draft-soft);
+  color: var(--color-draft-text);
+  border-color: var(--color-draft-border);
+}
+.status-pill.status-approved {
+  background-color: var(--color-success-soft);
+  color: var(--color-success-text);
+  border-color: var(--color-success-border);
+}
+.status-pill.status-field-verification {
+  background-color: var(--color-info-soft);
+  color: var(--color-info-text);
+  border-color: var(--color-info-border);
+}
+.status-pill.status-rejected {
+  background-color: var(--color-danger-soft);
+  color: var(--color-danger-text);
+  border-color: var(--color-danger-border);
+}
+.status-pill.status-deferred {
+  background-color: var(--color-neutral-soft);
+  color: var(--color-neutral-text);
+  border-color: var(--color-neutral-border);
+}
+.status-pill.status-neutral {
+  background-color: var(--color-neutral-soft);
+  color: var(--color-neutral-text);
+  border-color: var(--color-neutral-border);
+}
+/* Override the ::before dot for statuses that have an icon glyph */
+.status-pill.with-icon::before { content: none; }
+.status-pill.with-icon .status-icon { display: inline-flex; }
+
+/* ----- Workflow badge (AI draft vs Human-approved) ----- */
+.workflow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.workflow-pill.workflow-ai-draft {
+  background-color: #FFF7ED;
+  color: #9A3412;
+  border: 1px dashed #FED7AA;
+}
+.workflow-pill.workflow-human-approved {
+  background-color: var(--color-success-soft);
+  color: var(--color-success-text);
+  border: 1px solid var(--color-success-border);
+}
+.workflow-pill.workflow-reviewed {
+  background-color: var(--color-draft-soft);
+  color: var(--color-draft-text);
+  border: 1px solid var(--color-draft-border);
+}
+.workflow-pill.workflow-field-verified {
+  background-color: var(--color-info-soft);
+  color: var(--color-info-text);
+  border: 1px solid var(--color-info-border);
+}
+
+/* ----- Evidence quality label ----- */
+.evidence-quality {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.evidence-quality.strong { background-color: var(--color-success-soft); color: var(--color-success-text); border-color: var(--color-success-border); }
+.evidence-quality.moderate { background-color: var(--color-info-soft); color: var(--color-info-text); border-color: var(--color-info-border); }
+.evidence-quality.limited { background-color: var(--color-draft-soft); color: var(--color-draft-text); border-color: var(--color-draft-border); }
+.evidence-quality.insufficient { background-color: var(--color-danger-soft); color: var(--color-danger-text); border-color: var(--color-danger-border); }
+
+/* ----- Buttons ----- */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  min-height: 44px;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-primary);
+  box-shadow: var(--shadow-xs);
+  transition: background-color 0.15s ease;
+}
+.btn-primary:hover { background-color: var(--color-primary-hover); border-color: var(--color-primary-hover); }
+.btn-primary:active { background-color: var(--color-primary-active); border-color: var(--color-primary-active); }
+.btn-primary:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem 0.875rem;
+  min-height: 36px;
+  background-color: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.btn-secondary:hover { background-color: var(--color-surface-muted); color: var(--color-text); }
+.btn-secondary:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.25rem;
+  min-height: 44px;
+  background-color: var(--color-danger);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-danger);
+}
+.btn-danger:hover { background-color: #7A2222; }
+.btn-danger:focus-visible { outline: 2px solid var(--color-danger); outline-offset: 2px; }
+
+/* ----- Cluster table (desktop) ----- */
+.cluster-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.cluster-table th {
+  text-align: left;
+  padding: 0.625rem 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-surface-muted);
+}
+.cluster-table td {
+  padding: 0.75rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+  color: var(--color-text);
+}
+.cluster-table tbody tr:hover td { background-color: var(--color-primary-tint); }
+.cluster-table tbody tr:focus-within td { background-color: var(--color-primary-tint); }
+
+/* ----- Cluster card (mobile) ----- */
+.cluster-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.875rem;
+  box-shadow: var(--shadow-xs);
+}
+
+/* ----- ⋮ menu ----- */
+.ellipsis-menu { position: relative; }
+.ellipsis-menu details summary {
+  list-style: none;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+}
+.ellipsis-menu details summary::-webkit-details-marker { display: none; }
+.ellipsis-menu details summary:hover { background-color: var(--color-surface-muted); }
+.ellipsis-menu details summary:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.ellipsis-menu details[open] summary { background-color: var(--color-surface-muted); }
+.ellipsis-menu .menu-list {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.25rem;
+  min-width: 11rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 20;
+  padding: 0.25rem 0;
+}
+.ellipsis-menu .menu-list a,
+.ellipsis-menu .menu-list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.ellipsis-menu .menu-list a:hover,
+.ellipsis-menu .menu-list button:hover { background-color: var(--color-surface-muted); color: var(--color-text); }
+.ellipsis-menu .menu-list a:focus-visible,
+.ellipsis-menu .menu-list button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+
+/* ----- Audit timeline ----- */
+.audit-timeline { list-style: none; padding: 0; margin: 0; }
+.audit-timeline li {
+  position: relative;
+  padding: 0.5rem 0 0.5rem 1.5rem;
+  border-left: 2px solid var(--color-border);
+  margin-left: 0.5rem;
+}
+.audit-timeline li::before {
+  content: "";
+  position: absolute;
+  left: -0.4rem;
+  top: 0.7rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  border: 2px solid var(--color-surface);
+}
+
+/* ----- Filter chips ----- */
+.filter-chip {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  transition: background-color 0.15s ease;
+  min-height: 28px;
+  line-height: 1.25;
+}
+.filter-chip:hover { background-color: var(--color-surface-muted); }
+.filter-chip:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.filter-chip.active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ----- Empty state ----- */
+.empty-state {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+.empty-state .empty-title {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+/* ----- Activity feed result badges (semantic) ----- */
+.activity-result {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.0625rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+}
+.activity-result.result-approved,
+.activity-result.result-completed,
+.activity-result.result-verified,
+.activity-result.result-restored,
+.activity-result.result-finished {
+  background-color: var(--color-success-soft);
+  color: var(--color-success-text);
+  border-color: var(--color-success-border);
+}
+.activity-result.result-rejected,
+.activity-result.result-deleted,
+.activity-result.result-failed {
+  background-color: var(--color-danger-soft);
+  color: var(--color-danger-text);
+  border-color: var(--color-danger-border);
+}
+.activity-result.result-edited,
+.activity-result.result-ingested,
+.activity-result.result-created,
+.activity-result.result-started,
+.activity-result.result-session {
+  background-color: var(--color-neutral-soft);
+  color: var(--color-neutral-text);
+  border-color: var(--color-neutral-border);
+}
+
+/* ----- Page header ----- */
+.page-header h1 {
+  color: var(--color-text);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.page-header .page-subtitle {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+.page-header .page-status {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
 }
