@@ -350,3 +350,31 @@ dialog.confirm-dialog p {
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* ===== Application shell: global header, nav, user menu ===== */
+
+/* User menu dropdown (uses <details> for keyboard accessibility) */
+#user-menu > summary {
+  list-style: none;
+}
+#user-menu > summary::-webkit-details-marker {
+  display: none;
+}
+#user-menu[open] > summary {
+  background: #f5f5f4; /* stone-100 */
+}
+/* Click-outside-to-close behavior for the user menu (progressive enhancement) */
+/* Note: native <details> toggles on click of summary; this script-less
+   behavior is accessible. JS below enhances click-outside-to-close. */
+
+/* Mobile nav toggle: hide the toggle on desktop, show on mobile */
+@media (min-width: 768px) {
+  #nav-toggle { display: none !important; }
+  #primary-nav { display: block !important; }
+}
+
+/* Nav link focus + active state — colour + underline, not colour alone */
+.nav-link-active {
+  font-weight: 600;
+  color: #047857; /* emerald-700 */
+}

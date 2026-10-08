@@ -3,21 +3,26 @@
 {% block title %}Dashboard — Kachieng AI Agent{% endblock %}
 {% block content %}
 
-{# PAGE HEADER — Where am I? (location + last updated + refresh) #}
-<header class="mb-6">
-  <h1 class="text-2xl font-semibold text-stone-900">Kachieng Ward</h1>
-  <p class="text-sm text-stone-600 mt-1">
-    Nyatike Sub-County · Migori County · Kenya
-  </p>
-  <p class="text-xs text-stone-500 mt-2 flex items-center gap-3">
+{# Page header: Dashboard h1 + location + Updated HH:MM + Refresh #}
+<header class="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-semibold text-stone-900">Dashboard</h1>
+    <p class="text-sm text-stone-600 mt-1">
+      Kachieng Ward
+      <span class="text-stone-400 mx-1" aria-hidden="true">·</span>
+      Nyatike Sub-County · Migori County
+    </p>
+  </div>
+  <div class="text-sm text-stone-500 flex items-center gap-3">
     <span>
-      Last updated: <time datetime="{{ last_updated|date:'c' }}">{{ last_updated|date:"Y-m-d H:i" }}</time>
+      Updated <time datetime="{{ last_updated|date:'c' }}" title="Last updated {{ last_updated|date:'Y-m-d H:i' }}">{{ last_updated|date:"H:i" }}</time>
     </span>
     <a href="{% url 'dashboard:home' %}"
-       class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+       class="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-800 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
+       aria-label="Refresh dashboard data">
       ↻ Refresh
     </a>
-  </p>
+  </div>
 </header>
 
 {# NEEDS YOUR ATTENTION — What requires my action? (summary + action links) #}

@@ -1,13 +1,24 @@
 {% extends "base.html" %}
 {% block title %}Advisories — Kachieng AI Agent{% endblock %}
 {% block content %}
-<div class="bg-white p-4 rounded shadow border border-stone-200">
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-    <h1 class="text-lg font-semibold">Advisories — Kachieng Ward</h1>
-    {% if user_can_request_advisory %}
-    <a href="{% url 'advisories:request' %}" class="bg-emerald-700 text-white px-3 py-2 rounded text-sm hover:bg-emerald-800 text-center min-h-[44px] flex items-center justify-center">Request advisory</a>
-    {% endif %}
+{# Page header: Advisories h1 + Kachieng Ward · N advisories #}
+<header class="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-semibold text-stone-900">Advisories</h1>
+    <p class="text-sm text-stone-600 mt-1">
+      Kachieng Ward
+      <span class="text-stone-400 mx-1" aria-hidden="true">·</span>
+      {{ advisory_count|default:"" }}{% if advisory_count %} advisories{% else %}Climate-smart advisories{% endif %}
+    </p>
   </div>
+  {% if user_can_request_advisory %}
+  <a href="{% url 'advisories:request' %}" class="inline-flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] bg-emerald-700 text-white font-semibold rounded border border-emerald-700 shadow-sm hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 whitespace-nowrap self-start">
+    + Request advisory
+  </a>
+  {% endif %}
+</header>
+
+<div class="bg-white p-4 rounded shadow border border-stone-200">
   <table class="w-full text-sm">
     <caption class="sr-only">All advisories</caption>
     <thead class="bg-stone-100">

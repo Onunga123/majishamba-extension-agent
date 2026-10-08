@@ -30,6 +30,14 @@ class AdvisoryListView(LoginRequiredMixin, ListView):
         # Default manager already excludes soft-deleted.
         return Advisory.objects.select_related("cluster").all()
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["advisory_count"] = Advisory.objects.count()
+        ctx["user_can_request_advisory"] = bool(
+            self.request.user.is_authenticated and self.request.user.is_officer()
+        )
+        return ctx
+
 
 class AdvisoryDetailView(LoginRequiredMixin, DetailView):
     model = Advisory

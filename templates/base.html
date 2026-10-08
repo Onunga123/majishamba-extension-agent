@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Kachieng AI Agent — Nyatike Extension Office{% endblock %}</title>
+  <title>{% block title %}Kachieng AI Agent{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css">
@@ -13,54 +13,188 @@
 </head>
 <body class="bg-stone-50 text-stone-800 min-h-screen flex flex-col">
   <a href="#main-content" class="skip-link">Skip to main content</a>
-  <header class="bg-emerald-800 text-white shadow" role="banner">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-      <div>
+
+  {# Global application header #}
+  <header class="bg-white border-b border-stone-200 sticky top-0 z-30" role="banner">
+    <div class="max-w-7xl mx-auto px-4">
+      {# Row 1: application identity (left) + user menu (right) #}
+      <div class="flex items-center justify-between py-3 gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          {# Mobile menu button (hidden on desktop) #}
+          <button type="button"
+                  id="nav-toggle"
+                  aria-label="Open navigation menu"
+                  aria-expanded="false"
+                  aria-controls="primary-nav"
+                  class="md:hidden inline-flex items-center justify-center w-10 h-10 text-stone-700 hover:bg-stone-100 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+
+          {# Application identity: Kachieng AI Agent / Climate-smart advisories (no geography) #}
+          {% if user.is_authenticated %}
+          <a href="{% url 'dashboard:home' %}" class="flex items-baseline gap-2 min-w-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+            <span class="font-semibold text-base text-stone-900 whitespace-nowrap">Kachieng AI Agent</span>
+            <span class="text-stone-500 text-sm hidden sm:inline">Climate-smart advisories</span>
+          </a>
+          {% else %}
+          <span class="flex items-baseline gap-2 min-w-0">
+            <span class="font-semibold text-base text-stone-900 whitespace-nowrap">Kachieng AI Agent</span>
+            <span class="text-stone-500 text-sm hidden sm:inline">Climate-smart advisories</span>
+          </span>
+          {% endif %}
+        </div>
+
+        {# Right side: anonymous (Sign in / Create account) OR authenticated (user menu) #}
         {% if user.is_authenticated %}
-        <a href="{% url 'dashboard:home' %}" class="font-bold text-lg tracking-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
-          Kachieng AI Agent <span class="text-emerald-200">/ Climate-smart advisories</span>
-        </a>
+        <div class="flex items-center gap-1">
+          {# User menu (details-based dropdown for keyboard accessibility) #}
+          <details class="relative" id="user-menu">
+            <summary class="list-none flex items-center gap-2 px-2 py-1.5 rounded hover:bg-stone-100 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                     aria-label="Open user menu for {{ user.display_name }}"
+                     role="button"
+                     aria-haspopup="menu"
+                     aria-expanded="false">
+              {# Avatar circle with initials #}
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-700 text-white text-xs font-semibold"
+                    aria-hidden="true">
+                {{ user.display_name|slice:":1"|title }}
+              </span>
+              {# Name + role (hidden on narrow screens, replaced by avatar only) #}
+              <span class="hidden sm:flex sm:flex-col sm:items-start sm:leading-tight">
+                <span class="text-sm font-medium text-stone-900">{{ user.display_name }}</span>
+                <span class="text-xs text-stone-500">{{ user.get_role_display }} ▾</span>
+              </span>
+              <span class="sm:hidden text-stone-500" aria-hidden="true">▾</span>
+            </summary>
+            {# Dropdown menu #}
+            <div class="absolute right-0 top-full mt-1 min-w-[12rem] bg-white border border-stone-200 rounded shadow-lg z-40 py-1"
+                 role="menu"
+                 aria-label="User menu">
+              <div class="px-3 py-2 border-b border-stone-100 sm:hidden">
+                <div class="text-sm font-medium text-stone-900">{{ user.display_name }}</div>
+                <div class="text-xs text-stone-500">{{ user.get_role_display }}</div>
+              </div>
+              <a href="{% url 'accounts:profile' %}" role="menuitem"
+                 class="block w-full text-left px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-700">
+                Profile
+              </a>
+              {% if user.is_staff %}
+              <a href="{% url 'agents:graph' %}" role="menuitem"
+                 class="block w-full text-left px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-700">
+                Agent graph <span class="text-xs text-stone-400">(staff only)</span>
+              </a>
+              {% endif %}
+              <div class="border-t border-stone-100 my-1"></div>
+              {# Logout is a secondary account action — present but not visually prominent #}
+              <form method="post" action="{% url 'accounts:logout' %}" class="block">
+                {% csrf_token %}
+                <button type="submit" role="menuitem"
+                        class="block w-full text-left px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-700">
+                  Logout
+                </button>
+              </form>
+            </div>
+          </details>
+        </div>
         {% else %}
-        <span class="font-bold text-lg tracking-tight">
-          Kachieng AI Agent <span class="text-emerald-200">/ Climate-smart advisories</span>
-        </span>
+        <nav class="text-sm flex items-center gap-3" aria-label="Account">
+          <a href="{% url 'accounts:login' %}" class="text-stone-700 hover:text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Sign in</a>
+          <a href="{% url 'accounts:register' %}" class="text-stone-700 hover:text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Create account</a>
+        </nav>
         {% endif %}
-        <span class="block text-emerald-200 text-xs mt-0.5">
-          Kachieng Ward · Nyatike Sub-County · Migori County, Kenya
-        </span>
       </div>
+
+      {# Row 2: primary navigation (horizontal). Hidden on mobile by default; toggled by menu button. #}
       {% if user.is_authenticated %}
-      <nav class="flex flex-wrap gap-x-3 gap-y-1 text-sm" aria-label="Main">
-        <a href="{% url 'dashboard:home' %}" class="hover:underline py-1">Dashboard</a>
-        <a href="{% url 'dashboard:map' %}" class="hover:underline py-1">Map</a>
-        <a href="{% url 'advisories:list' %}" class="hover:underline py-1">Advisories{% if nav_draft_advisory_count %} <span class="bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-1">{{ nav_draft_advisory_count }}</span>{% endif %}</a>
-        {% if user.can_approve %}
-          <a href="{% url 'advisories:deleted' %}" class="hover:underline py-1">Deleted</a>
-          <a href="{% url 'accounts:review' %}" class="hover:underline py-1">Review</a>
-        {% endif %}
-        <a href="{% url 'tasks:list' %}" class="hover:underline py-1">Tasks{% if nav_pending_task_count %} <span class="bg-emerald-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-1">{{ nav_pending_task_count }}</span>{% endif %}</a>
-        <a href="{% url 'audit:list' %}" class="hover:underline py-1">Audit</a>
-        {% if user.is_officer %}
-          <a href="{% url 'integrations:index' %}" class="hover:underline py-1">Data</a>
-        {% endif %}
-        <span class="text-emerald-200 hidden sm:inline">|</span>
-        <span class="text-emerald-100 py-1">{{ user.display_name }} ({{ user.get_role_display }})</span>
-        <form method="post" action="{% url 'accounts:logout' %}" class="inline">
-          {% csrf_token %}
-          <button type="submit" class="hover:underline py-1 text-emerald-100 hover:text-white">Logout</button>
-        </form>
-      </nav>
-      {% else %}
-      <nav class="text-sm">
-        <a href="{% url 'accounts:login' %}" class="text-white hover:underline">Sign in</a>
-        <span class="text-emerald-200 mx-1">·</span>
-        <a href="{% url 'accounts:register' %}" class="text-white hover:underline">Create account</a>
+      <nav id="primary-nav" aria-label="Primary"
+           class="border-t border-stone-100 -mx-4 px-4 md:block{% if request.GET.nav == 'open' %}{% endif %}"
+           role="navigation">
+        <ul class="flex flex-col md:flex-row md:items-center md:gap-1 py-2 md:py-0 md:min-h-[44px]">
+          {# Active state: aria-current="page" + emerald underline, not color alone #}
+          {% url 'dashboard:home' as dashboard_url %}
+          <li>
+            <a href="{{ dashboard_url }}"
+               class="block md:inline-flex md:items-center md:px-3 md:py-2.5 md:text-sm md:font-medium md:border-b-2 md:border-transparent md:hover:border-emerald-600 md:hover:bg-stone-50 py-2 text-stone-700 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded
+               {% if request.resolver_match.url_name == 'home' and request.resolver_match.app_name == 'dashboard' %}md:border-emerald-700 md:text-emerald-700 md:bg-emerald-50/50 text-emerald-700 font-medium{% endif %}"
+               {% if request.resolver_match.url_name == 'home' and request.resolver_match.app_name == 'dashboard' %}aria-current="page"{% endif %}>
+              Dashboard
+            </a>
+          </li>
+
+          {# Clusters — link to the map page for now (no dedicated clusters list page exists yet) #}
+          {% url 'dashboard:map' as map_url %}
+          <li>
+            <a href="{{ map_url }}"
+               class="block md:inline-flex md:items-center md:px-3 md:py-2.5 md:text-sm md:font-medium md:border-b-2 md:border-transparent md:hover:border-emerald-600 md:hover:bg-stone-50 py-2 text-stone-700 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded
+               {% if request.resolver_match.url_name == 'map' %}md:border-emerald-700 md:text-emerald-700 md:bg-emerald-50/50 text-emerald-700 font-medium{% endif %}"
+               {% if request.resolver_match.url_name == 'map' %}aria-current="page"{% endif %}>
+              Map
+            </a>
+          </li>
+
+          {% url 'advisories:list' as advisories_url %}
+          <li>
+            <a href="{{ advisories_url }}"
+               class="block md:inline-flex md:items-center md:px-3 md:py-2.5 md:text-sm md:font-medium md:border-b-2 md:border-transparent md:hover:border-emerald-600 md:hover:bg-stone-50 py-2 text-stone-700 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded
+               {% if request.resolver_match.app_name == 'advisories' %}md:border-emerald-700 md:text-emerald-700 md:bg-emerald-50/50 text-emerald-700 font-medium{% endif %}"
+               {% if request.resolver_match.app_name == 'advisories' %}aria-current="page"{% endif %}>
+              Advisories
+              {# Subtle count badge — only shown when there's a meaningful current count #}
+              {% if nav_draft_advisory_count > 0 %}
+              <span class="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-900 border border-amber-200"
+                    aria-label="{{ nav_draft_advisory_count }} draft advisories awaiting review"
+                    title="{{ nav_draft_advisory_count }} drafts awaiting review">
+                {{ nav_draft_advisory_count }}
+              </span>
+              {% endif %}
+            </a>
+          </li>
+
+          {% url 'tasks:list' as tasks_url %}
+          <li>
+            <a href="{{ tasks_url }}"
+               class="block md:inline-flex md:items-center md:px-3 md:py-2.5 md:text-sm md:font-medium md:border-b-2 md:border-transparent md:hover:border-emerald-600 md:hover:bg-stone-50 py-2 text-stone-700 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded
+               {% if request.resolver_match.app_name == 'tasks' %}md:border-emerald-700 md:text-emerald-700 md:bg-emerald-50/50 text-emerald-700 font-medium{% endif %}"
+               {% if request.resolver_match.app_name == 'tasks' %}aria-current="page"{% endif %}>
+              Tasks
+              {% if nav_pending_task_count > 0 %}
+              <span class="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200"
+                    aria-label="{{ nav_pending_task_count }} pending follow-up tasks"
+                    title="{{ nav_pending_task_count }} pending tasks">
+                {{ nav_pending_task_count }}
+              </span>
+              {% endif %}
+            </a>
+          </li>
+
+          {% url 'integrations:index' as data_url %}
+          {% if user.is_officer %}
+          <li>
+            <a href="{{ data_url }}"
+               class="block md:inline-flex md:items-center md:px-3 md:py-2.5 md:text-sm md:font-medium md:border-b-2 md:border-transparent md:hover:border-emerald-600 md:hover:bg-stone-50 py-2 text-stone-700 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded
+               {% if request.resolver_match.app_name == 'integrations' %}md:border-emerald-700 md:text-emerald-700 md:bg-emerald-50/50 text-emerald-700 font-medium{% endif %}"
+               {% if request.resolver_match.app_name == 'integrations' %}aria-current="page"{% endif %}>
+              Data &amp; Sources
+            </a>
+          </li>
+          {% endif %}
+
+          {% url 'audit:list' as audit_url %}
+          <li>
+            <a href="{{ audit_url }}"
+               class="block md:inline-flex md:items-center md:px-3 md:py-2.5 md:text-sm md:font-medium md:border-b-2 md:border-transparent md:hover:border-emerald-600 md:hover:bg-stone-50 py-2 text-stone-700 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded
+               {% if request.resolver_match.app_name == 'audit' %}md:border-emerald-700 md:text-emerald-700 md:bg-emerald-50/50 text-emerald-700 font-medium{% endif %}"
+               {% if request.resolver_match.app_name == 'audit' %}aria-current="page"{% endif %}>
+              Audit
+            </a>
+          </li>
+        </ul>
       </nav>
       {% endif %}
     </div>
   </header>
 
-  <main id="main-content" class="flex-1 max-w-7xl w-full mx-auto px-4 py-6" role="main">
+  <main id="main-content" class="flex-1 max-w-7xl w-full mx-auto px-4 py-6" role="main" tabindex="-1">
     {% if messages %}
       <div class="mb-4 space-y-1" role="status" aria-live="polite">
         {% for m in messages %}
@@ -87,5 +221,29 @@
       </span>
     </div>
   </footer>
+
+  {# Mobile nav toggle script (progressive enhancement — no JS = nav just stays open on mobile) #}
+  <script>
+    (function() {
+      var toggle = document.getElementById('nav-toggle');
+      var nav = document.getElementById('primary-nav');
+      if (!toggle || !nav) return;
+      // Hide nav on mobile by default (collapsible)
+      function applyMobileState() {
+        if (window.innerWidth < 768) {
+          nav.style.display = toggle.getAttribute('aria-expanded') === 'true' ? 'block' : 'none';
+        } else {
+          nav.style.display = '';
+        }
+      }
+      toggle.addEventListener('click', function() {
+        var expanded = toggle.getAttribute('aria-expanded') === 'true';
+        toggle.setAttribute('aria-expanded', String(!expanded));
+        applyMobileState();
+      });
+      window.addEventListener('resize', applyMobileState);
+      applyMobileState();
+    })();
+  </script>
 </body>
 </html>

@@ -1,8 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Data ingestion — Kachieng AI Agent{% endblock %}
+{% block title %}Data &amp; Sources — Kachieng AI Agent{% endblock %}
 {% block content %}
+{# Page header: Data & Sources h1 + Weather, pest, agronomic and system sources #}
+<header class="mb-6">
+  <h1 class="text-2xl font-semibold text-stone-900">Data &amp; Sources</h1>
+  <p class="text-sm text-stone-600 mt-1">Weather, pest, agronomic and system sources</p>
+</header>
+
 <div class="max-w-2xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
-  <h1 class="text-lg font-semibold mb-3">Data ingestion — officer-supplied</h1>
   <p class="text-sm text-stone-600 mb-4">
     The system does not auto-fetch from KMD, KALRO, or KEPHIS (no public APIs exist).
     As an authorized extension officer, you manually read the official publication,

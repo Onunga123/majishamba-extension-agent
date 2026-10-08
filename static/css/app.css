@@ -34,3 +34,6 @@
 @media print {
   header, footer, nav, .no-print { display: none !important; }
 }
+
+/* User menu enhancement: click-outside-to-close */
+/* (no styles — just a hook for the JS) */

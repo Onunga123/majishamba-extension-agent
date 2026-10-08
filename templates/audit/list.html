@@ -1,11 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Audit trail — Kachieng AI Agent{% endblock %}
+{% block title %}Audit — Kachieng AI Agent{% endblock %}
 {% block content %}
-<div class="bg-white p-4 rounded shadow border border-stone-200">
-  <div class="flex items-center justify-between mb-3">
-    <h1 class="text-lg font-semibold">Audit trail</h1>
-    <a href="{% url 'audit:export_csv' %}" class="bg-stone-700 text-white px-3 py-1 rounded text-sm hover:bg-stone-800">⬇ Export CSV</a>
+{# Page header: Audit h1 + System activity and accountability records #}
+<header class="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-semibold text-stone-900">Audit</h1>
+    <p class="text-sm text-stone-600 mt-1">System activity and accountability records</p>
   </div>
+  <a href="{% url 'audit:export_csv' %}" class="inline-flex items-center justify-center px-3 py-2 min-h-[36px] text-sm bg-stone-700 text-white rounded hover:bg-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 self-start">
+    ⬇ Export CSV
+  </a>
+</header>
+
+<div class="bg-white p-4 rounded shadow border border-stone-200">
   <table class="w-full text-sm">
     <thead class="bg-stone-100">
       <tr>
