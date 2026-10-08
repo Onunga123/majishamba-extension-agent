@@ -116,3 +116,15 @@ class AdvisoryFactory(factory.django.DjangoModelFactory):
     body = "Body text long enough to be substantive for schema validation. " * 4
     confidence = "medium"
     generation_mode = "fallback_template"
+
+
+class AdvisoryEvidenceFactory(factory.django.DjangoModelFactory):
+    """Factory for AdvisoryEvidence rows used in evidence-quality tests."""
+    class Meta:
+        model = AdvisoryEvidence
+
+    advisory = factory.SubFactory(AdvisoryFactory)
+    source_type = "weather"
+    source_ref = "WeatherSignal#test"
+    claim = "Test evidence claim — supports the advisory's recommendation."
+    is_stale = False

@@ -1,0 +1,352 @@
+/* Kachieng AI Agent — dashboard design system.
+ *
+ * Visual system: clean, calm, professional, government/agricultural.
+ * Palette (WCAG 2.2 AA against white / stone-50 backgrounds):
+ *   Deep green       #166534  (primary, text-on-light)
+ *   Earth/soil brown  #78350f  (secondary, supportive)
+ *   Sky blue          #0369a1  (informational, forecast)
+ *   Accessible amber  #92400e  (caution, draft, attention)
+ *   Accessible red    #991b1b  (danger, rejected, overdue)
+ *   Success green     #166534  (approved)
+ *
+ * Status badges combine colour + a label + an icon glyph so that colour
+ * is never the only signal (WCAG 1.4.1 Use of Color).
+ */
+
+/* ---------- Spacing scale ---------- */
+:root {
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --radius: 0.375rem;
+  --border: 1px solid #e7e5e4; /* stone-200 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+}
+
+/* ---------- Status badges: colour + label + icon glyph ---------- */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.status-badge::before {
+  content: "";
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: currentColor;
+  margin-right: 0.1rem;
+}
+
+.status-draft     { background: #fef3c7; color: #92400e; border-color: #fde68a; } /* amber-100/700/200 */
+.status-approved  { background: #d1fae5; color: #166534; border-color: #6ee7b7; } /* emerald-100/700/200 */
+.status-rejected  { background: #fee2e2; color: #991b1b; border-color: #fca5a5; } /* red-100/700/200 */
+.status-deferred  { background: #f3f4f6; color: #374151; border-color: #d1d5db; } /* gray-100/700/200 */
+.status-needs     { background: #fef3c7; color: #92400e; border-color: #fde68a; } /* amber for needs-evidence */
+.status-overdue   { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+
+/* Workflow badge — distinguishes AI-generated vs human-reviewed */
+.workflow-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px dashed transparent;
+  text-transform: uppercase;
+}
+.workflow-ai-draft {
+  background: #fff7ed;  /* orange-50 */
+  color: #9a3412;
+  border-color: #fed7aa;
+  border-style: dashed;
+}
+.workflow-human-approved {
+  background: #f0fdf4;  /* green-50 */
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+/* Evidence quality label — Strong / Moderate / Limited / Insufficient */
+.evidence-quality {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.evidence-strong       { background: #d1fae5; color: #166534; border-color: #6ee7b7; }
+.evidence-moderate     { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+.evidence-limited      { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+.evidence-insufficient { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+
+/* Attention card — used in "Needs your attention" section */
+.attention-card {
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+.attention-card.has-items {
+  border-left: 3px solid #92400e; /* amber-800 — signals "needs action" */
+}
+.attention-card.empty {
+  border-left: 3px solid #d1d5db;
+  background: #fafaf9; /* stone-50 */
+}
+
+/* Primary CTA — strong visual emphasis, single obvious action */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  min-height: 44px;  /* WCAG 2.5.5 target size */
+  background: #047857; /* emerald-700 */
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: var(--radius);
+  border: 1px solid #047857;
+  box-shadow: var(--shadow-sm);
+  transition: background-color 0.15s ease;
+}
+.btn-primary:hover { background: #065f46; }
+.btn-primary:focus-visible {
+  outline: 2px solid #047857;
+  outline-offset: 2px;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem 0.875rem;
+  min-height: 36px;
+  background: #ffffff;
+  color: #374151;
+  font-weight: 500;
+  border: 1px solid #d6d3d1;
+  border-radius: var(--radius);
+  transition: background-color 0.15s ease;
+}
+.btn-secondary:hover { background: #fafaf9; }
+.btn-secondary:focus-visible {
+  outline: 2px solid #047857;
+  outline-offset: 2px;
+}
+
+.btn-danger {
+  background: #991b1b;
+  color: #ffffff;
+  border-color: #991b1b;
+}
+.btn-danger:hover { background: #7f1d1d; }
+
+/* Filter chip — active vs inactive */
+.filter-chip {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid #e7e5e4;
+  background: #ffffff;
+  color: #44403c;
+  transition: background-color 0.15s ease;
+  min-height: 28px;
+  line-height: 1.25;
+}
+.filter-chip:hover { background: #fafaf9; }
+.filter-chip:focus-visible { outline: 2px solid #047857; outline-offset: 2px; }
+.filter-chip.active {
+  background: #047857;
+  color: #ffffff;
+  border-color: #047857;
+  font-weight: 600;
+}
+
+/* Cluster table (desktop) */
+.cluster-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.cluster-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+  color: #57534e;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #e7e5e4;
+  background: #fafaf9;
+}
+.cluster-table td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid #f5f5f4;
+  vertical-align: middle;
+}
+.cluster-table tr:hover td { background: #fafaf9; }
+.cluster-table tr:focus-within td { background: #fffbeb; } /* subtle highlight when a cell in the row has focus */
+
+/* Cluster card (mobile) — used when < sm breakpoint */
+.cluster-card {
+  background: #ffffff;
+  border: 1px solid #e7e5e4;
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-sm);
+}
+.cluster-card + .cluster-card { margin-top: 0.5rem; }
+
+/* ⋮ menu (secondary actions) */
+.ellipsis-menu { position: relative; }
+.ellipsis-menu details summary {
+  list-style: none;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  color: #57534e;
+}
+.ellipsis-menu details summary::-webkit-details-marker { display: none; }
+.ellipsis-menu details summary:hover { background: #f5f5f4; }
+.ellipsis-menu details summary:focus-visible {
+  outline: 2px solid #047857;
+  outline-offset: 2px;
+}
+.ellipsis-menu details[open] summary { background: #f5f5f4; }
+.ellipsis-menu .menu-list {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.25rem;
+  min-width: 11rem;
+  background: #ffffff;
+  border: 1px solid #e7e5e4;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 20;
+  padding: 0.25rem 0;
+}
+.ellipsis-menu .menu-list a,
+.ellipsis-menu .menu-list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: #374151;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.ellipsis-menu .menu-list a:hover,
+.ellipsis-menu .menu-list button:hover { background: #f5f5f4; }
+.ellipsis-menu .menu-list a:focus-visible,
+.ellipsis-menu .menu-list button:focus-visible {
+  outline: 2px solid #047857;
+  outline-offset: -2px;
+}
+
+/* Audit timeline */
+.audit-timeline { list-style: none; padding: 0; margin: 0; }
+.audit-timeline li {
+  position: relative;
+  padding: 0.5rem 0 0.5rem 1.5rem;
+  border-left: 2px solid #e7e5e4;
+  margin-left: 0.5rem;
+}
+.audit-timeline li::before {
+  content: "";
+  position: absolute;
+  left: -0.4rem;
+  top: 0.7rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: #047857;
+  border: 2px solid #ffffff;
+}
+
+/* Confirmation dialog pattern — uses <dialog> for accessibility */
+dialog.confirm-dialog {
+  border: 1px solid #e7e5e4;
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  max-width: 28rem;
+  width: calc(100% - 2rem);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+dialog.confirm-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+dialog.confirm-dialog h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1c1917;
+  margin-bottom: 0.5rem;
+}
+dialog.confirm-dialog p {
+  font-size: 0.875rem;
+  color: #44403c;
+  margin-bottom: 1rem;
+}
+
+/* Empty state — friendly message + helpful next step */
+.empty-state {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  color: #78716c;
+  font-size: 0.875rem;
+}
+.empty-state .empty-title {
+  font-weight: 600;
+  color: #44403c;
+  margin-bottom: 0.25rem;
+}
+
+/* Touch targets — minimum 44x44 px (WCAG 2.5.5) */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Responsive helpers — hide on mobile, show on desktop, and vice-versa */
+.hide-on-mobile { display: none; }
+@media (min-width: 768px) {
+  .hide-on-mobile { display: revert; }
+  .show-on-mobile-only { display: none; }
+}
+.show-on-mobile-only { display: revert; }
+@media (min-width: 768px) {
+  .show-on-mobile-only { display: none; }
+}
+
+/* Reduced motion — respect user preference */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

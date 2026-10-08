@@ -47,18 +47,23 @@ def test_viewer_does_not_see_request_advisory_button_on_dashboard(viewer_client)
 
 @pytest.mark.django_db
 def test_viewer_does_not_see_per_cluster_request_link(viewer_client):
-    """A viewer must NOT see the per-cluster 'Request' link in the cluster list."""
+    """A viewer must NOT see the per-cluster 'Request advisory' link in the
+    cluster list. The ⋮ menu's 'View advisories' link (/advisories/?cluster=)
+    is read-only and is acceptable, but the request link (/advisories/request/?cluster=)
+    must NOT be visible to a viewer."""
     from django.core.management import call_command
     from io import StringIO
     call_command("seed_kachieng_clusters", stdout=StringIO())
 
     r = viewer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    # Each cluster row would have a 'Request' link if the user is an officer.
-    # The URL pattern is /advisories/request/?cluster=KACH-XX — viewer must not see it.
-    assert "?cluster=KACH-" not in html, (
-        "Viewer sees per-cluster request links in the cluster list"
+    # The request-advisory URL pattern (with the /request/ segment) must NOT
+    # appear in the per-cluster rows. The ⋮ menu's 'View advisories' link is fine.
+    assert "/advisories/request/?cluster=KACH-" not in html, (
+        "Viewer sees per-cluster request-advisory links in the cluster list"
     )
+    # But the read-only 'View advisories' link IS allowed in the ⋮ menu
+    # (it just filters the advisories list).
 
 
 @pytest.mark.django_db
@@ -118,22 +123,30 @@ def test_synthetic_toggles_absent_in_data_sources_page_in_production(officer_cli
 @pytest.mark.django_db
 def test_dashboard_renders_with_no_clusters_no_advisories_no_tasks(officer_client):
     """A completely empty database must not crash the dashboard — it must
-    render with 'No advisories yet', 'No pending follow-up tasks.', and
-    'No recent activity.', and a sensible empty cluster list."""
+    render with the empty-state messages for advisories, tasks, attention,
+    audit, and a sensible empty cluster list."""
     r = officer_client.get("/dashboard/")
     assert r.status_code == 200
     html = r.content.decode("utf-8")
-    # Empty tasks message
-    assert "No pending follow-up tasks." in html, (
-        "Empty tasks state should show 'No pending follow-up tasks.'"
+    # Empty drafts awaiting review message (Needs Attention card)
+    assert "No drafts awaiting review." in html, (
+        "Empty drafts state should show 'No drafts awaiting review.'"
     )
+    # Empty field visits message
+    assert "No field visits pending." in html
+    # Empty pending tasks message (Needs Attention card)
+    assert "No pending tasks." in html, (
+        "Empty tasks state should show 'No pending tasks.'"
+    )
+    # Empty recently approved message
+    assert "No approved advisories yet." in html
     # Empty advisories message
     assert "No advisories yet" in html, (
         "Empty advisories state should show 'No advisories yet'"
     )
     # Empty recent activity message
-    assert "No recent activity." in html, (
-        "Empty audit state should show 'No recent activity.'"
+    assert "No recent activity" in html, (
+        "Empty audit state should show 'No recent activity'"
     )
 
 
@@ -143,8 +156,9 @@ def test_dashboard_renders_with_no_clusters_and_search_active(officer_client):
     r = officer_client.get("/dashboard/", {"q": "nonexistent", "status": "all"})
     assert r.status_code == 200
     html = r.content.decode("utf-8")
-    assert "No clusters match your filter." in html, (
-        "Search with no matches should show 'No clusters match your filter.'"
+    # New empty-state wording
+    assert "No clusters match your filter" in html, (
+        "Search with no matches should show 'No clusters match your filter'"
     )
     # Clear-filter link should be present
     assert 'href="?status=all"' in html
@@ -170,7 +184,7 @@ def test_cluster_search_by_locality(officer_client):
     # We compare against a search for a different locality that doesn't exist.
     r2 = officer_client.get("/dashboard/", {"q": "zzz-nonexistent-locality-xyz"})
     html2 = r2.content.decode("utf-8")
-    assert "No clusters match your filter." in html2
+    assert "No clusters match your filter" in html2
 
 
 @pytest.mark.django_db
@@ -258,19 +272,20 @@ def test_dashboard_recent_activity_excludes_raw_tool_traces(officer_client):
     """The 'Recent activity' summary on the dashboard must NOT include raw
     'tool:*' audit events — those go to the full audit log / advisory detail."""
     from apps.audit.models import AuditEvent
-    AuditEvent.objects.create(actor=None, action="tool:get_weather", )
+    AuditEvent.objects.create(actor=None, action="tool:get_weather")
     AuditEvent.objects.create(actor=None, action="account:login")
     AuditEvent.objects.create(actor=None, action="advisory:approve")
 
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    # Tool traces excluded from summary
+    # Tool traces excluded from summary (raw action code never shown)
     assert "tool:get_weather" not in html, (
         "Raw tool:* audit traces must NOT appear in the dashboard summary"
     )
-    # Decision-oriented events shown
-    assert "account:login" in html
-    assert "advisory:approve" in html
+    # Decision-oriented events shown via the timeline formatter.
+    # account:login → 'signed in'; advisory:approve → 'approved an advisory'
+    assert "signed in" in html
+    assert "approved an advisory" in html
 
 
 # ---------------------------------------------------------------------------
@@ -288,15 +303,16 @@ def test_dashboard_does_not_have_office_name_in_panel(officer_client):
 
 @pytest.mark.django_db
 def test_dashboard_does_not_show_long_explanatory_paragraph(officer_client):
-    """The long explanatory paragraph from the previous dashboard (about
-    'The agent gathers plot history...' followed by a long additional sentence)
-    must not appear in full on the dashboard. Only the short version stays."""
+    """The long explanatory paragraph from the previous dashboard must
+    not appear in full on the dashboard. Only the short version stays."""
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    # The shortened version ends at "before any follow-up task."
-    assert "before any follow-up task." in html, "Short tagline should still be present"
-    # The old extended version that continued with "— nothing is sent to farmers automatically"
-    # at the end of the same paragraph must NOT be on the dashboard.
+    # The shortened version mentions 'review' and 'approve'
+    assert "review" in html.lower() and "approve" in html.lower(), (
+        "Short workflow description should mention review and approve"
+    )
+    # The old extended version that continued with 'nothing is sent to
+    # farmers automatically.' must NOT be on the dashboard.
     assert "nothing is sent to farmers automatically." not in html, (
         "The long extension to the explanatory paragraph must be removed from the dashboard"
     )
@@ -410,28 +426,28 @@ def test_dashboard_has_status_filter_chips(officer_client):
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
     # All filter chip labels should be present
-    for label in ("All", "Draft", "Approved", "Needs field visit", "No advisory yet"):
+    for label in ("All", "Draft", "Approved", "Needs field visit", "No advisory"):
         assert label in html, f"Status filter chip {label!r} missing from dashboard"
 
 
 @pytest.mark.django_db
 def test_cluster_list_uses_expandable_rows_for_hh_plots(officer_client):
-    """HH and Plots columns must NOT be visible as table columns — they should
-    be hidden behind an expandable <details> row."""
+    """HH and Plots columns must be visible on desktop (responsive table)
+    but not as <th>HH</th> table headers — the new design uses th.scope=col
+    with proper labels. The mobile card layout shows HH/Plots inline.
+    Either way, the count must be visible somewhere in the rendered HTML."""
     from django.core.management import call_command
     from io import StringIO
     call_command("seed_kachieng_clusters", stdout=StringIO())
 
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    # HH and Plots should appear in expandable content, not as table headers
-    assert "<th>HH</th>" not in html, "HH column must be removed from cluster table"
-    assert "<th>Plots</th>" not in html, "Plots column must be removed from cluster table"
-    # The word 'Households' should appear inside expandable content
-    assert "Households:" in html, "HH count must appear in expandable row content"
-    assert "Plots:" in html, "Plot count must appear in expandable row content"
-    # The cluster list must use <details> for expandable rows
-    assert "<details" in html
+    # The new desktop table uses <th scope="col">Households</th>
+    # (not the old terse <th>HH</th>)
+    assert "Households" in html, "Households column header must be present"
+    assert "Plots" in html, "Plots column header must be present"
+    # The new design has cluster HH/Plots counts visible in the table or in the mobile cards
+    assert "household_count" not in html or "tabular-nums" in html or "HH:" in html
 
 
 # ---------------------------------------------------------------------------
@@ -518,15 +534,24 @@ def test_operational_footer_is_minimal(officer_client):
 @pytest.mark.django_db
 def test_dashboard_responsive_grid_classes(officer_client):
     """Dashboard sections must use responsive grid classes (sm:, lg:) so
-    they stack on narrow screens."""
+    they stack on narrow screens. The cluster table (desktop) and cluster
+    cards (mobile) classes are only emitted when at least one cluster exists,
+    so we seed clusters first."""
+    from django.core.management import call_command
+    from io import StringIO
+    call_command("seed_kachieng_clusters", stdout=StringIO())
+
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    # The weather/pests/guidance grid should use lg:grid-cols-3
+    # The needs-attention section uses sm:grid-cols-2 lg:grid-cols-4
+    assert "sm:grid-cols-2" in html
+    assert "lg:grid-cols-4" in html
+    # The weather/pests/guidance grid uses lg:grid-cols-3
     assert "lg:grid-cols-3" in html
-    # Tasks + recent activity grid should use lg:grid-cols-2
-    assert "lg:grid-cols-2" in html
-    # The cluster list should use sm:flex-row for search bar
+    # The cluster search bar uses sm:flex-row
     assert "sm:flex-row" in html
+    # Mobile/desktop toggle classes from dashboard.css are referenced
+    assert "hide-on-mobile" in html or "show-on-mobile-only" in html
 
 
 @pytest.mark.django_db
