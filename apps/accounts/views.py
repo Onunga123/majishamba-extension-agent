@@ -1,12 +1,12 @@
-"""Registration and account-approval views for Kachieng AI Agent."""
+"""Views for the accounts app — registration, login, account review."""
 from __future__ import annotations
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import views as auth_views
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django import forms
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
@@ -25,12 +25,12 @@ class RegistrationForm(forms.ModelForm):
 
     password1 = forms.CharField(
         label="Password",
-        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
         help_text="At least 10 characters. Avoid common passwords.",
     )
     password2 = forms.CharField(
         label="Confirm password",
-        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
         help_text="Enter the same password as before, for verification.",
     )
     requested_role = forms.ChoiceField(
@@ -41,10 +41,17 @@ class RegistrationForm(forms.ModelForm):
         ],
         label="Requested role",
         help_text="Your request will be reviewed by an administrator. You will not receive this role until approved.",
+        widget=forms.Select(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
     )
     organization = forms.CharField(
         max_length=160, required=False,
         help_text="Office or organization (e.g. 'Nyatike Sub-County Agricultural Office')",
+        widget=forms.TextInput(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
+    )
+    email = forms.EmailField(
+        required=False,
+        help_text="Used for account communications if email is configured.",
+        widget=forms.EmailInput(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
     )
 
     class Meta:
@@ -53,13 +60,17 @@ class RegistrationForm(forms.ModelForm):
         labels = {
             "full_name": "Full name",
             "username": "Username",
-            "email": "Email address",
             "sub_county": "Sub-county",
             "ward": "Ward",
         }
         help_texts = {
             "username": "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.",
-            "email": "Used for account communications if email is configured.",
+        }
+        widgets = {
+            "full_name": forms.TextInput(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
+            "username": forms.TextInput(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
+            "sub_county": forms.TextInput(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
+            "ward": forms.TextInput(attrs={"class": "w-full border border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
         }
 
     def clean_password2(self):
@@ -67,12 +78,14 @@ class RegistrationForm(forms.ModelForm):
         p2 = self.cleaned_data.get("password2")
         if p1 and p2 and p1 != p2:
             raise forms.ValidationError("Passwords do not match.")
+        if p1 and len(p1) < 10:
+            raise forms.ValidationError("Password must be at least 10 characters.")
         return p2
 
     def save(self, commit=True):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data["password1"])
-        user.role = User.Role.VIEWER  # Always start as viewer — never grant requested role directly
+        user.role = User.Role.VIEWER  # Always start as viewer
         user.approval_status = User.ApprovalStatus.PENDING
         user.is_staff = False
         user.is_superuser = False
@@ -103,7 +116,7 @@ class RegisterView(View):
             target=user,
             metadata={"username": user.username, "requested_role": user.requested_role},
         )
-        messages.info(request, "Your account has been created and is pending review by an administrator. You will be notified when it is approved.")
+        messages.info(request, "Your account has been created and is pending review by an administrator.")
         return redirect("accounts:registration_pending")
 
 
@@ -114,7 +127,7 @@ class RegistrationPendingView(View):
         return render(request, "accounts/registration_pending.html")
 
 
-# --- Login view (updated) ---
+# --- Login view ---
 class LoginView(auth_views.LoginView):
     template_name = "accounts/login.html"
     redirect_authenticated_user = True
@@ -122,37 +135,11 @@ class LoginView(auth_views.LoginView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        demo_mode = bool(settings.MAJISHAMBA.get("DEMO_MODE", False)) and bool(settings.DEBUG)
-        ctx["demo_mode"] = demo_mode
-        ctx["demo_accounts"] = _demo_accounts() if demo_mode else []
-        ctx["tagline"] = "Climate-smart advisories. Extension officers decide."
         return ctx
 
 
-def _demo_accounts() -> list[dict]:
-    """Discover the actual seeded demo accounts (dev only)."""
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
-    demo_usernames = ["nyatike_officer", "nyatike_supervisor", "nyatike_viewer"]
-    _ROLE_CAPABILITIES = {
-        "extension_officer": "Request advisories, review DRAFTs, approve or reject, create follow-up tasks.",
-        "supervisor": "Approve or reject advisories; spot-check the audit trail.",
-        "viewer": "Read-only access to dashboard, advisories, tasks, audit.",
-    }
-    out: list[dict] = []
-    for username in demo_usernames:
-        try:
-            user = User.objects.get(username=username)
-        except User.DoesNotExist:
-            continue
-        out.append({
-            "username": user.username,
-            "role": user.role,
-            "role_display": user.get_role_display(),
-            "full_name": user.display_name(),
-            "capabilities": _ROLE_CAPABILITIES.get(user.role, "Read-only."),
-        })
-    return out
+def profile(request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
+    return render(request, "accounts/profile.html", {"user": request.user})
 
 
 # --- Account review interface ---
@@ -161,7 +148,6 @@ class AccountReviewListView(LoginRequiredMixin, View):
 
     def get(self, request):
         if not (request.user.is_staff or request.user.can_approve()):
-            from django.core.exceptions import PermissionDenied
             raise PermissionDenied("Only supervisors can review accounts.")
         pending = User.objects.filter(approval_status=User.ApprovalStatus.PENDING).exclude(username=request.user.username)
         return render(request, "accounts/account_review.html", {"pending_accounts": pending})
@@ -172,11 +158,9 @@ class AccountApproveView(LoginRequiredMixin, View):
 
     def post(self, request, pk: int):
         if not (request.user.is_staff or request.user.can_approve()):
-            from django.core.exceptions import PermissionDenied
             raise PermissionDenied("Only supervisors can approve accounts.")
         account = get_object_or_404(User, pk=pk)
         if account.pk == request.user.pk:
-            from django.core.exceptions import PermissionDenied
             raise PermissionDenied("You cannot approve your own account.")
         if account.approval_status != User.ApprovalStatus.PENDING:
             messages.warning(request, "This account is not pending review.")
@@ -207,11 +191,9 @@ class AccountRejectView(LoginRequiredMixin, View):
 
     def post(self, request, pk: int):
         if not (request.user.is_staff or request.user.can_approve()):
-            from django.core.exceptions import PermissionDenied
             raise PermissionDenied("Only supervisors can reject accounts.")
         account = get_object_or_404(User, pk=pk)
         if account.pk == request.user.pk:
-            from django.core.exceptions import PermissionDenied
             raise PermissionDenied("You cannot reject your own account.")
         reason = request.POST.get("rejection_reason", "")
         account.approval_status = User.ApprovalStatus.REJECTED
@@ -226,7 +208,3 @@ class AccountRejectView(LoginRequiredMixin, View):
         )
         messages.warning(request, f"Account '{account.username}' rejected.")
         return redirect("accounts:review")
-
-
-def profile(request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
-    return render(request, "accounts/profile.html", {"user": request.user})

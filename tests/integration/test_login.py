@@ -7,40 +7,19 @@ from django.test import Client, override_settings
 
 
 @pytest.mark.django_db
-def test_demo_cards_appear_when_demo_mode_enabled():
-    """With DEMO_MODE=True and DEBUG=True, the login page should show demo account cards
-    IF the demo users are seeded. (The cards list real seeded users, never fake ones.)"""
+def test_demo_cards_never_appear():
+    """Demo account cards must NEVER appear on the login page, regardless of DEMO_MODE.
+    Demo content has been removed from the login page entirely."""
     from django.conf import settings
-    from tests.factories.models import OfficerFactory
-    # Seed the demo users so the cards have something to show.
-    officer = OfficerFactory(username="nyatike_officer", full_name="Jane Awuor", role="extension_officer")
-    officer.is_staff = True
-    officer.save()
-    User = get_user_model()
-    User.objects.get_or_create(username="nyatike_supervisor",
-                                defaults={"role": "supervisor", "full_name": "Supervisor",
-                                          "sub_county": "Nyatike", "ward": "Kachieng", "is_staff": True})
-    User.objects.get_or_create(username="nyatike_viewer",
-                                defaults={"role": "viewer", "full_name": "Viewer",
-                                          "sub_county": "Nyatike", "ward": "Kachieng"})
-
-    # Directly set the dict value (override_settings only works for top-level settings).
     settings.MAJISHAMBA["DEMO_MODE"] = True
     settings.DEBUG = True
-    try:
-        c = Client()
-        r = c.get("/accounts/login/")
-        html = r.content.decode("utf-8")
-        assert "Choose a demo account" in html, "Demo cards should appear with DEMO_MODE=1 and seeded users"
-        assert "Synthetic demo account" in html
-        # All three seeded users should appear
-        assert "nyatike_officer" in html
-        assert "nyatike_supervisor" in html
-        assert "nyatike_viewer" in html
-    finally:
-        # Restore for other tests.
-        settings.DEBUG = True  # dev default
-        settings.MAJISHAMBA["DEMO_MODE"] = True  # dev default
+    c = Client()
+    r = c.get("/accounts/login/")
+    html = r.content.decode("utf-8")
+    assert "Choose a demo account" not in html
+    assert "Synthetic demo account" not in html
+    assert "nyatike_officer" not in html
+    assert "Demo mode" not in html
 
 
 @pytest.mark.django_db
