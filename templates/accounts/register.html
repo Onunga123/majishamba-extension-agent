@@ -1,7 +1,7 @@
-{% extends "base.html" %}
+{% extends "base_auth.html" %}
 {% block title %}Create account — Kachieng AI Agent{% endblock %}
 {% block content %}
-<div class="max-w-md mx-auto mt-8 bg-white p-6 rounded shadow border border-stone-200">
+<div class="bg-white p-6 rounded shadow border border-stone-200">
   <h1 class="text-xl font-semibold">Request access</h1>
   <p class="text-sm text-stone-600 mt-1 mb-4">
     Register as an extension officer, supervisor, or viewer. Your account will be reviewed by an administrator before activation.
@@ -29,7 +29,7 @@
   </form>
 
   <p class="mt-4 text-sm text-stone-600 text-center">
-    Already have an account? <a href="{% url 'accounts:login' %}" class="text-emerald-700 hover:underline font-medium">Sign in</a>
+    Already have an account? <a href="{% url 'accounts:login' %}" class="text-emerald-700 hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Sign in</a>
   </p>
 
   <div class="mt-4 pt-4 border-t border-stone-200 text-xs text-stone-500">
