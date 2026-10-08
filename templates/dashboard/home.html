@@ -3,9 +3,6 @@
 {% block title %}Dashboard — Kachieng AI Agent{% endblock %}
 {% block content %}
 
-{# =========================================================================
-   HEADER STRIP — location, last updated, refresh
-   ========================================================================= #}
 <div class="mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
   <div>
     <h1 class="text-2xl font-semibold text-stone-900">Kachieng Ward</h1>
@@ -24,9 +21,6 @@
   </div>
 </div>
 
-{# =========================================================================
-   NEEDS YOUR ATTENTION — actionable cards
-   ========================================================================= #}
 <section class="mb-6" aria-labelledby="needs-attention-heading">
   <h2 id="needs-attention-heading" class="text-lg font-semibold text-stone-900 mb-3">
     Needs your attention
@@ -157,9 +151,6 @@
   </div>
 </section>
 
-{# =========================================================================
-   PRIMARY CTA — request advisory + workflow explanation
-   ========================================================================= #}
 <section class="mb-6 bg-white border border-stone-200 rounded p-4 shadow-sm">
   <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
     <div class="flex-1">
@@ -208,9 +199,6 @@
   </div>
 </section>
 
-{# =========================================================================
-   CLUSTERS — responsive table (desktop) + cards (mobile)
-   ========================================================================= #}
 <section class="bg-white border border-stone-200 rounded shadow-sm mb-6">
   <div class="p-4 border-b border-stone-200">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
@@ -398,9 +386,6 @@
   {% endif %}
 </section>
 
-{# =========================================================================
-   RECENT ADVISORIES — grouped by status, AI-labeled
-   ========================================================================= #}
 <section class="bg-white border border-stone-200 rounded shadow-sm mb-6">
   <div class="p-4 border-b border-stone-200 flex items-center justify-between">
     <h2 class="text-lg font-semibold text-stone-900">Recent advisories</h2>
@@ -480,9 +465,6 @@
   </div>
 </section>
 
-{# =========================================================================
-   WEATHER / PESTS / GUIDANCE — operational summaries
-   ========================================================================= #}
 <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
 
   {# --- Weather --- #}
@@ -576,9 +558,6 @@
   </div>
 </section>
 
-{# =========================================================================
-   AUDIT TIMELINE — readable, decision-oriented (no tool:*)
-   ========================================================================= #}
 <section class="bg-white border border-stone-200 rounded shadow-sm mb-6">
   <div class="p-4 border-b border-stone-200 flex items-center justify-between">
     <h2 class="text-lg font-semibold text-stone-900">Recent activity</h2>
