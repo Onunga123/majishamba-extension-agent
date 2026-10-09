@@ -1,15 +1,17 @@
 {% extends "base_auth.html" %}
 {% block title %}Registration pending — Kachieng AI Agent{% endblock %}
 {% block content %}
-<div class="bg-white p-6 rounded shadow border border-stone-200 text-center">
-  <h1 class="text-xl font-semibold mb-2">Account pending review</h1>
-  <p class="text-sm text-stone-600 mb-4">
+<div class="auth-card text-center">
+  <h1 class="auth-card-heading">Account pending review</h1>
+  <p class="auth-card-supporting">
     Your account has been created and is awaiting approval from an administrator.
     You will be notified when it is approved.
   </p>
-  <p class="text-sm text-stone-500 mb-4">
+  <p class="auth-card-supporting">
     Until your account is approved, you cannot access operational features.
   </p>
-  <a href="{% url 'accounts:login' %}" class="text-emerald-700 hover:underline text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Back to sign in</a>
+  <p class="mt-6">
+    <a href="{% url 'accounts:login' %}" class="auth-card-footer-link">Back to sign in</a>
+  </p>
 </div>
 {% endblock %}

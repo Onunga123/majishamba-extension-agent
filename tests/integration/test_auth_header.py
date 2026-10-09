@@ -223,12 +223,27 @@ def test_auth_header_responsive_classes_present():
 
 @pytest.mark.django_db
 def test_auth_pages_have_focus_visible_styles():
-    """All interactive elements on auth pages must have focus-visible outline classes."""
+    """All interactive elements on auth pages must have focus-visible outlines.
+    The v5 theme uses CSS classes (.auth-nav-link:focus-visible, .auth-input:focus,
+    .btn-primary:focus-visible) which define the outline in dashboard.css — so
+    we check that the CSS file is loaded (which provides the focus styles) AND
+    that the semantic classes that carry those focus styles are present."""
     c = Client()
     for url in ["/accounts/login/", "/accounts/register/"]:
         r = c.get(url)
         html = r.content.decode("utf-8")
-        assert "focus-visible:outline" in html, f"focus-visible styles missing on {url}"
+        # The dashboard.css (which defines the focus styles) must be loaded
+        assert "dashboard.css" in html, f"dashboard.css missing on {url} (provides focus styles)"
+        # The semantic classes that carry focus-visible styles must be present
+        # (auth-nav-link, auth-input, btn-primary, auth-brand all have :focus-visible)
+        has_focus_class = (
+            "auth-nav-link" in html or
+            "auth-input" in html or
+            "btn-primary" in html or
+            "auth-brand" in html or
+            "focus-visible:outline" in html  # backward-compat with old template
+        )
+        assert has_focus_class, f"focus-visible semantic classes missing on {url}"
 
 
 # ---------------------------------------------------------------------------

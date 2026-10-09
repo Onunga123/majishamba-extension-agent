@@ -25,12 +25,12 @@ class RegistrationForm(forms.ModelForm):
 
     password1 = forms.CharField(
         label="Password",
-        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "class": "auth-input"}),
         help_text="At least 10 characters. Avoid common passwords.",
     )
     password2 = forms.CharField(
         label="Confirm password",
-        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "class": "auth-input"}),
         help_text="Enter the same password as before, for verification.",
     )
     requested_role = forms.ChoiceField(
@@ -41,17 +41,17 @@ class RegistrationForm(forms.ModelForm):
         ],
         label="Requested role",
         help_text="Your request will be reviewed by an administrator. You will not receive this role until approved.",
-        widget=forms.Select(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
+        widget=forms.Select(attrs={"class": "auth-input"}),
     )
     organization = forms.CharField(
         max_length=160, required=False,
         help_text="Office or organization (e.g. sub-county agricultural office)",
-        widget=forms.TextInput(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
+        widget=forms.TextInput(attrs={"class": "auth-input"}),
     )
     email = forms.EmailField(
         required=False,
         help_text="Used for account communications if email is configured.",
-        widget=forms.EmailInput(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
+        widget=forms.EmailInput(attrs={"class": "auth-input"}),
     )
 
     class Meta:
@@ -67,10 +67,10 @@ class RegistrationForm(forms.ModelForm):
             "username": "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.",
         }
         widgets = {
-            "full_name": forms.TextInput(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
-            "username": forms.TextInput(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
-            "sub_county": forms.TextInput(attrs={"class": "w-full border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
-            "ward": forms.TextInput(attrs={"class": "w-full border border border-stone-300 rounded px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"}),
+            "full_name": forms.TextInput(attrs={"class": "auth-input"}),
+            "username": forms.TextInput(attrs={"class": "auth-input"}),
+            "sub_county": forms.TextInput(attrs={"class": "auth-input"}),
+            "ward": forms.TextInput(attrs={"class": "auth-input"}),
         }
 
     def clean_password2(self):
