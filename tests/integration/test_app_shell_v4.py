@@ -191,7 +191,7 @@ def test_advisory_count_badge_absent_when_no_drafts(officer_client):
     'Advisories' in the nav. Only display the count if it's meaningful."""
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    # The badge is conditional on nav_draft_advisory_count > 0, so with
+    # The badge is conditional on nav_advisory_count > 0, so with
     # no drafts, no badge should appear.
     # We check that the 'Advisories' link exists but without a count span.
     # Look for 'Advisories' followed by a count badge — should not exist

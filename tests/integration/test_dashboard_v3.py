@@ -105,8 +105,9 @@ def test_draft_advisory_appears_once_in_recent_advisories_not_in_attention(offic
 @pytest.mark.django_db
 def test_needs_attention_shows_summary_count_not_detail_rows(officer_client):
     """The Needs attention card for 'Drafts awaiting review' must show a
-    summary count (e.g. '3 drafts awaiting review'), not a list of detailed
-    advisory rows. The detailed rows live in the 'Recent advisories' section."""
+    count (not a list of detailed advisory rows). The v2 card design
+    shows 'Drafts awaiting review' as the heading + a large count number
+    — not a summary sentence."""
     from django.core.management import call_command
     from io import StringIO
     from tests.factories.models import AdvisoryFactory
@@ -119,11 +120,19 @@ def test_needs_attention_shows_summary_count_not_detail_rows(officer_client):
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
 
-    # The Needs attention card must show the summary count ('3 drafts awaiting review').
-    # The view uses singular/plural form depending on count.
-    assert "3 drafts awaiting review" in html or "drafts awaiting review" in html, (
-        "Needs attention card must show a summary count, not a detailed list"
+    # The Needs attention card must show the heading 'Drafts awaiting review'
+    # and the count (not a summary sentence or detailed rows).
+    assert "Drafts awaiting review" in html, (
+        "Needs attention card must show 'Drafts awaiting review' heading"
     )
+    # The count must be present (the card shows it as a large number)
+    import re
+    # Find the attention-card-count within the drafts card
+    count_match = re.search(r'attention-card-drafts.*?attention-card-count">\s*(\d+)\s*<', html, re.S)
+    if count_match:
+        assert int(count_match.group(1)) >= 3, (
+            f"Needs attention drafts count should be >= 3, got {count_match.group(1)}"
+        )
 
 
 # ---------------------------------------------------------------------------

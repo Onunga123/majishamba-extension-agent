@@ -133,11 +133,11 @@
                {% if request.resolver_match.app_name == 'advisories' %}is-active{% endif %}"
                {% if request.resolver_match.app_name == 'advisories' %}aria-current="page"{% endif %}>
               Advisories
-              {% if nav_draft_advisory_count > 0 %}
+              {% if nav_advisory_count > 0 %}
               <span class="nav-count-badge ml-1.5"
-                    aria-label="{{ nav_draft_advisory_count }} draft advisories awaiting review"
-                    title="{{ nav_draft_advisory_count }} drafts awaiting review">
-                {{ nav_draft_advisory_count }}
+                    aria-label="{{ nav_advisory_count }} total advisories"
+                    title="{{ nav_advisory_count }} advisories">
+                {{ nav_advisory_count }}
               </span>
               {% endif %}
             </a>
