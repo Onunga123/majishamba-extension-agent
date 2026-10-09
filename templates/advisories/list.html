@@ -18,16 +18,83 @@
   {% endif %}
 </header>
 
+{# Search + status filter #}
+<form method="get" class="flex flex-col sm:flex-row gap-2 mb-3" aria-label="Filter advisories">
+  <div class="flex-1">
+    <label for="advisory-search" class="sr-only">Search advisories</label>
+    <input id="advisory-search" name="q" type="search" value="{{ search_q }}"
+           placeholder="Search by advisory ID, locality, or KACH ID"
+           class="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition">
+  </div>
+  <select name="status" class="border border-stone-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition">
+    <option value="">All statuses</option>
+    {% for value, label in status_choices %}
+      <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <input type="hidden" name="sort" value="{{ sort }}">
+  <button type="submit" class="px-4 py-2 min-h-[36px] text-sm bg-white border border-stone-300 rounded text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+    Search
+  </button>
+  {% if search_q or status_filter %}
+  <a href="?sort={{ sort }}"
+     class="px-3 py-2 text-sm text-stone-600 hover:text-stone-900 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded self-center"
+     aria-label="Clear active filters">
+    ✕ Clear filters
+  </a>
+  {% endif %}
+</form>
+
+{# Status filter chips #}
+<div class="flex flex-wrap gap-1 mb-4" role="group" aria-label="Advisory status filter">
+  <a href="?{% if search_q %}q={{ search_q|urlencode }}&{% endif %}sort={{ sort }}"
+     class="inline-block px-3 py-1 text-xs rounded-full {% if not status_filter %}bg-emerald-700 text-white font-semibold{% else %}bg-white text-stone-700 border border-stone-200 hover:bg-stone-50{% endif %} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+    All
+  </a>
+  {% for value, label in status_choices %}
+    <a href="?status={{ value }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}&sort={{ sort }}"
+       class="inline-block px-3 py-1 text-xs rounded-full {% if status_filter == value %}bg-emerald-700 text-white font-semibold{% else %}bg-white text-stone-700 border border-stone-200 hover:bg-stone-50{% endif %} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+      {{ label }}
+    </a>
+  {% endfor %}
+</div>
+
 <div class="bg-white p-4 rounded shadow border border-stone-200">
+  {% if page_obj %}
+  <p class="text-xs text-stone-500 mb-2">
+    Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+  </p>
+  {% endif %}
+  <div class="overflow-x-auto">
   <table class="w-full text-sm">
     <caption class="sr-only">All advisories</caption>
     <thead class="bg-stone-100">
       <tr>
-        <th class="text-left px-2 py-1">ID</th>
-        <th class="text-left px-2 py-1">Locality</th>
-        <th class="text-left px-2 py-1">Cluster</th>
+        <th class="text-left px-2 py-1">
+          <a href="?sort={% if sort == 'id' %}-id{% else %}id{% endif %}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+             class="hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+            ID {% if sort == 'id' %}↑{% elif sort == '-id' %}↓{% endif %}
+          </a>
+        </th>
+        <th class="text-left px-2 py-1">
+          <a href="?sort={% if sort == 'cluster__locality' %}-cluster__locality{% else %}cluster__locality{% endif %}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+             class="hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+            Locality {% if sort == 'cluster__locality' %}↑{% elif sort == '-cluster__locality' %}↓{% endif %}
+          </a>
+        </th>
+        <th class="text-left px-2 py-1">
+          <a href="?sort={% if sort == 'cluster__cluster_id' %}-cluster__cluster_id{% else %}cluster__cluster_id{% endif %}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+             class="hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+            Cluster {% if sort == 'cluster__cluster_id' %}↑{% elif sort == '-cluster__cluster_id' %}↓{% endif %}
+          </a>
+        </th>
         <th class="text-left px-2 py-1">Recommendation</th>
-        <th class="text-left px-2 py-1">Status</th>
+        <th class="text-left px-2 py-1">
+          <a href="?sort={% if sort == 'status' %}-status{% else %}status{% endif %}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+             class="hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
+            Status {% if sort == 'status' %}↑{% elif sort == '-status' %}↓{% endif %}
+          </a>
+        </th>
         <th class="text-left px-2 py-1">Draft source</th>
         <th class="px-2 py-1">View</th>
       </tr>
@@ -40,19 +107,46 @@
         <td class="px-2 py-1 font-mono text-xs">{{ a.cluster.cluster_id }}</td>
         <td class="px-2 py-1">{{ a.get_recommendation_type_display }}</td>
         <td class="px-2 py-1">
-          <span class="px-2 py-0.5 text-xs rounded font-medium
+          <span class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium
             {% if a.status == 'approved' %}bg-emerald-100 text-emerald-800
             {% elif a.status == 'rejected' %}bg-red-100 text-red-800
             {% elif a.status == 'draft' %}bg-amber-100 text-amber-900
-            {% else %}bg-stone-100 text-stone-700{% endif %}">{{ a.get_status_display }}</span>
+            {% elif a.status == 'needs_evidence' %}bg-amber-100 text-amber-900
+            {% else %}bg-stone-100 text-stone-700{% endif %}">
+            {% if a.status == 'needs_evidence' %}Needs evidence{% else %}{{ a.get_status_display }}{% endif %}
+          </span>
         </td>
-        <td class="px-2 py-1 text-xs">{% if a.generation_mode == 'fallback_template' %}Template{% else %}Model{% endif %}</td>
+        <td class="px-2 py-1 text-xs">{% if a.generation_mode == 'fallback_template' %}Template{% elif a.generation_mode == 'ollama_qwen' %}AI model{% else %}{{ a.generation_mode }}{% endif %}</td>
         <td class="px-2 py-1 text-right"><a href="{% url 'advisories:detail' a.id %}" class="text-emerald-700 hover:underline">open</a></td>
       </tr>
     {% empty %}
-      <tr><td colspan="7" class="px-2 py-3 text-stone-500 italic">No advisories yet.</td></tr>
+      <tr><td colspan="7" class="px-2 py-3 text-stone-500 italic">No advisories match your filter.</td></tr>
     {% endfor %}
     </tbody>
   </table>
+  </div>
+
+  {# Pagination #}
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="flex items-center justify-between mt-3 pt-3 border-t border-stone-200">
+    <div class="text-xs text-stone-500">
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </div>
+    <div class="flex gap-1">
+      {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}&sort={{ sort }}"
+         class="px-3 py-1 text-xs rounded border border-stone-300 bg-white text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+        ← Previous
+      </a>
+      {% endif %}
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}&sort={{ sort }}"
+         class="px-3 py-1 text-xs rounded border border-stone-300 bg-white text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+        Next →
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

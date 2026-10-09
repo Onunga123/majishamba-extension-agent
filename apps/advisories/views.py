@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, HttpResponseRedirect
@@ -27,8 +28,40 @@ class AdvisoryListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        # Default manager already excludes soft-deleted.
-        return Advisory.objects.select_related("cluster").all()
+        qs = Advisory.objects.select_related("cluster").all()
+
+        # --- Search ---
+        search_q = (self.request.GET.get("q") or "").strip()
+        if search_q:
+            # Support searching by advisory ID (numeric), locality name, or cluster ID
+            if search_q.isdigit():
+                qs = qs.filter(id=int(search_q))
+            else:
+                qs = qs.filter(
+                    Q(cluster__locality__icontains=search_q)
+                    | Q(cluster__cluster_id__icontains=search_q)
+                )
+
+        # --- Status filter ---
+        status = self.request.GET.get("status") or ""
+        valid_statuses = {choice[0] for choice in Advisory.Status.choices}
+        if status in valid_statuses:
+            qs = qs.filter(status=status)
+
+        # --- Sorting ---
+        sort = self.request.GET.get("sort") or "-created_at"
+        valid_sorts = {
+            "-created_at", "created_at",
+            "id", "-id",
+            "cluster__locality", "-cluster__locality",
+            "cluster__cluster_id", "-cluster__cluster_id",
+            "status", "-status",
+        }
+        if sort not in valid_sorts:
+            sort = "-created_at"
+        qs = qs.order_by(sort)
+
+        return qs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -36,6 +69,11 @@ class AdvisoryListView(LoginRequiredMixin, ListView):
         ctx["user_can_request_advisory"] = bool(
             self.request.user.is_authenticated and self.request.user.is_officer()
         )
+        # Preserve search/filter/sort state for pagination links
+        ctx["search_q"] = self.request.GET.get("q", "")
+        ctx["status_filter"] = self.request.GET.get("status", "")
+        ctx["sort"] = self.request.GET.get("sort", "-created_at")
+        ctx["status_choices"] = Advisory.Status.choices
         return ctx
 
 
