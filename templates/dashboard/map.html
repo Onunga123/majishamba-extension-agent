@@ -15,9 +15,11 @@
     <span class="inline-flex items-center gap-1">
       <span class="inline-block w-3 h-3 rounded-full bg-emerald-600" aria-hidden="true"></span> Mapped ({{ mapped_count }})
     </span>
+    {% if unmapped_count > 0 %}
     <span class="inline-flex items-center gap-1">
       <span class="inline-block w-3 h-3 rounded-full bg-stone-400" aria-hidden="true"></span> Unmapped ({{ unmapped_count }})
     </span>
+    {% endif %}
     <span>Total: {{ total_count }}</span>
   </div>
 </header>
@@ -80,6 +82,12 @@
         <td class="px-2 py-1 text-xs">
           {% if loc.has_real_coords %}
             <span class="text-emerald-700">{{ loc.lat|floatformat:4 }}, {{ loc.lon|floatformat:4 }}</span>
+            <br>
+            {% if loc.is_verified %}
+            <span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-800 font-medium">OSM verified</span>
+            {% else %}
+            <span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded-full bg-amber-100 text-amber-900 font-medium">Approximate</span>
+            {% endif %}
           {% else %}
             <span class="text-stone-500 italic">{{ loc.notes|default:"Coordinates not yet recorded" }}</span>
           {% endif %}
@@ -172,7 +180,7 @@
           source: 'osm',
         }],
       },
-      center: mappable.length > 0 ? [mappable[0].lon, mappable[0].lat] : [34.445, -0.965],
+      center: mappable.length > 0 ? [m[mappable[0].lon, mappable[0].lat] : [34.445, -0.965],
       zoom: mappable.length > 0 ? 11 : 8,
       maxZoom: maxZoom,
     });

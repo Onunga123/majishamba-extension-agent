@@ -699,6 +699,8 @@ class ClusterMapView(LoginRequiredMixin, View):
             )
             if has_coord:
                 lc = c.locality_coordinate
+                # Distinguish OSM-verified vs approximate coordinates
+                is_osm_verified = "Nominatim" in (lc.coordinate_source or "") or "OpenStreetMap" in (lc.coordinate_source or "")
                 localities_for_template.append({
                     "cluster_id": c.cluster_id,
                     "name": c.name,
@@ -711,6 +713,8 @@ class ClusterMapView(LoginRequiredMixin, View):
                     "households": c.households.count(),
                     "verified_by": lc.verified_by,
                     "has_real_coords": True,
+                    "is_verified": is_osm_verified,
+                    "verification_note": "OSM verified" if is_osm_verified else "Approximate (project owner knowledge)",
                 })
                 mapped_count += 1
             else:
