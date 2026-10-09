@@ -35,7 +35,7 @@
     <tbody>
     {% for a in advisories %}
       <tr class="border-t border-stone-200">
-        <td class="px-2 py-1 font-mono">#{{ a.id }}</td>
+        <td class="px-2 py-1 font-mono">Advisory {{ a.id }}</td>
         <td class="px-2 py-1">{{ a.cluster.locality|default:"—" }}</td>
         <td class="px-2 py-1 font-mono text-xs">{{ a.cluster.cluster_id }}</td>
         <td class="px-2 py-1">{{ a.get_recommendation_type_display }}</td>

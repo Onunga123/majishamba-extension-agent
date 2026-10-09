@@ -75,7 +75,7 @@ class AdvisorySoftDeleteView(LoginRequiredMixin, View):
             target=advisory,
             metadata={"reason": reason[:200], "advisory_id": advisory.id},
         )
-        messages.success(request, f"Advisory #{advisory.id} has been soft-deleted. It is preserved in the audit trail.")
+        messages.success(request, f"Advisory {advisory.id} has been soft-deleted. It is preserved in the audit trail.")
         return redirect("advisories:list")
 
 
@@ -96,7 +96,7 @@ class AdvisoryRestoreView(LoginRequiredMixin, View):
             target=advisory,
             metadata={"advisory_id": advisory.id},
         )
-        messages.success(request, f"Advisory #{advisory.id} has been restored.")
+        messages.success(request, f"Advisory {advisory.id} has been restored.")
         return redirect("advisories:detail", pk=pk)
 
 

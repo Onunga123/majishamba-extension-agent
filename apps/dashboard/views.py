@@ -75,7 +75,7 @@ def _audit_timeline(event: AuditEvent) -> dict:
 
     Humanises internal action codes (including the http:METHOD:path pattern
     emitted by AuditMiddleware) so the activity feed reads as natural language
-    (e.g. 'Christopher completed Task #1 — Oct 8, 2026 · 09:46'), not raw
+    (e.g. 'Christopher completed Task 1 — Oct 8, 2026 · 09:46'), not raw
     API/HTTP text. Raw action codes are preserved in `raw_action` for the
     staff-only technical/audit view (progressive disclosure).
     """
@@ -111,7 +111,7 @@ def _audit_timeline(event: AuditEvent) -> dict:
     action_human = action_map.get(action)
 
     # Humanise http:METHOD:/path/ patterns emitted by AuditMiddleware.
-    # Example: 'http:POST:/tasks/1/complete/' → 'completed Task #1'
+    # Example: 'http:POST:/tasks/1/complete/' → 'completed Task 1'
     if action_human is None and action.startswith("http:"):
         action_human, http_object_label = _humanize_http_action(action)
         if http_object_label:
@@ -129,9 +129,9 @@ def _audit_timeline(event: AuditEvent) -> dict:
         if event.target_type:
             obj_label = f"{event.target_type}"
             if event.target_id:
-                obj_label = f"{event.target_type} #{event.target_id}"
+                obj_label = f"{event.target_type} {event.target_id}"
         elif event.metadata and "advisory_id" in event.metadata:
-            obj_label = f"Advisory #{event.metadata['advisory_id']}"
+            obj_label = f"Advisory {event.metadata['advisory_id']}"
         elif event.metadata and "username" in event.metadata:
             obj_label = f"account '{event.metadata['username']}'"
         elif event.metadata and "cluster_id" in event.metadata:
@@ -186,12 +186,12 @@ def _humanize_http_action(action: str) -> tuple[str, str]:
     phrase plus an object label.
 
     Examples:
-        'http:POST:/tasks/1/complete/'      → ('completed', 'Task #1')
-        'http:POST:/advisories/12/restore/' → ('restored', 'Advisory #12')
-        'http:POST:/advisories/12/delete/'   → ('deleted', 'Advisory #12')
-        'http:POST:/approvals/30/'          → ('reviewed', 'Advisory #30')
-        'http:POST:/tasks/4/findings/'       → ('submitted field findings for', 'Task #4')
-        'http:POST:/tasks/4/verify/'        → ('verified', 'Task #4')
+        'http:POST:/tasks/1/complete/'      → ('completed', 'Task 1')
+        'http:POST:/advisories/12/restore/' → ('restored', 'Advisory 12')
+        'http:POST:/advisories/12/delete/'   → ('deleted', 'Advisory 12')
+        'http:POST:/approvals/30/'          → ('reviewed', 'Advisory 30')
+        'http:POST:/tasks/4/findings/'       → ('submitted field findings for', 'Task 4')
+        'http:POST:/tasks/4/verify/'        → ('verified', 'Task 4')
         'http:POST:/advisories/request/'    → ('requested', 'an advisory')
         'http:POST:/accounts/register/'    → ('registered', 'an account')
         'http:POST:/accounts/login/'        → ('signed in', '')
@@ -211,15 +211,15 @@ def _humanize_http_action(action: str) -> tuple[str, str]:
     # Pattern: /advisories/<id>/restore/
     m = re.match(r"/advisories/(\d+)/restore/?$", path)
     if m:
-        return ("restored", f"Advisory #{m.group(1)}")
+        return ("restored", f"Advisory {m.group(1)}")
     # Pattern: /advisories/<id>/delete/
     m = re.match(r"/advisories/(\d+)/delete/?$", path)
     if m:
-        return ("deleted", f"Advisory #{m.group(1)}")
+        return ("deleted", f"Advisory {m.group(1)}")
     # Pattern: /advisories/<id>/edit/
     m = re.match(r"/advisories/(\d+)/edit/?$", path)
     if m:
-        return ("edited", f"Advisory #{m.group(1)}")
+        return ("edited", f"Advisory {m.group(1)}")
     # Pattern: /advisories/request/
     m = re.match(r"/advisories/request/?$", path)
     if m:
@@ -227,19 +227,19 @@ def _humanize_http_action(action: str) -> tuple[str, str]:
     # Pattern: /approvals/<id>/ (POST = approve/reject/defer)
     m = re.match(r"/approvals/(\d+)/?$", path)
     if m:
-        return ("reviewed", f"Advisory #{m.group(1)}")
+        return ("reviewed", f"Advisory {m.group(1)}")
     # Pattern: /tasks/<id>/complete/
     m = re.match(r"/tasks/(\d+)/complete/?$", path)
     if m:
-        return ("completed", f"Task #{m.group(1)}")
+        return ("completed", f"Task {m.group(1)}")
     # Pattern: /tasks/<id>/verify/
     m = re.match(r"/tasks/(\d+)/verify/?$", path)
     if m:
-        return ("verified", f"Task #{m.group(1)}")
+        return ("verified", f"Task {m.group(1)}")
     # Pattern: /tasks/<id>/findings/
     m = re.match(r"/tasks/(\d+)/findings/?$", path)
     if m:
-        return ("submitted field findings for", f"Task #{m.group(1)}")
+        return ("submitted field findings for", f"Task {m.group(1)}")
     # Pattern: /accounts/login/ /accounts/logout/ /accounts/register/
     if "/accounts/login" in path:
         return ("signed in", "")

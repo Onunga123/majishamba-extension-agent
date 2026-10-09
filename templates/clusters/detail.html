@@ -27,7 +27,7 @@
   <h2 class="font-semibold mt-5 mb-2">Recent advisories</h2>
   <ul class="text-sm list-disc ml-5">
     {% for a in recent_advisories %}
-    <li><a href="{% url 'advisories:detail' a.id %}" class="text-emerald-700 underline">#{{ a.id }}</a> — {{ a.get_status_display }}</li>
+    <li><a href="{% url 'advisories:detail' a.id %}" class="text-emerald-700 underline">Advisory {{ a.id }}</a> — {{ a.get_status_display }}</li>
     {% empty %}
     <li class="text-stone-500">None yet.</li>
     {% endfor %}

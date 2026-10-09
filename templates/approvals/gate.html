@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Review advisory #{{ advisory.id }} — Kachieng’ AI Agent{% endblock %}
+{% block title %}Review advisory {{ advisory.id }} — Kachieng’ AI Agent{% endblock %}
 {% block content %}
 <div class="max-w-3xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
   <h1 class="text-lg font-semibold mb-1">{{ advisory_title }}</h1>
@@ -19,7 +19,7 @@
   <div class="bg-emerald-50 border border-emerald-200 rounded p-3 text-sm mb-4">
     <strong>What happens when you submit</strong>
     <ul class="list-disc ml-5 mt-1">
-      <li>Your decision is saved for advisory #{{ advisory.id }} at version {{ advisory.content_version }}.</li>
+      <li>Your decision is saved for advisory {{ advisory.id }} at version {{ advisory.content_version }}.</li>
       <li>If you choose <em>Approved</em> and tick the follow-up box, one <strong>internal</strong> task is created.</li>
       <li>No SMS, WhatsApp, or other farmer message is sent by this system.</li>
     </ul>

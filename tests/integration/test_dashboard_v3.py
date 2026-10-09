@@ -276,9 +276,9 @@ def test_activity_feed_humanises_http_audit_codes(officer_client):
     assert "http:POST:/advisories/12/restore/" not in html
     # Humanised phrases must appear
     assert "completed" in html.lower()
-    assert "Task #1" in html
+    assert "Task 1" in html
     assert "restored" in html.lower()
-    assert "Advisory #12" in html
+    assert "Advisory 12" in html
 
 
 @pytest.mark.django_db
@@ -294,7 +294,7 @@ def test_activity_feed_humanises_approval_action(officer_client):
     html = r.content.decode("utf-8")
     assert "http:POST:/approvals/30/" not in html
     assert "reviewed" in html.lower()
-    assert "Advisory #30" in html
+    assert "Advisory 30" in html
 
 
 @pytest.mark.django_db
@@ -342,7 +342,7 @@ def test_audit_page_has_technical_detail_for_authorized_users(supervisor_client)
     html = r.content.decode("utf-8")
     # The audit page must show some audit content (the human-readable timeline
     # plus optionally raw detail for staff)
-    assert "completed" in html.lower() or "Task #1" in html or "tasks" in html.lower()
+    assert "completed" in html.lower() or "Task 1" in html or "tasks" in html.lower()
 
 
 # ---------------------------------------------------------------------------

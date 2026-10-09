@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Task #{{ task.id }} — Kachieng’ AI Agent{% endblock %}
+{% block title %}Task {{ task.id }} — Kachieng’ AI Agent{% endblock %}
 {% block content %}
 <div class="max-w-3xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
-  <h1 class="text-lg font-semibold">Follow-up task #{{ task.id }}</h1>
+  <h1 class="text-lg font-semibold">Follow-up task {{ task.id }}</h1>
   <p class="text-sm text-stone-600">
     {{ task.get_task_type_display }} · {{ task.get_status_display }} · Due {{ task.deadline|default:"(none)" }}
   </p>
@@ -10,7 +10,7 @@
     Cluster: <a href="{% url 'clusters:detail' task.approved_advisory.cluster.cluster_id %}" class="text-emerald-700 underline">
       {{ task.approved_advisory.cluster.locality|default:task.approved_advisory.cluster.cluster_id }}
     </a>
-    · Advisory <a href="{% url 'advisories:detail' task.approved_advisory_id %}" class="text-emerald-700 underline">#{{ task.approved_advisory_id }}</a>
+    · Advisory <a href="{% url 'advisories:detail' task.approved_advisory_id %}" class="text-emerald-700 underline">{{ task.approved_advisory_id }}</a>
   </p>
   <p class="text-xs text-stone-500 mt-2">Internal task only — submitting findings does not message farmers.</p>
 

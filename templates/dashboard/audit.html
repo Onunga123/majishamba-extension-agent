@@ -26,7 +26,7 @@
         <td class="px-2 py-1">{{ e.actor|default:"system" }}</td>
         <td class="px-2 py-1">{{ e.action }}</td>
         <td class="px-2 py-1 text-xs">{{ e.tool_name }}</td>
-        <td class="px-2 py-1 text-xs">{{ e.target_type }} #{{ e.target_id }}</td>
+        <td class="px-2 py-1 text-xs">{{ e.target_type }} {{ e.target_id }}</td>
         <td class="px-2 py-1 text-xs">{{ e.approval_status }}</td>
       </tr>
     {% empty %}

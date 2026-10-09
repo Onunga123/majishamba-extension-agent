@@ -356,7 +356,7 @@ def test_audit_timeline_includes_who_what_object_when_result(officer_client):
     # What: human-readable action
     assert "approved an advisory" in html
     # Object: Advisory #30
-    assert "Advisory #30" in html
+    assert "Advisory 30" in html
     # When: date display (we just check a date-like pattern is present)
     # Result: badge 'approved'
     assert "approved" in html.lower()

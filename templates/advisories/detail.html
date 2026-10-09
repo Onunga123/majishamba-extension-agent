@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Advisory #{{ advisory.id }} — Kachieng’ AI Agent{% endblock %}
+{% block title %}Advisory {{ advisory.id }} — Kachieng’ AI Agent{% endblock %}
 {% block content %}
 
 {% if advisory.generation_mode == "fallback_template" %}
@@ -60,7 +60,7 @@
             <form method="post" action="{% url 'advisories:soft_delete' advisory.id %}" class="inline-flex gap-2 items-center mt-1">
               {% csrf_token %}
               <input type="text" name="deletion_reason" placeholder="Reason (optional, internal)" class="border border-stone-300 rounded px-2 py-1 text-sm w-48">
-              <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700" onclick="return confirm('Soft-delete advisory #{{ advisory.id }}? It will be preserved in the audit trail.')">Soft-delete</button>
+              <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700" onclick="return confirm('Soft-delete advisory {{ advisory.id }}? It will be preserved in the audit trail.')">Soft-delete</button>
             </form>
           </details>
         {% endif %}
