@@ -44,14 +44,29 @@ _ACTION_LABELS = {
 
 
 def _humanize_action(action: str) -> str:
-    """Convert a raw action code to a human-readable label."""
+    """Convert a raw action code to a human-readable label (string only)."""
     # Direct mapping
     if action in _ACTION_LABELS:
         return _ACTION_LABELS[action]
-    # HTTP method:path patterns
+    # HTTP method:path patterns — return only the description, not the tuple
     if action.startswith("http:"):
-        return _humanize_http_action(action)
-    # Tool calls
+        desc, _ = _humanize_http_action(action)
+        return desc
+    # Tool calls — specific mappings for readability
+    if action.startswith("tool_call:"):
+        tool_name = action[10:]  # strip "tool_call:" prefix (10 chars)
+        _TOOL_LABELS = {
+            "get_cluster_plot_history": "Cluster plot history retrieved",
+            "get_crop_calendar": "Crop calendar retrieved",
+            "get_weather_and_rainfall_context": "Weather and rainfall context retrieved",
+            "get_pest_alerts": "Pest-alert lookup executed",
+            "get_market_price_context": "Market price context retrieved",
+            "validate_advisory_evidence": "Advisory evidence validation executed",
+            "create_draft_advisory_record": "Draft creation executed",
+            "borrowed_filesystem_mcp": "Filesystem MCP accessed",
+        }
+        return _TOOL_LABELS.get(tool_name, f"Tool executed: {tool_name.replace('_', ' ')}")
+    # Legacy tool: prefix (older format)
     if action.startswith("tool:"):
         tool_name = action[5:]
         return f"Tool executed: {tool_name.replace('_', ' ')}"
@@ -101,7 +116,8 @@ def _humanize_http_action(action: str) -> tuple[str, str]:
 def _is_technical_event(action: str) -> bool:
     """Determine if an event is a technical/system event (not a human activity)."""
     return (
-        action.startswith("tool:")
+        action.startswith("tool_call:")
+        or action.startswith("tool:")
         or action.startswith("agent_run:")
         or action.startswith("http:")
     )

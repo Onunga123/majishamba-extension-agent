@@ -70,7 +70,7 @@
           <span class="ml-1 inline-flex items-center px-1.5 py-0.5 text-xs rounded-full bg-stone-100 text-stone-600 font-medium">system</span>
           {% endif %}
         </td>
-        <td class="px-2 py-1 text-xs">{{ fe.object_label|default:"—" }}</td>
+        <td class="px-2 py-1 text-xs">{{ fe.object_label|default:"Not available" }}</td>
         <td class="px-2 py-1">
           {% if fe.approval_label == "Approved" %}
           <span class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium bg-emerald-100 text-emerald-800">Approved</span>
@@ -90,6 +90,7 @@
         <td class="px-2 py-1 text-xs text-stone-500">
           <span class="font-mono">{{ fe.event.action }}</span>
           {% if fe.event.tool_name %}<span class="block mt-0.5">tool: {{ fe.event.tool_name }}</span>{% endif %}
+          {% if fe.is_technical and not fe.event.tool_name %}<span class="block mt-0.5 text-stone-400">Original HTTP event</span>{% endif %}
         </td>
         {% endif %}
       </tr>
