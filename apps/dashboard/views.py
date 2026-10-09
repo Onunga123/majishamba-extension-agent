@@ -738,8 +738,12 @@ class ClusterMapView(LoginRequiredMixin, View):
             tile_url = stadia_url.replace("{api_key}", api_key).replace("{r}", "")
             attribution = cfg.get("MAP_BASEMAP_ATTRIBUTION", "© Stadia Maps © OpenMapTiles © OpenStreetMap contributors")
         else:
-            tile_url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution = "© OpenStreetMap contributors"
+            # Use CARTO basemap (free, production-ready, no API key required)
+            # OSM direct tiles (tile.openstreetmap.org) have strict usage policy
+            # that can block development servers; CARTO provides free OSM-based
+            # raster tiles with a more permissive policy.
+            tile_url = "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+            attribution = "© OpenStreetMap contributors © CARTO"
         return render(request, "dashboard/map.html", {
             "clusters": clusters,
             "localities": localities_for_template,
