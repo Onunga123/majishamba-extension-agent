@@ -393,6 +393,55 @@ def _latest_real_weather():
     )
 
 
+def _parse_weather_metrics(signal) -> dict:
+    """Parse structured weather metrics from the forecast_summary text.
+
+    The Open-Meteo integration builds forecast_summary as:
+      'Dense drizzle. Precipitation: 7.1 mm. Probability: 80%. Temp: 19.7–25.7 °C. Wind: 10.3 km/h.'
+
+    This helper extracts those structured values so the dashboard can
+    display them in a 2-column metric grid instead of a single text block.
+    Falls back to the model's rainfall_mm if the text doesn't match.
+    """
+    import re as _re
+
+    summary = signal.forecast_summary or ""
+    metrics = {
+        "condition": "",
+        "rainfall": "",
+        "probability": "",
+        "temperature": "",
+        "wind": "",
+    }
+
+    # Extract condition (text before the first metric label)
+    # The summary starts with a weather description followed by ". "
+    condition_match = _re.match(r"^(.+?)\.\s", summary)
+    if condition_match:
+        metrics["condition"] = condition_match.group(1)
+
+    # Extract structured metrics
+    precip_match = _re.search(r"Precipitation:\s*([\d.]+)\s*mm", summary)
+    if precip_match:
+        metrics["rainfall"] = f"{precip_match.group(1)} mm"
+    elif signal.rainfall_mm is not None:
+        metrics["rainfall"] = f"{signal.rainfall_mm} {signal.rainfall_units or 'mm'}"
+
+    prob_match = _re.search(r"Probability:\s*(\d+)%", summary)
+    if prob_match:
+        metrics["probability"] = f"{prob_match.group(1)}%"
+
+    temp_match = _re.search(r"Temp:\s*([\d.]+[–-][\d.]+)\s*°C", summary)
+    if temp_match:
+        metrics["temperature"] = f"{temp_match.group(1)} °C"
+
+    wind_match = _re.search(r"Wind:\s*([\d.]+)\s*km/h", summary)
+    if wind_match:
+        metrics["wind"] = f"{wind_match.group(1)} km/h"
+
+    return metrics
+
+
 def _latest_synthetic_weather():
     return (
         WeatherSignal.objects
@@ -560,6 +609,7 @@ class DashboardHomeView(LoginRequiredMixin, View):
                 "signal": real_weather,
                 "rainfall_display": real_weather.rainfall_display,
                 "is_regional": real_weather.is_regional_context,
+                "metrics": _parse_weather_metrics(real_weather),
             }
         else:
             weather_panel = {

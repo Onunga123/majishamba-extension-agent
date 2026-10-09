@@ -340,9 +340,8 @@ def test_dashboard_shows_real_kmd_when_ingested(officer_client):
     html = r.content.decode("utf-8")
     assert "7 Days Forecast" in html
     assert "Kenya Meteorological Department" in html
-    # "Rainfall amount: <strong>Not specified in this bulletin</strong>" — the
-    # <strong> tag splits the string, so we check for the two parts separately.
-    assert "Rainfall:" in html
+    # The KMD bulletin has rainfall_mm=None, so the fallback shows the rainfall_display
+    # text (not a structured metric grid — fc-metric-value is only for parsed metrics).
     assert "Not specified in this bulletin" in html
     # Must NOT show the no-notice state when a real bulletin is loaded.
     assert "No current verified KMD bulletin" not in html

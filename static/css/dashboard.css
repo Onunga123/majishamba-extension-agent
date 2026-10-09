@@ -1475,3 +1475,127 @@ select.auth-input {
   border: 1px solid var(--color-border);
   border-radius: 0.5rem;
 }
+
+/* ============================================================
+   FIELD CONDITIONS & GUIDANCE — exact spec cards
+   ============================================================ */
+
+.fc-card {
+  background-color: #FFFFFF;
+  border: 1px solid #DCE4DF;
+  border-radius: 12px;
+  padding: 20px;
+}
+@media (max-width: 640px) {
+  .fc-card { padding: 16px; }
+}
+
+.fc-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.fc-icon-box {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fc-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+  padding-top: 10px;
+}
+
+/* Weather metrics grid — 2 columns */
+.fc-metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 8px;
+}
+.fc-metric-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+.fc-metric-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 2px 0 0 0;
+  line-height: 1.4;
+}
+
+/* Source + location line */
+.fc-source-line {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* Condition text */
+.fc-condition {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin: 8px 0 0 0;
+  line-height: 1.5;
+}
+
+/* Forecast date */
+.fc-forecast-date {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 8px 0 0 0;
+}
+
+/* Card link */
+.fc-link {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #176B45;
+  text-decoration: none;
+  margin-top: 12px;
+}
+.fc-link:hover { text-decoration: underline; }
+.fc-link:focus-visible {
+  outline: 2px solid #176B45;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Pest alert messages */
+.fc-message-primary {
+  font-size: 14px;
+  color: var(--color-text);
+  margin: 8px 0 0 0;
+  line-height: 1.5;
+}
+.fc-message-secondary {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin: 8px 0 0 0;
+  line-height: 1.5;
+}
+
+/* Authorization badge */
+.fc-auth-badge {
+  display: inline-block;
+  background-color: #FFF4DB;
+  color: #946200;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-top: 12px;
+}

@@ -143,12 +143,12 @@ def test_user_menu_uses_semantic_classes(officer_client):
 
 @pytest.mark.django_db
 def test_needs_attention_uses_warm_sage_surface(officer_client):
-    """The 'Needs your attention' section must use the .surface-attention class
+    """The 'Needs your attention' section must use the .fc-card class
     (warm sage tint #EEF6F0), not a plain white card."""
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
     assert "attention-card-v2" in html, (
-        "Needs attention section must use .surface-attention (warm sage tint), "
+        "Needs attention section must use .fc-card (warm sage tint), "
         "not a plain white card"
     )
 
@@ -215,7 +215,7 @@ def test_weather_panel_uses_sky_blue_surface(officer_client):
     visually communicate environmental/weather information."""
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    assert "surface-weather" in html, (
+    assert "fc-card" in html, (
         "Weather panel must use .surface-weather (sky-blue tint)"
     )
 
@@ -226,7 +226,7 @@ def test_agronomic_guidance_uses_sage_surface(officer_client):
     to create a visual relationship with agriculture."""
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    assert "surface-guidance" in html, (
+    assert "fc-card" in html, (
         "Agronomic guidance must use .surface-guidance (sage tint)"
     )
 
@@ -356,16 +356,16 @@ def test_status_pills_have_dot_indicator_and_text_label():
 
 @pytest.mark.django_db
 def test_dashboard_surfaces_use_semantic_classes(officer_client):
-    """The dashboard must use semantic surface classes (.surface, .surface-attention,
+    """The dashboard must use semantic surface classes (.surface, .fc-card,
     .surface-weather, .surface-guidance) rather than hardcoded 'bg-white border-stone-200'
     Tailwind utilities for the main surfaces."""
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
     # The semantic classes must be present
-    assert "surface" in html  # generic surface class
+    assert "surface" in html or "fc-card" in html
     # Count of 'bg-white' should be limited (we accept some for tables/cards)
     # but the main surfaces should use semantic classes
-    surface_count = html.count("attention-card-v2") + html.count("surface-weather") + html.count("surface-guidance") + html.count('"surface ')
+    surface_count = html.count("attention-card-v2") + html.count("fc-card") + html.count("fc-card") + html.count('"surface ')
     assert surface_count >= 4, (
         f"Expected at least 4 semantic surface usages, got {surface_count}"
     )

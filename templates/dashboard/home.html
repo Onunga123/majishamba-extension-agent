@@ -510,29 +510,66 @@
   {% endif %}
 </section>
 
-{# FIELD CONDITIONS & GUIDANCE — differentiated by information type #}
+{# FIELD CONDITIONS & GUIDANCE — three cards with icons, metrics, badges #}
 <section class="mb-8" aria-labelledby="field-conditions-heading">
-  <h2 id="field-conditions-heading" class="text-lg font-semibold mb-3" style="color: var(--color-text);">
+  <h2 id="field-conditions-heading" class="text-lg font-semibold mb-4" style="color: var(--color-text);">
     Field conditions &amp; guidance
   </h2>
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 gap-4">
 
-    {# --- Weather (sky-blue surface — environmental information) --- #}
-    <div class="surface-weather p-4">
-      <h3 class="text-sm font-semibold mb-2" style="color: var(--color-sky-text);">Weather</h3>
+    {# --- Weather card --- #}
+    <div class="fc-card">
+      <div class="fc-card-header">
+        <div class="fc-icon-box" style="background-color: #E8F3ED;" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#176B45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 13v8M8 13v8M12 15v8M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/>
+            <line x1="8" y1="19" x2="8" y2="21"/>
+            <line x1="12" y1="19" x2="12" y2="21"/>
+            <line x1="16" y1="19" x2="16" y2="21"/>
+          </svg>
+        </div>
+        <h3 class="fc-card-title">Weather</h3>
+      </div>
       {% if weather_panel.kind == "real" %}
         {% with sig=weather_panel.signal %}
-        <p class="text-sm" style="color: var(--color-text);">{{ sig.product_type|default:sig.source_authority }}</p>
-        <p class="text-xs mt-1" style="color: var(--color-text-muted);">{{ sig.geographic_scope|default:"Regional" }}</p>
-        <p class="text-sm mt-2" style="color: var(--color-text-secondary);">
-          {{ sig.forecast_summary|truncatewords:18 }}
-        </p>
-        <p class="text-sm mt-1" style="color: var(--color-text-secondary);">
-          Rainfall: <strong style="color: var(--color-text);">{{ weather_panel.rainfall_display }}</strong>
-        </p>
-        <p class="text-xs mt-2" style="color: var(--color-text-muted);">
-          Source: {{ sig.source_authority }}
-          {% if sig.publication_date %} · Forecast date: {{ sig.publication_date }}{% endif %}
+        <p class="fc-source-line">{{ sig.geographic_scope|default:"Regional" }} · {{ sig.source_authority }}{% if sig.product_type and sig.product_type != sig.source_authority %} ({{ sig.product_type }}){% endif %}</p>
+        {% if weather_panel.metrics.condition %}
+        <p class="fc-condition">{{ weather_panel.metrics.condition }}</p>
+        {% else %}
+        <p class="fc-condition">{{ sig.forecast_summary|truncatewords:18 }}</p>
+        {% endif %}
+        {% if weather_panel.metrics.rainfall or weather_panel.metrics.probability or weather_panel.metrics.temperature or weather_panel.metrics.wind %}
+        <div class="fc-metric-grid">
+          {% if weather_panel.metrics.rainfall %}
+          <div>
+            <p class="fc-metric-label">Rainfall</p>
+            <p class="fc-metric-value">{{ weather_panel.metrics.rainfall }}</p>
+          </div>
+          {% endif %}
+          {% if weather_panel.metrics.probability %}
+          <div>
+            <p class="fc-metric-label">Rain probability</p>
+            <p class="fc-metric-value">{{ weather_panel.metrics.probability }}</p>
+          </div>
+          {% endif %}
+          {% if weather_panel.metrics.temperature %}
+          <div>
+            <p class="fc-metric-label">Temperature</p>
+            <p class="fc-metric-value">{{ weather_panel.metrics.temperature }}</p>
+          </div>
+          {% endif %}
+          {% if weather_panel.metrics.wind %}
+          <div>
+            <p class="fc-metric-label">Wind</p>
+            <p class="fc-metric-value">{{ weather_panel.metrics.wind }}</p>
+          </div>
+          {% endif %}
+        </div>
+        {% else %}
+        <p class="fc-condition">Rainfall: <strong>{{ weather_panel.rainfall_display }}</strong></p>
+        {% endif %}
+        <p class="fc-forecast-date">
+          {% if sig.publication_date %}Forecast date: {{ sig.publication_date }}{% endif %}
           {% if sig.valid_from and sig.valid_to and sig.valid_from != sig.valid_to %} · Valid: {{ sig.valid_from }} to {{ sig.valid_to }}{% elif sig.valid_from %} · Valid: {{ sig.valid_from }}{% endif %}
         </p>
         {% if weather_panel.is_regional %}
@@ -540,77 +577,64 @@
           Regional forecast covering Migori — not a Nyatike station observation.
         </p>
         {% endif %}
-        <a href="{% url 'dashboard:data_sources' %}"
-           class="inline-block text-xs hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
-           style="color: var(--color-primary);">
-          Weather details →
-        </a>
+        <a href="{% url 'dashboard:data_sources' %}" class="fc-link">Weather details →</a>
         {% endwith %}
       {% else %}
-        <p class="text-sm" style="color: var(--color-text);">{{ weather_panel.no_notice.message }}</p>
-        <p class="text-xs mt-2" style="color: var(--color-text-muted);">
-          Source: Kenya Meteorological Department (meteo.go.ke) — manual retrieval required.
-        </p>
-        <p class="text-xs mt-1" style="color: var(--color-text-muted);">
-          Impact: advisories rely on officer field observation until a verified KMD bulletin is ingested.
-        </p>
-        <a href="{% url 'dashboard:data_sources' %}"
-           class="inline-block text-xs hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
-           style="color: var(--color-primary);">
-          Weather details →
-        </a>
+        <p class="fc-message-primary">{{ weather_panel.no_notice.message }}</p>
+        <p class="fc-message-secondary">Source: Kenya Meteorological Department (meteo.go.ke) — manual retrieval required.</p>
+        <p class="fc-message-secondary">Impact: advisories rely on officer field observation until a verified KMD bulletin is ingested.</p>
+        <a href="{% url 'dashboard:data_sources' %}" class="fc-link">Weather details →</a>
       {% endif %}
     </div>
 
-    {# --- Pest alerts (neutral surface — not red/amber when there's no alert) --- #}
-    <div class="surface p-4">
-      <h3 class="text-sm font-semibold mb-2" style="color: var(--color-text);">Pest alerts</h3>
+    {# --- Pest alerts card --- #}
+    <div class="fc-card">
+      <div class="fc-card-header">
+        <div class="fc-icon-box" style="background-color: #F1F5F2;" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#52605A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="8" y="6" width="8" height="14" rx="4"/>
+            <path d="M19 7l-3 2M19 11l-3 2M19 15l-3 2M5 7l3 2M5 11l3 2M5 15l3 2M12 6V4M10 4h4"/>
+          </svg>
+        </div>
+        <h3 class="fc-card-title">Pest alerts</h3>
+      </div>
       {% if pest_panel.kind == "real" %}
         {% with alert=pest_panel.alert %}
-        <p class="text-sm" style="color: var(--color-text);">{{ alert.pest }}</p>
-        <p class="text-xs mt-1" style="color: var(--color-text-muted);">
-          Source: {{ alert.source_authority }}{% if alert.product_type %} · {{ alert.product_type }}{% endif %}
-        </p>
-        <p class="text-sm mt-2" style="color: var(--color-text-secondary);">Severity: <strong style="color: var(--color-text);">{{ pest_panel.severity_display }}</strong></p>
+        <p class="fc-message-primary">{{ alert.pest }}</p>
+        <p class="fc-source-line">Source: {{ alert.source_authority }}{% if alert.product_type %} · {{ alert.product_type }}{% endif %}</p>
+        <p class="fc-message-secondary">Severity: <strong>{{ pest_panel.severity_display }}</strong></p>
         {% if alert.advisory %}
-        <p class="text-sm mt-1" style="color: var(--color-text-secondary);">{{ alert.advisory|truncatewords:18 }}</p>
+        <p class="fc-message-secondary">{{ alert.advisory|truncatewords:18 }}</p>
         {% endif %}
-        <p class="text-xs mt-2" style="color: var(--color-text-muted);">
-          {% if alert.publication_date %}Issued: {{ alert.publication_date }}{% endif %}
-        </p>
-        <a href="{% url 'dashboard:data_sources' %}"
-           class="inline-block text-xs hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
-           style="color: var(--color-primary);">
-          Sources checked →
-        </a>
+        {% if alert.publication_date %}
+        <p class="fc-forecast-date">Issued: {{ alert.publication_date }}</p>
+        {% endif %}
+        <a href="{% url 'dashboard:data_sources' %}" class="fc-link">Sources checked →</a>
         {% endwith %}
       {% else %}
-        <p class="text-sm" style="color: var(--color-text);">{{ pest_panel.no_notice.message }}</p>
-        <p class="text-xs mt-2" style="color: var(--color-text-muted);">This does not confirm that pests are absent. Continue local scouting.</p>
-        <a href="{% url 'dashboard:data_sources' %}"
-           class="inline-block text-xs hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
-           style="color: var(--color-primary);">
-          Sources checked →
-        </a>
+        <p class="fc-message-primary">{{ pest_panel.no_notice.message }}</p>
+        <p class="fc-message-secondary">This does not confirm that pests are absent. Continue local scouting.</p>
+        <a href="{% url 'dashboard:data_sources' %}" class="fc-link">Sources checked →</a>
       {% endif %}
     </div>
 
-    {# --- Agronomic guidance (sage surface — agricultural relationship) --- #}
-    <div class="surface-guidance p-4">
-      <h3 class="text-sm font-semibold mb-2" style="color: var(--color-success-text);">Agronomic guidance</h3>
-      <p class="text-sm" style="color: var(--color-text);">KALRO maize guidance is not yet authorized for use by the agent.</p>
-      <p class="text-xs mt-2" style="color: var(--color-text-muted);">
-        Status: Authorization pending
-      </p>
-      <p class="text-xs rounded px-2 py-1 mt-2" style="background-color: var(--color-draft-soft); color: var(--color-draft-text); border: 1px solid var(--color-draft-border);">
-        ⚠ Local planting dates have not been verified in the currently available material.
-      </p>
-      <a href="{% url 'dashboard:guidance' %}"
-         class="inline-block text-xs hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
-         style="color: var(--color-primary);">
-        Guidance details →
-      </a>
+    {# --- Agronomic guidance card --- #}
+    <div class="fc-card">
+      <div class="fc-card-header">
+        <div class="fc-icon-box" style="background-color: #FFF4DB;" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#946200" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+        </div>
+        <h3 class="fc-card-title">Agronomic guidance</h3>
+      </div>
+      <p class="fc-message-primary">KALRO maize guidance is not yet authorized for use by the agent.</p>
+      <span class="fc-auth-badge">Authorization pending</span>
+      <p class="fc-message-secondary">Local planting dates have not been verified in the currently available material.</p>
+      <a href="{% url 'dashboard:guidance' %}" class="fc-link">Guidance details →</a>
     </div>
+
   </div>
 </section>
 
