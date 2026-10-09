@@ -23,10 +23,34 @@ class IntegrationsIndexView(LoginRequiredMixin, View):
     """Landing page for officer-supplied data ingestion."""
     def get(self, request):
         require_officer(request.user)
+        from apps.weather.models import WeatherSignal
+        from apps.pests.models import PestAlert
+        # Recent source records for the source register
+        recent_weather = list(
+            WeatherSignal.objects
+            .exclude(synthetic_flag="synthetic")
+            .order_by("-publication_date", "-retrieved_at")[:10]
+        )
+        recent_pests = list(
+            PestAlert.objects
+            .exclude(synthetic_flag="synthetic")
+            .order_by("-publication_date", "-retrieved_at")[:10]
+        )
         return render(request, "integrations/index.html", {
             "kmd_form_url": reverse("integrations:kmd_ingest"),
             "pest_report_url": reverse("integrations:pest_report"),
             "pest_notice_url": reverse("integrations:pest_notice"),
+            "recent_weather": recent_weather,
+            "recent_pests": recent_pests,
+            "verification_labels": {
+                "current_official": "Current official source",
+                "regional_context": "Regional context",
+                "officer_field_report": "Officer field report",
+                "background_reference": "Background reference",
+                "historical": "Historical (no longer current)",
+                "synthetic": "Synthetic test scenario",
+                "no_current_notice": "No current notice",
+            },
         })
 
 

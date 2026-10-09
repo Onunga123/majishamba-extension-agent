@@ -439,7 +439,7 @@ def test_data_sources_page_header(officer_client):
     assert "Data &amp; Sources" in html or "Data & Sources" in html, (
         "Data & Sources page header h1 must be 'Data & Sources'"
     )
-    assert "Weather, pest, agronomic and system sources" in html
+    assert "Manage the evidence" in html
 
 
 @pytest.mark.django_db
