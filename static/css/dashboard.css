@@ -973,29 +973,52 @@ body.auth-page {
   width: 100%;
   padding: 0.625rem 0.75rem;
   font-size: 0.9375rem;
+  line-height: 1.4;
   color: var(--color-text);
   background-color: var(--color-surface);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius);
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
   min-height: 44px; /* WCAG 2.5.5 touch target */
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 .auth-input::placeholder {
   color: var(--color-text-muted);
 }
 .auth-input:hover {
-  border-color: var(--color-text-muted);
+  border-color: #A8B8AF;
+  background-color: #FAFCFB;
 }
 .auth-input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(23, 107, 69, 0.12);
+  box-shadow: 0 0 0 3px rgba(23, 107, 69, 0.15);
+  background-color: var(--color-surface);
+}
+.auth-input:disabled {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+  border-color: var(--color-border);
 }
 .auth-input.is-error {
   border-color: var(--color-danger);
 }
 .auth-input.is-error:focus {
+  border-color: var(--color-danger);
   box-shadow: 0 0 0 3px rgba(155, 44, 44, 0.12);
+}
+/* Select elements: match text input styling + add dropdown indicator */
+select.auth-input {
+  cursor: pointer;
+  padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2352605A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  background-size: 1rem;
 }
 
 /* Password field wrapper (input + show/hide button) */

@@ -35,9 +35,9 @@ class RegistrationForm(forms.ModelForm):
     )
     requested_role = forms.ChoiceField(
         choices=[
-            ("extension_officer", "Extension Officer — Request advisories, review drafts, manage field tasks"),
-            ("supervisor", "Supervisor — Review and approve advisories, verify field findings"),
-            ("viewer", "Viewer — Read-only access to dashboard and advisories"),
+            ("extension_officer", "Extension Officer"),
+            ("supervisor", "Supervisor"),
+            ("viewer", "Viewer"),
         ],
         label="Requested role",
         help_text="Your request will be reviewed by an administrator. You will not receive this role until approved.",

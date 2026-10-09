@@ -311,7 +311,7 @@ def test_tokens_css_uses_specified_palette_values():
     assert "#176B45" in css, "Primary green must be #176B45"
     assert "#0F3D2E" in css, "Deep forest must be #0F3D2E"
     assert "#E8F3ED" in css, "Soft sage must be #E8F3ED"
-    assert "#F7F9F7" in css, "Application background must be #F7F9F7 (warm-neutral sage tint)"
+    assert "#F4F7F4" in css, "Application background must be #F4F7F4 (warm-neutral sage tint)"
     assert "#256B8A" in css, "Sky/water blue must be #256B8A"
     assert "#17211D" in css, "Primary text must be #17211D (deep charcoal-green, not pure black)"
     assert "#DCE4DF" in css, "Border must be #DCE4DF (subtle neutral/green-gray)"
