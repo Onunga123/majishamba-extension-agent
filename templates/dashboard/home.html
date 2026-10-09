@@ -528,11 +528,12 @@
           {{ sig.forecast_summary|truncatewords:18 }}
         </p>
         <p class="text-sm mt-1" style="color: var(--color-text-secondary);">
-          Rainfall amount: <strong style="color: var(--color-text);">{{ weather_panel.rainfall_display }}</strong>
+          Rainfall: <strong style="color: var(--color-text);">{{ weather_panel.rainfall_display }}</strong>
         </p>
         <p class="text-xs mt-2" style="color: var(--color-text-muted);">
           Source: {{ sig.source_authority }}
-          {% if sig.publication_date %} · Issued: {{ sig.publication_date }}{% endif %}
+          {% if sig.publication_date %} · Forecast date: {{ sig.publication_date }}{% endif %}
+          {% if sig.valid_from and sig.valid_to and sig.valid_from != sig.valid_to %} · Valid: {{ sig.valid_from }} to {{ sig.valid_to }}{% elif sig.valid_from %} · Valid: {{ sig.valid_from }}{% endif %}
         </p>
         {% if weather_panel.is_regional %}
         <p class="text-xs rounded px-2 py-1 mt-2" style="background-color: var(--color-draft-soft); color: var(--color-draft-text); border: 1px solid var(--color-draft-border);">
@@ -585,7 +586,7 @@
         {% endwith %}
       {% else %}
         <p class="text-sm" style="color: var(--color-text);">{{ pest_panel.no_notice.message }}</p>
-        <p class="text-xs mt-2" style="color: var(--color-text-muted);">This does not mean pests are absent. Continue local scouting.</p>
+        <p class="text-xs mt-2" style="color: var(--color-text-muted);">This does not confirm that pests are absent. Continue local scouting.</p>
         <a href="{% url 'dashboard:data_sources' %}"
            class="inline-block text-xs hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
            style="color: var(--color-primary);">
@@ -597,15 +598,12 @@
     {# --- Agronomic guidance (sage surface — agricultural relationship) --- #}
     <div class="surface-guidance p-4">
       <h3 class="text-sm font-semibold mb-2" style="color: var(--color-success-text);">Agronomic guidance</h3>
-      <p class="text-sm" style="color: var(--color-text);">KALRO maize guidance currently unavailable</p>
+      <p class="text-sm" style="color: var(--color-text);">KALRO maize guidance is not yet authorized for use by the agent.</p>
       <p class="text-xs mt-2" style="color: var(--color-text-muted);">
-        This source has not yet been authorized for use.
-      </p>
-      <p class="text-xs mt-1" style="color: var(--color-text-muted);">
-        Status: Awaiting authorization
+        Status: Authorization pending
       </p>
       <p class="text-xs rounded px-2 py-1 mt-2" style="background-color: var(--color-draft-soft); color: var(--color-draft-text); border: 1px solid var(--color-draft-border);">
-        ⚠ Local planting dates not specified in this source.
+        ⚠ Local planting dates have not been verified in the currently available material.
       </p>
       <a href="{% url 'dashboard:guidance' %}"
          class="inline-block text-xs hover:underline mt-3 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"

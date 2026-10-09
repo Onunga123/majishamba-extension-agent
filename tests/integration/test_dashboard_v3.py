@@ -405,10 +405,10 @@ def test_agronomic_guidance_uses_user_friendly_wording_on_dashboard(officer_clie
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
     # User-friendly wording on the dashboard
-    assert "KALRO maize guidance currently unavailable" in html, (
+    assert "KALRO maize guidance is not yet authorized for use by the agent" in html, (
         "Dashboard must use user-friendly wording for KALRO guidance status"
     )
-    assert "Status: Awaiting authorization" in html or "Awaiting authorization" in html
+    assert "Status: Authorization pending" in html or "Authorization pending" in html
     # The technical 'permission-pending for KALRO maize manual ingestion' phrase
     # must NOT be on the dashboard — it's on /dashboard/guidance/ (progressive
     # disclosure)

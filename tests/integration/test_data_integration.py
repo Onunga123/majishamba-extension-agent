@@ -303,11 +303,11 @@ def test_dashboard_shows_kalro_permission_pending(officer_client):
     # The v3 wording is operational, not technical — the detailed licence phrase
     # is on /dashboard/guidance/ (progressive disclosure).
     assert "KALRO" in html, "Dashboard must mention KALRO for the guidance section"
-    assert "unavailable" in html.lower() or "awaiting authorization" in html.lower() or "permission pending" in html.lower(), (
+    assert "not yet authorized" in html.lower() or "authorization pending" in html.lower() or "permission pending" in html.lower(), (
         "Dashboard must indicate KALRO guidance is unavailable / awaiting authorization"
     )
     # The 'Local planting dates not specified' notice must still be present
-    assert "Local planting dates not specified in this source" in html
+    assert "Local planting dates have not been verified" in html
     # The detailed 'permission-pending for KALRO maize manual ingestion' phrase
     # is no longer on the dashboard — it's on the Guidance details page.
     # Verify the Guidance details page still has it.
@@ -342,7 +342,7 @@ def test_dashboard_shows_real_kmd_when_ingested(officer_client):
     assert "Kenya Meteorological Department" in html
     # "Rainfall amount: <strong>Not specified in this bulletin</strong>" — the
     # <strong> tag splits the string, so we check for the two parts separately.
-    assert "Rainfall amount:" in html
+    assert "Rainfall:" in html
     assert "Not specified in this bulletin" in html
     # Must NOT show the no-notice state when a real bulletin is loaded.
     assert "No current verified KMD bulletin" not in html
