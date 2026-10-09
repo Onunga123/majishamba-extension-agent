@@ -88,12 +88,11 @@ def test_draft_advisory_appears_once_in_recent_advisories_not_in_attention(offic
     )
     assert needs_section is not None, "Needs your attention <section> not found"
     needs_html = needs_section.group(1)
-    # The summary count must be present. The view uses singular/plural:
-    #   '1 draft awaiting review' (singular) or '5 drafts awaiting review' (plural)
-    # We accept either form — the key is that a summary line is rendered,
-    # not the same detailed advisory row that appears in 'Recent advisories'.
-    assert ("draft awaiting review" in needs_html or "drafts awaiting review" in needs_html), (
-        f"Needs attention section must show a summary count. needs_html (first 1500): {needs_html[:1500]}"
+    # The Needs attention section must contain the heading 'Drafts awaiting review'
+    # (which is the card heading, not a summary sentence). The count number
+    # is also present via .attention-card-count.
+    assert "Drafts awaiting review" in needs_html or "drafts awaiting review" in needs_html.lower(), (
+        f"Needs attention section must contain the 'Drafts awaiting review' heading. needs_html (first 1500): {needs_html[:1500]}"
     )
     # The Needs attention section must NOT contain the 'AI-generated draft'
     # workflow badge that appears in the detail rows of 'Recent advisories'

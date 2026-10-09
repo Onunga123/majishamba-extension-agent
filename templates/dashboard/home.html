@@ -25,78 +25,63 @@
   </div>
 </header>
 
-{# NEEDS YOUR ATTENTION — warm sage contextual surface (not another plain white card) #}
-<section class="surface-attention mb-8" aria-labelledby="needs-attention-heading">
-  <h2 id="needs-attention-heading" class="text-lg font-semibold mb-3" style="color: var(--color-forest);">
+{# NEEDS YOUR ATTENTION — three cards: amber drafts, neutral field visits, neutral tasks #}
+<section class="mb-8" aria-labelledby="needs-attention-heading">
+  <h2 id="needs-attention-heading" class="text-lg font-semibold mb-3" style="color: var(--color-text);">
     Needs your attention
   </h2>
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
-    {# --- Drafts awaiting review --- #}
-    <div class="attention-card {% if needs_attention.drafts_count > 0 %}has-attention{% else %}is-empty{% endif %}">
-      <div class="flex items-baseline justify-between">
-        <p class="attention-label">Drafts awaiting review</p>
-        <span class="attention-count">{{ needs_attention.drafts_count }}</span>
-      </div>
-      <p class="attention-summary">
-        {{ needs_attention.drafts_summary|default:"0 drafts awaiting review" }}
-      </p>
-      {% if needs_attention.drafts_count > 0 and can_approve %}
+    {# Card 1 — Drafts awaiting review (warm pale amber, most prominent) #}
+    <div class="attention-card-v2 attention-card-drafts">
+      <svg class="attention-card-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <circle cx="12" cy="14" r="4"/>
+        <polyline points="12 12 12 14 13.5 14"/>
+      </svg>
+      <p class="attention-card-heading">Drafts awaiting review</p>
+      <p class="attention-card-count">{{ needs_attention.drafts_count }}</p>
+      {% if needs_attention.drafts_count > 0 %}
       <a href="{% url 'advisories:list' %}?status=draft"
-         class="inline-block mt-2 text-sm font-medium hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
-         style="color: var(--color-primary);">
+         class="attention-card-action">
         Review drafts →
       </a>
-      {% elif needs_attention.drafts_count > 0 %}
-      <a href="{% url 'advisories:list' %}?status=draft"
-         class="inline-block mt-2 text-sm hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
-         style="color: var(--color-text-secondary);">
-        View drafts →
-      </a>
       {% else %}
-      <p class="text-xs mt-2 italic" style="color: var(--color-text-muted);">No drafts to review.</p>
+      <p class="attention-card-status">No drafts pending</p>
       {% endif %}
     </div>
 
-    {# --- Field visits required --- #}
-    <div class="attention-card {% if needs_attention.field_visits_count > 0 %}has-field-visit{% else %}is-empty{% endif %}">
-      <div class="flex items-baseline justify-between">
-        <p class="attention-label">Field visits required</p>
-        <span class="attention-count">{{ needs_attention.field_visits_count }}</span>
-      </div>
-      <p class="attention-summary">
-        {{ needs_attention.field_visits_summary|default:"0 approved advisories awaiting field verification" }}
-      </p>
+    {# Card 2 — Field visits required (neutral pale green-gray) #}
+    <div class="attention-card-v2 attention-card-neutral">
+      <svg class="attention-card-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </svg>
+      <p class="attention-card-heading">Field visits required</p>
+      <p class="attention-card-count">{{ needs_attention.field_visits_count }}</p>
       {% if needs_attention.field_visits_count > 0 %}
-      <a href="{% url 'tasks:list' %}"
-         class="inline-block mt-2 text-sm font-medium hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
-         style="color: var(--color-primary);">
-        Open tasks →
-      </a>
+      <a href="{% url 'tasks:list' %}" class="attention-card-action">Open tasks →</a>
       {% else %}
-      <p class="text-xs mt-2 italic" style="color: var(--color-text-muted);">No field visits pending.</p>
+      <p class="attention-card-status">No visits pending</p>
       {% endif %}
     </div>
 
-    {# --- Pending tasks --- #}
-    <div class="attention-card {% if needs_attention.pending_tasks_count > 0 %}has-tasks{% else %}is-empty{% endif %}">
-      <div class="flex items-baseline justify-between">
-        <p class="attention-label">Pending tasks</p>
-        <span class="attention-count">{{ needs_attention.pending_tasks_count }}</span>
-      </div>
-      <p class="attention-summary">
-        {{ needs_attention.pending_tasks_summary|default:"0 pending tasks" }}
-      </p>
+    {# Card 3 — Pending tasks (neutral pale green-gray) #}
+    <div class="attention-card-v2 attention-card-neutral">
+      <svg class="attention-card-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="9 11 12 14 22 4"/>
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+      </svg>
+      <p class="attention-card-heading">Pending tasks</p>
+      <p class="attention-card-count">{{ needs_attention.pending_tasks_count }}</p>
       {% if needs_attention.pending_tasks_count > 0 %}
-      <a href="{% url 'tasks:list' %}"
-         class="inline-block mt-2 text-sm font-medium hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
-         style="color: var(--color-primary);">
-        All tasks →
-      </a>
+      <a href="{% url 'tasks:list' %}" class="attention-card-action">All tasks →</a>
       {% else %}
-      <p class="text-xs mt-2 italic" style="color: var(--color-text-muted);">No pending tasks.</p>
+      <p class="attention-card-status">No tasks pending</p>
       {% endif %}
     </div>
+
   </div>
 </section>
 

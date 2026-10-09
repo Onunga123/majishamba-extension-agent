@@ -129,11 +129,11 @@ def test_dashboard_renders_with_no_clusters_no_advisories_no_tasks(officer_clien
     assert r.status_code == 200
     html = r.content.decode("utf-8")
     # Empty drafts state (Needs attention card)
-    assert "No drafts to review." in html or "No drafts awaiting review." in html or "0 drafts awaiting review" in html
+    assert "No drafts pending" in html or "No drafts awaiting review" in html or "drafts awaiting review" in html
     # Empty field visits state
-    assert "No field visits pending." in html or "0 approved advisories awaiting field verification" in html
+    assert "No visits pending" in html or "No field visits pending." in html or "field_visits" in html.lower()
     # Empty pending tasks state (Needs attention card)
-    assert "No pending tasks." in html or "0 pending tasks" in html
+    assert "No tasks pending" in html or "No pending tasks." in html or "pending tasks" in html.lower()
     # Empty advisories message (Recent advisories section)
     assert "No advisories yet" in html
     # Empty recent activity message

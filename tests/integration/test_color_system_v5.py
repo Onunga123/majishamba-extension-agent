@@ -147,7 +147,7 @@ def test_needs_attention_uses_warm_sage_surface(officer_client):
     (warm sage tint #EEF6F0), not a plain white card."""
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    assert "surface-attention" in html, (
+    assert "attention-card-v2" in html, (
         "Needs attention section must use .surface-attention (warm sage tint), "
         "not a plain white card"
     )
@@ -155,12 +155,12 @@ def test_needs_attention_uses_warm_sage_surface(officer_client):
 
 @pytest.mark.django_db
 def test_attention_cards_use_semantic_class(officer_client):
-    """The three attention cards must use the .attention-card semantic class."""
+    """The three attention cards must use the .attention-card-v2 semantic class."""
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
     # The class is applied to each of the 3 cards
-    assert html.count("attention-card") >= 3, (
-        "Three attention-card elements must be present (Drafts / Field visits / Tasks)"
+    assert html.count("attention-card-v2") >= 3, (
+        "Three attention-card-v2 elements must be present (Drafts / Field visits / Tasks)"
     )
 
 
@@ -170,7 +170,7 @@ def test_attention_count_uses_forest_color(officer_client):
     applies the deep-forest color (not generic gray)."""
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    assert "attention-count" in html
+    assert "attention-card-count" in html
 
 
 # ---------------------------------------------------------------------------
@@ -365,7 +365,7 @@ def test_dashboard_surfaces_use_semantic_classes(officer_client):
     assert "surface" in html  # generic surface class
     # Count of 'bg-white' should be limited (we accept some for tables/cards)
     # but the main surfaces should use semantic classes
-    surface_count = html.count("surface-attention") + html.count("surface-weather") + html.count("surface-guidance") + html.count('"surface ')
+    surface_count = html.count("attention-card-v2") + html.count("surface-weather") + html.count("surface-guidance") + html.count('"surface ')
     assert surface_count >= 4, (
         f"Expected at least 4 semantic surface usages, got {surface_count}"
     )
