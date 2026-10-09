@@ -726,11 +726,16 @@ class ClusterMapView(LoginRequiredMixin, View):
                 })
                 unmapped_count += 1
         cfg = settings.MAJISHAMBA
-        tile_url = cfg.get("MAP_BASEMAP_TILES", "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png")
+        # Use OpenStreetMap raster tiles (production-ready, no API key required)
+        # Fall back to Stadia Maps if configured with an API key
         api_key = cfg.get("MAP_API_KEY", "")
-        if api_key and "{api_key}" in tile_url:
-            tile_url = tile_url.replace("{api_key}", api_key)
-        tile_url = tile_url.replace("{r}", "")
+        stadia_url = cfg.get("MAP_BASEMAP_TILES", "")
+        if api_key and stadia_url and "{api_key}" in stadia_url:
+            tile_url = stadia_url.replace("{api_key}", api_key).replace("{r}", "")
+            attribution = cfg.get("MAP_BASEMAP_ATTRIBUTION", "© Stadia Maps © OpenMapTiles © OpenStreetMap contributors")
+        else:
+            tile_url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution = "© OpenStreetMap contributors"
         return render(request, "dashboard/map.html", {
             "clusters": clusters,
             "localities": localities_for_template,
@@ -738,8 +743,8 @@ class ClusterMapView(LoginRequiredMixin, View):
             "unmapped_count": unmapped_count,
             "total_count": len(clusters),
             "tile_url": tile_url,
-            "attribution": cfg.get("MAP_BASEMAP_ATTRIBUTION", "© Stadia Maps © OpenMapTiles © OpenStreetMap contributors"),
-            "max_zoom": cfg.get("MAP_MAX_ZOOM", 20),
+            "attribution": attribution,
+            "max_zoom": cfg.get("MAP_MAX_ZOOM", 19),
             "can_request_advisory": bool(request.user.is_authenticated and request.user.is_officer()),
         })
 

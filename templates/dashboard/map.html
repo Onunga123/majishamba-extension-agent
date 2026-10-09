@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Map — Kachieng’ AI Agent{% endblock %}
 {% block content %}
-{# Page header: Map h1 + Kachieng’ Ward · Nyatike Sub-County #}
+{# Page header #}
 <header class="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
   <div>
     <h1 class="text-2xl font-semibold text-stone-900">Map</h1>
@@ -23,13 +23,7 @@
 </header>
 
 <div class="bg-white p-4 rounded shadow border border-stone-200">
-  <p class="text-sm text-stone-600 mb-3">
-    Real geographic basemap and locality reference points.
-    Farmer groups, household records and plot histories are synthetic.
-    Locality names confirmed by the project owner, who is from the area.
-  </p>
-
-  {# Map container with explicit height #}
+  {# Map container #}
   <div id="map-container" style="height: 500px; width: 100%;" class="rounded border border-stone-300 relative">
     <div id="map" class="absolute inset-0 rounded"></div>
     <div id="map-loading" class="absolute inset-0 flex items-center justify-center bg-stone-100 rounded">
@@ -38,7 +32,7 @@
     <div id="map-fallback" class="hidden absolute inset-0 flex items-center justify-center bg-amber-50 border border-amber-300 rounded p-4">
       <div class="text-center">
         <strong class="text-amber-900">Basemap could not be loaded.</strong>
-        <p class="text-sm text-amber-800 mt-1">The locality list and advisory workflows are still usable.</p>
+        <p class="text-sm text-amber-800 mt-1">The locality list below is still usable.</p>
       </div>
     </div>
     <div id="map-nogl" class="hidden absolute inset-0 flex items-center justify-center bg-red-50 border border-red-300 rounded p-4">
@@ -49,16 +43,17 @@
     </div>
   </div>
 
-  {# Legend #}
+  {# Attribution #}
   <div class="flex items-center gap-4 mt-2 text-xs text-stone-500">
-    <span>🟢 Owner-confirmed reference point</span>
-    <span>{{ attribution|default:"© Stadia Maps © OpenMapTiles © OpenStreetMap contributors" }}</span>
+    <span>{{ attribution|default:"© OpenStreetMap contributors" }}</span>
   </div>
 
-  {# Locality list — always usable, even if the map fails #}
-  <h2 class="font-semibold mt-5 mb-2">Locality list ({{ total_count }} localities)</h2>
+  {# Locality list #}
+  <h2 class="font-semibold mt-5 mb-2">Localities ({{ total_count }})</h2>
   <input type="text" id="locality-search" placeholder="Filter by ID, name, or locality…"
-         class="w-full border border-stone-300 rounded px-3 py-2 text-sm mb-2">
+         class="w-full border border-stone-300 rounded px-3 py-2 text-sm mb-2"
+         aria-label="Filter localities">
+  <div class="overflow-x-auto">
   <table class="w-full text-sm" id="locality-table">
     <thead class="bg-stone-100">
       <tr>
@@ -72,7 +67,7 @@
     </thead>
     <tbody>
     {% for loc in localities %}
-      <tr class="border-t border-stone-200 locality-row"
+      <tr class="border-t border-stone-200 locality-row cursor-pointer hover:bg-stone-50"
           data-cluster-id="{{ loc.cluster_id|lower }}"
           data-search="{{ loc.cluster_id|lower }} {{ loc.name|lower }} {{ loc.locality|lower }}"
           {% if loc.has_real_coords %}
@@ -85,25 +80,23 @@
         <td class="px-2 py-1 text-xs">
           {% if loc.has_real_coords %}
             <span class="text-emerald-700">{{ loc.lat|floatformat:4 }}, {{ loc.lon|floatformat:4 }}</span>
-            <br><span class="text-xs text-stone-400">{{ loc.coordinate_type }}</span>
           {% else %}
             <span class="text-stone-500 italic">{{ loc.notes|default:"Coordinates not yet recorded" }}</span>
           {% endif %}
         </td>
         <td class="px-2 py-1 text-xs">
           {% if loc.has_real_coords %}
-            {{ loc.coordinate_source }}
-            {% if loc.source_url %}<br><a href="{{ loc.source_url }}" target="_blank" rel="noopener" class="text-emerald-700 hover:underline">View OSM ↗</a>{% endif %}
+            {{ loc.coordinate_source|default:"—" }}
           {% else %}
             —
           {% endif %}
         </td>
-        <td class="px-2 py-1 text-xs">
+        <td class="px-2 py-1 text-xs whitespace-nowrap">
           {% if loc.has_real_coords %}
             <button type="button" class="text-emerald-700 hover:underline focus-map" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}">📍 Focus</button>
           {% endif %}
           {% if can_request_advisory %}
-            <a href="{% url 'advisories:request' %}" class="text-emerald-700 hover:underline ml-1">Advisory</a>
+            <a href="{% url 'advisories:request' %}?cluster={{ loc.cluster_id }}" class="text-emerald-700 hover:underline ml-1">Request</a>
           {% endif %}
           <a href="/clusters/{{ loc.cluster_id }}/" class="text-stone-600 hover:underline ml-1">Details</a>
         </td>
@@ -111,18 +104,11 @@
     {% endfor %}
     </tbody>
   </table>
-
-  <p class="text-xs text-stone-500 mt-4">
-    Basemap: <strong>Stadia Maps</strong> (Alidade Smooth) — free for localhost development.
-    For production, register at <a href="https://stadiamaps.com/" target="_blank" rel="noopener" class="text-emerald-700 hover:underline">stadiamaps.com</a>
-    and set <code>KACHIENG_MAP_API_KEY</code> in your environment.
-    Attribution: {{ attribution|default:"© Stadia Maps © OpenMapTiles © OpenStreetMap contributors" }}.
-  </p>
+  </div>
 </div>
 
 <script>
 (function() {
-  // Locality data from the view — already filtered: only approved coords have lat/lon.
   const localities = [
     {% for loc in localities %}
     {
@@ -131,11 +117,8 @@
       locality: "{{ loc.locality|escapejs }}",
       lat: {% if loc.has_real_coords %}{{ loc.lat }}{% else %}null{% endif %},
       lon: {% if loc.has_real_coords %}{{ loc.lon }}{% else %}null{% endif %},
-      coordinate_type: "{{ loc.coordinate_type|default:''|escapejs }}",
       coordinate_source: "{{ loc.coordinate_source|default:''|escapejs }}",
-      source_url: "{{ loc.source_url|default:''|escapejs }}",
       households: {{ loc.households }},
-      verified_by: "{{ loc.verified_by|default:''|escapejs }}",
       has_real_coords: {% if loc.has_real_coords %}true{% else %}false{% endif %},
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
@@ -147,7 +130,6 @@
 
   const mappable = localities.filter(l => l.lat !== null && l.lon !== null);
 
-  // Check WebGL support
   function hasWebGL() {
     try {
       const canvas = document.createElement('canvas');
@@ -168,6 +150,8 @@
   }
 
   let map;
+  let markers = {};
+
   try {
     map = new maplibregl.Map({
       container: 'map',
@@ -193,31 +177,26 @@
       maxZoom: maxZoom,
     });
 
-    // Hide loading once map is ready
     map.on('load', () => {
       document.getElementById('map-loading').classList.add('hidden');
 
-      // Add markers for mapped localities
       const bounds = new maplibregl.LngLatBounds();
+      const esc = s => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
       mappable.forEach(loc => {
-        // Safely escape text for popup
-        const esc = s => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         const popupHTML = [
           '<div class="text-sm">',
           '<strong>' + esc(loc.cluster_id) + '</strong> — ' + esc(loc.name) + '<br>',
           '<strong>Locality:</strong> ' + esc(loc.locality) + '<br>',
-          '<strong>Reference type:</strong> ' + esc(loc.coordinate_type) + '<br>',
-          '<strong>Coordinate source:</strong> ' + esc(loc.coordinate_source) + '<br>',
-          '<strong>Households (synthetic):</strong> ' + loc.households + '<br>',
-          loc.source_url ? '<a href="' + esc(loc.source_url) + '" target="_blank" rel="noopener">View on OSM ↗</a><br>' : '',
-          '<em>Locality reference point — not the location of synthetic households.</em>',
+          '<strong>Source:</strong> ' + esc(loc.coordinate_source) + '<br>',
           '</div>',
         ].join('');
         const popup = new maplibregl.Popup({ maxWidth: '300px' }).setHTML(popupHTML);
-        const marker = new maplibregl.Marker({ color: '#047857' })
-          .setLngLat([loc.lon, loc.lat])  // GeoJSON order: [lng, lat]
+        const marker = new maplibregl.Marker({ color: '#176B45' })
+          .setLngLat([loc.lon, loc.lat])
           .setPopup(popup)
           .addTo(map);
+        markers[loc.cluster_id] = marker;
         bounds.extend([loc.lon, loc.lat]);
       });
 
@@ -226,23 +205,6 @@
       }
     });
 
-    // Error handling: don't hide the map for a single tile error.
-    // Only show fallback if the entire source fails to load.
-    let sourceErrorCount = 0;
-    map.on('error', (e) => {
-      // Suppress individual tile errors — they're non-fatal.
-      // Only react to source-level errors.
-      if (e && e.sourceId === 'osm') {
-        sourceErrorCount++;
-        if (sourceErrorCount > 20) {
-          // Persistent source failure — show fallback but keep the list.
-          document.getElementById('map-loading').classList.add('hidden');
-          // Don't hide the map — the markers may still be visible.
-        }
-      }
-    });
-
-    // Add zoom controls
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
   } catch(err) {
@@ -251,10 +213,28 @@
     document.getElementById('map-fallback').classList.remove('hidden');
   }
 
-  // Locality list click → focus map marker
+  // Click on locality row → fly to marker
+  document.querySelectorAll('.locality-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') return;
+      const lat = parseFloat(row.dataset.lat);
+      const lon = parseFloat(row.dataset.lon);
+      const clusterId = row.dataset.cluster_id;
+      if (map && !isNaN(lat) && !isNaN(lon)) {
+        map.flyTo({ center: [lon, lat], zoom: 13 });
+        // Open popup for this marker
+        if (markers[clusterId]) {
+          markers[clusterId].togglePopup();
+        }
+      }
+    });
+  });
+
+  // Focus button → fly to marker
   document.querySelectorAll('.focus-map').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       const lat = parseFloat(btn.dataset.lat);
       const lon = parseFloat(btn.dataset.lon);
       if (map && !isNaN(lat) && !isNaN(lon)) {
