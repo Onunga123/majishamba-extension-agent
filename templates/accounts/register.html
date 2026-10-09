@@ -1,60 +1,43 @@
 {% extends "base_auth.html" %}
 {% block title %}Create account — Kachieng’ AI Agent{% endblock %}
 {% block content %}
-<div class="auth-split">
-  {# Brand panel (desktop only) #}
-  <div class="auth-brand-panel">
-    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="auth-brand-panel-mark" aria-hidden="true">
-      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-      <path d="M2 17l10 5 10-5"/>
-      <path d="M2 12l10 5 10-5"/>
-    </svg>
-    <p class="auth-brand-panel-name">Kachieng’ AI Agent</p>
-    <p class="auth-brand-panel-subtitle">Climate-smart agricultural advisories for extension officers in Kachieng’ Ward, Migori County, Kenya.</p>
-    <p class="auth-brand-panel-tagline">Account requests are reviewed by an administrator before activation. Your requested role does not grant access until approved.</p>
+<div class="auth-card">
+  <h1 class="auth-card-heading">Create your account</h1>
+  <p class="auth-card-supporting">
+    Register as an extension officer, supervisor, or viewer. Your account will be reviewed by an administrator before activation.
+  </p>
+
+  {% if form.non_field_errors %}
+    <div class="auth-error-alert mt-4" role="alert" aria-live="assertive">
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+
+  <form method="post" class="auth-form" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="auth-field">
+        <label class="auth-label" for="{{ field.id_for_label }}">
+          {{ field.label }}{% if field.field.required %}<span class="required-mark" aria-hidden="true">*</span>{% endif %}
+        </label>
+        {{ field }}
+        {% if field.help_text %}<p class="auth-help-text">{{ field.help_text }}</p>{% endif %}
+        {% if field.errors %}<p class="auth-field-error" role="alert">{{ field.errors|join:", " }}</p>{% endif %}
+      </div>
+    {% endfor %}
+    <button type="submit" class="btn-primary auth-submit">
+      Create account
+    </button>
+  </form>
+
+  <div class="auth-card-footer">
+    <p>
+      Already have an account? <a href="{% url 'accounts:login' %}" class="auth-card-footer-link">Sign in</a>
+    </p>
   </div>
 
-  {# Form panel #}
-  <div class="auth-form-panel">
-    <div class="auth-card">
-      <h1 class="auth-card-heading">Create your account</h1>
-      <p class="auth-card-supporting">
-        Register as an extension officer, supervisor, or viewer. Your account will be reviewed by an administrator before activation.
-      </p>
-
-      {% if form.non_field_errors %}
-        <div class="auth-error-alert mt-4" role="alert" aria-live="assertive">
-          {{ form.non_field_errors }}
-        </div>
-      {% endif %}
-
-      <form method="post" class="auth-form" novalidate>
-        {% csrf_token %}
-        {% for field in form %}
-          <div class="auth-field">
-            <label class="auth-label" for="{{ field.id_for_label }}">
-              {{ field.label }}{% if field.field.required %}<span class="required-mark" aria-hidden="true">*</span>{% endif %}
-            </label>
-            {{ field }}
-            {% if field.help_text %}<p class="auth-help-text">{{ field.help_text }}</p>{% endif %}
-            {% if field.errors %}<p class="auth-field-error" role="alert">{{ field.errors|join:", " }}</p>{% endif %}
-          </div>
-        {% endfor %}
-        <button type="submit" class="btn-primary auth-submit">
-          Create account
-        </button>
-      </form>
-
-      <div class="auth-card-footer">
-        <p>
-          Already have an account? <a href="{% url 'accounts:login' %}" class="auth-card-footer-link">Sign in</a>
-        </p>
-      </div>
-
-      <div class="auth-privacy-note">
-        <p><strong>Privacy:</strong> Your information is used only for account administration. Passwords are stored as hashes — never in plain text. Your requested role does not grant access until an administrator approves it.</p>
-      </div>
-    </div>
+  <div class="auth-privacy-note">
+    <p><strong>Privacy:</strong> Your information is used only for account administration. Passwords are stored as hashes — never in plain text. Your requested role does not grant access until an administrator approves it.</p>
   </div>
 </div>
 {% endblock %}
