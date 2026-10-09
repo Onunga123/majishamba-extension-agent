@@ -321,10 +321,8 @@ def _cluster_contextual_action(cluster_stats: dict, can_request_advisory: bool, 
                 "primary_url": f"/advisories/request/?cluster={cluster_id}",
                 "primary_aria": f"Request advisory for {cluster_id}",
             }
-            secondary.insert(0, {
-                "label": "Request advisory",
-                "url": f"/advisories/request/?cluster={cluster_id}",
-            })
+            # "Request advisory" is the primary action — do NOT duplicate it
+            # in the secondary ⋮ menu (both would link to the same URL).
     elif latest_status == Advisory.Status.DRAFT:
         # Draft → Review (approvers go to approval gate, others to detail)
         if can_approve:
