@@ -1,41 +1,124 @@
 {% extends "base.html" %}
 {% block title %}Audit — Kachieng’ AI Agent{% endblock %}
 {% block content %}
-{# Page header: Audit h1 + System activity and accountability records #}
+{# Page header #}
 <header class="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
   <div>
     <h1 class="text-2xl font-semibold text-stone-900">Audit</h1>
     <p class="text-sm text-stone-600 mt-1">System activity and accountability records</p>
   </div>
-  <a href="{% url 'audit:export_csv' %}" class="inline-flex items-center justify-center px-3 py-2 min-h-[36px] text-sm bg-stone-700 text-white rounded hover:bg-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 self-start">
-    ⬇ Export CSV
+  <a href="{% url 'audit:export_csv' %}{% if from_date %}?from={{ from_date }}{% if to_date %}&to={{ to_date }}{% endif %}{% elif to_date %}?to={{ to_date }}{% endif %}"
+     class="inline-flex items-center justify-center px-3 py-2 min-h-[36px] text-sm bg-stone-700 text-white rounded hover:bg-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 self-start whitespace-nowrap">
+    ⬇ Export CSV{% if from_date or to_date %} (filtered){% endif %}
   </a>
 </header>
 
+{# Search + filters #}
+<form method="get" class="flex flex-col sm:flex-row gap-2 mb-3" aria-label="Filter audit events">
+  <div class="flex-1">
+    <label for="audit-search" class="sr-only">Search audit events</label>
+    <input id="audit-search" name="q" type="search" value="{{ search_q }}"
+           placeholder="Search by action, target, or actor name"
+           class="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition">
+  </div>
+  <select name="category" class="border border-stone-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition">
+    <option value="">All events</option>
+    <option value="human" {% if category_filter == 'human' %}selected{% endif %}>Human activity</option>
+    <option value="system" {% if category_filter == 'system' %}selected{% endif %}>System / agent</option>
+    <option value="approval" {% if category_filter == 'approval' %}selected{% endif %}>Approvals</option>
+  </select>
+  <input type="date" name="from" value="{{ from_date }}" class="border border-stone-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition" aria-label="From date">
+  <input type="date" name="to" value="{{ to_date }}" class="border border-stone-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition" aria-label="To date">
+  <button type="submit" class="px-4 py-2 min-h-[36px] text-sm bg-white border border-stone-300 rounded text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+    Filter
+  </button>
+  {% if search_q or category_filter or from_date or to_date %}
+  <a href="{% url 'audit:list' %}" class="px-3 py-2 text-sm text-stone-600 hover:text-stone-900 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded self-center" aria-label="Clear filters">
+    ✕ Clear
+  </a>
+  {% endif %}
+</form>
+
 <div class="bg-white p-4 rounded shadow border border-stone-200">
+  {% if page_obj %}
+  <p class="text-xs text-stone-500 mb-2">
+    Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} events
+  </p>
+  {% endif %}
+  <div class="overflow-x-auto">
   <table class="w-full text-sm">
     <thead class="bg-stone-100">
       <tr>
         <th class="text-left px-2 py-1">Timestamp</th>
         <th class="text-left px-2 py-1">Actor</th>
-        <th class="text-left px-2 py-1">Action</th>
-        <th class="text-left px-2 py-1">Tool</th>
+        <th class="text-left px-2 py-1">Activity</th>
+        <th class="text-left px-2 py-1">Object</th>
         <th class="text-left px-2 py-1">Approval</th>
+        {% if is_staff %}
+        <th class="text-left px-2 py-1">Technical detail</th>
+        {% endif %}
       </tr>
     </thead>
     <tbody>
-    {% for e in events %}
-      <tr class="border-t border-stone-200">
-        <td class="px-2 py-1 font-mono text-xs">{{ e.created_at|date:"Y-m-d H:i:s" }}</td>
-        <td class="px-2 py-1">{{ e.actor|default:"system" }}</td>
-        <td class="px-2 py-1">{{ e.action }}</td>
-        <td class="px-2 py-1 text-xs">{{ e.tool_name }}</td>
-        <td class="px-2 py-1 text-xs">{{ e.approval_status }}</td>
+    {% for fe in formatted_events %}
+      <tr class="border-t border-stone-200 {% if fe.is_technical %}opacity-75{% endif %}">
+        <td class="px-2 py-1 font-mono text-xs">{{ fe.event.created_at|date:"Y-m-d H:i:s" }}</td>
+        <td class="px-2 py-1">{{ fe.actor_display }}</td>
+        <td class="px-2 py-1">
+          <span class="font-medium">{{ fe.action_human }}</span>
+          {% if fe.is_technical %}
+          <span class="ml-1 inline-flex items-center px-1.5 py-0.5 text-xs rounded-full bg-stone-100 text-stone-600 font-medium">system</span>
+          {% endif %}
+        </td>
+        <td class="px-2 py-1 text-xs">{{ fe.object_label|default:"—" }}</td>
+        <td class="px-2 py-1">
+          {% if fe.approval_label == "Approved" %}
+          <span class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium bg-emerald-100 text-emerald-800">Approved</span>
+          {% elif fe.approval_label == "Rejected" %}
+          <span class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium bg-red-100 text-red-800">Rejected</span>
+          {% elif fe.approval_label == "Deferred" %}
+          <span class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium bg-amber-100 text-amber-900">Deferred</span>
+          {% elif fe.approval_label == "Needs more evidence" %}
+          <span class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium bg-amber-100 text-amber-900">Needs more evidence</span>
+          {% elif fe.approval_label == "Pending" %}
+          <span class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium bg-amber-100 text-amber-900">Pending</span>
+          {% else %}
+          <span class="text-xs text-stone-400">{{ fe.approval_label }}</span>
+          {% endif %}
+        </td>
+        {% if is_staff %}
+        <td class="px-2 py-1 text-xs text-stone-500">
+          <span class="font-mono">{{ fe.event.action }}</span>
+          {% if fe.event.tool_name %}<span class="block mt-0.5">tool: {{ fe.event.tool_name }}</span>{% endif %}
+        </td>
+        {% endif %}
       </tr>
     {% empty %}
-      <tr><td colspan="5" class="px-2 py-3 text-stone-500 italic">No audit events recorded yet.</td></tr>
+      <tr><td colspan="{% if is_staff %}6{% else %}5{% endif %}" class="px-2 py-3 text-stone-500 italic">No audit events match your filter.</td></tr>
     {% endfor %}
     </tbody>
   </table>
+  </div>
+
+  {# Pagination #}
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="flex items-center justify-between mt-3 pt-3 border-t border-stone-200">
+    <div class="text-xs text-stone-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
+    <div class="flex gap-1">
+      {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if from_date %}&from={{ from_date }}{% endif %}{% if to_date %}&to={{ to_date }}{% endif %}"
+         class="px-3 py-1 text-xs rounded border border-stone-300 bg-white text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+        ← Previous
+      </a>
+      {% endif %}
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if from_date %}&from={{ from_date }}{% endif %}{% if to_date %}&to={{ to_date }}{% endif %}"
+         class="px-3 py-1 text-xs rounded border border-stone-300 bg-white text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+        Next →
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
