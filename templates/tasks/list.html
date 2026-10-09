@@ -31,13 +31,23 @@
     {% for t in tasks %}
       <tr class="border-t border-stone-200">
         <td class="px-2 py-1 font-mono">Task {{ t.id }}</td>
-        <td class="px-2 py-1 font-mono">#{{ t.approved_advisory_id }}</td>
+        <td class="px-2 py-1 font-mono"><a href="{% url 'advisories:detail' t.approved_advisory_id %}" class="text-emerald-700 hover:underline">Advisory {{ t.approved_advisory_id }}</a></td>
         <td class="px-2 py-1">{{ t.approved_advisory.cluster.locality|default:"—" }}</td>
-        <td class="px-2 py-1">{{ t.owner|default:"—" }}</td>
+        <td class="px-2 py-1">{% if t.owner %}{{ t.owner.display_name }}{% else %}Unassigned{% endif %}</td>
         <td class="px-2 py-1">{{ t.get_task_type_display }}</td>
         <td class="px-2 py-1">{{ t.deadline|default:"(none)" }}</td>
-        <td class="px-2 py-1">{{ t.get_status_display }}</td>
-        <td class="px-2 py-1 text-right"><a href="{% url 'tasks:detail' t.id %}" class="text-emerald-700 hover:underline">open</a></td>
+        <td class="px-2 py-1">
+          <span class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium
+            {% if t.status == 'completed' %}bg-emerald-100 text-emerald-800
+            {% elif t.status == 'verified' %}bg-emerald-100 text-emerald-800
+            {% elif t.status == 'closed' %}bg-stone-100 text-stone-700
+            {% elif t.status == 'cancelled' %}bg-red-100 text-red-800
+            {% elif t.status == 'in_progress' %}bg-amber-100 text-amber-900
+            {% else %}bg-amber-100 text-amber-900{% endif %}">
+            {{ t.get_status_display }}
+          </span>
+        </td>
+        <td class="px-2 py-1 text-right"><a href="{% url 'tasks:detail' t.id %}" class="text-emerald-700 hover:underline">Open task</a></td>
       </tr>
     {% empty %}
       <tr><td colspan="8" class="px-2 py-3 text-stone-500 italic">No tasks yet.</td></tr>
