@@ -353,7 +353,7 @@ def test_audit_page_has_technical_detail_for_authorized_users(supervisor_client)
 @pytest.mark.django_db
 def test_dashboard_section_ordering(officer_client):
     """The dashboard sections must appear in the v3-specified order:
-    1. Page header (Kachieng Ward)
+    1. Page header (Kachieng’ Ward)
     2. Needs your attention
     3. Request advisory (primary CTA)
     4. Clusters
@@ -370,7 +370,7 @@ def test_dashboard_section_ordering(officer_client):
 
     # Find the position of each section heading in the rendered HTML
     sections = [
-        "Kachieng Ward",           # 1. Header
+        "Kachieng’ Ward",           # 1. Header
         "Needs your attention",    # 2. Attention
         "Request a climate-smart advisory",  # 3. Action
         "Clusters",                # 4. Operational data

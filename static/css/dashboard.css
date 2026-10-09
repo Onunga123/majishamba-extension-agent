@@ -1118,3 +1118,92 @@ body.auth-page {
   color: var(--color-text-muted);
   padding: 1rem 1rem 1.5rem;
 }
+
+/* ============================================================
+   V7 AUTH VISUAL ENHANCEMENT
+   ============================================================
+   Stronger visual design: deep forest brand panel + refined form
+   surface. The split layout gives the auth pages more visual weight
+   while remaining calm and professional.
+   ============================================================ */
+
+/* Auth split layout: brand panel + form panel (desktop only) */
+@media (min-width: 768px) {
+  .auth-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    max-width: 56rem;
+    margin: 0 auto;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-border);
+  }
+  .auth-split .auth-brand-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 2.5rem 2rem;
+    background-color: var(--color-forest);
+    color: var(--color-text-on-forest);
+    min-height: 28rem;
+  }
+  .auth-split .auth-form-panel {
+    padding: 2.5rem 2.25rem;
+    background-color: var(--color-surface);
+  }
+  /* On desktop, the auth-card inside the form panel doesn't need its own card styling */
+  .auth-split .auth-form-panel .auth-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    border-radius: 0;
+  }
+}
+@media (max-width: 767px) {
+  .auth-split {
+    max-width: 28rem;
+    margin: 0 auto;
+  }
+  .auth-split .auth-brand-panel {
+    display: none; /* hidden on mobile — the header already shows the brand */
+  }
+  .auth-split .auth-form-panel {
+    padding: 0;
+  }
+  .auth-split .auth-form-panel .auth-card {
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+/* Brand panel content (desktop only) */
+.auth-brand-panel-mark {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--color-text-on-forest);
+  margin-bottom: 1.5rem;
+  opacity: 0.9;
+}
+.auth-brand-panel-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-on-forest);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+.auth-brand-panel-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-forest-muted);
+  margin-top: 0.5rem;
+  line-height: 1.5;
+  max-width: 18rem;
+}
+.auth-brand-panel-tagline {
+  font-size: 0.8125rem;
+  color: var(--color-forest-muted);
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  line-height: 1.6;
+}

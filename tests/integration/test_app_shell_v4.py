@@ -9,9 +9,9 @@ Covers the explicit v4 spec requirements:
   3. Advisory count badge is subtle + has accessible label.
   4. User identity moved to a user menu on the right (Profile + Logout).
      Logout is NOT a prominent primary action.
-  5. Page header: 'Dashboard' h1 + 'Kachieng Ward / Nyatike Sub-County ·
+  5. Page header: 'Dashboard' h1 + 'Kachieng’ Ward / Nyatike Sub-County ·
      Migori County' + 'Updated HH:MM · Refresh' on the right.
-  6. The geographic subtitle 'Kachieng Ward · Nyatike Sub-County · Migori
+  6. The geographic subtitle 'Kachieng’ Ward · Nyatike Sub-County · Migori
      County, Kenya' is NOT repeated in the global header (it lives in the
      page header now).
   7. Contextual page headers for each major page (Advisories, Tasks, Audit,
@@ -43,19 +43,19 @@ def test_global_header_shows_application_name(officer_client):
     advisories' — the application name identifies the product."""
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    assert "Kachieng AI Agent" in html, "Global header must show 'Kachieng AI Agent'"
+    assert "Kachieng’ AI Agent" in html, "Global header must show 'Kachieng AI Agent'"
     assert "Climate-smart advisories" in html, "Global header must show 'Climate-smart advisories'"
 
 
 @pytest.mark.django_db
 def test_global_header_does_not_repeat_geographic_subtitle(officer_client):
     """The global header must NOT contain the full geographic subtitle
-    'Kachieng Ward · Nyatike Sub-County · Migori County, Kenya' as a header
+    'Kachieng’ Ward · Nyatike Sub-County · Migori County, Kenya' as a header
     subtitle line. The page header carries the location context now."""
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
     # The old global header had a subtitle line:
-    #   Kachieng Ward · Nyatike Sub-County · Migori County, Kenya
+    #   Kachieng’ Ward · Nyatike Sub-County · Migori County, Kenya
     # That exact phrase must NOT appear in the global header.
     # It MAY appear in the page header (with the new compact format).
     # We check that the global header section (the first <header>) doesn't
@@ -66,7 +66,7 @@ def test_global_header_does_not_repeat_geographic_subtitle(officer_client):
     global_header = header_match.group(1)
     # The old subtitle used '·' between locations and ended with ', Kenya'
     # The new global header has no geographic subtitle at all.
-    assert "Kachieng Ward · Nyatike Sub-County · Migori County, Kenya" not in global_header, (
+    assert "Kachieng’ Ward · Nyatike Sub-County · Migori County, Kenya" not in global_header, (
         "Global header must NOT repeat the full geographic subtitle — it lives in the page header now"
     )
     assert "Migori County, Kenya" not in global_header, (
@@ -285,8 +285,8 @@ def test_user_menu_is_keyboard_accessible(officer_client):
 @pytest.mark.django_db
 def test_dashboard_page_header_has_correct_structure(officer_client):
     """The dashboard page header must have:
-    - h1 'Dashboard' (NOT 'Kachieng Ward')
-    - subtitle 'Kachieng Ward · Nyatike Sub-County · Migori County'
+    - h1 'Dashboard' (NOT 'Kachieng’ Ward')
+    - subtitle 'Kachieng’ Ward · Nyatike Sub-County · Migori County'
     - 'Updated HH:MM' on the right (compact pattern)
     - Refresh link with aria-label
     The global header (above) already shows the application name; we don't
@@ -303,12 +303,12 @@ def test_dashboard_page_header_has_correct_structure(officer_client):
     assert page_header_match is not None, "Page header <header> not found inside <main>"
     page_header = page_header_match.group(1)
 
-    # h1 must be 'Dashboard' (NOT 'Kachieng Ward' as it was in v3)
+    # h1 must be 'Dashboard' (NOT 'Kachieng’ Ward' as it was in v3)
     assert re.search(r'<h1[^>]*>\s*Dashboard\s*</h1>', page_header), (
         "Page header h1 must be 'Dashboard'"
     )
     # Subtitle must contain the location context
-    assert "Kachieng Ward" in page_header
+    assert "Kachieng’ Ward" in page_header
     assert "Nyatike Sub-County" in page_header
     assert "Migori County" in page_header
     # Compact 'Updated HH:MM' pattern (not the verbose 'Last updated: ...')
@@ -334,7 +334,7 @@ def test_dashboard_page_header_does_not_repeat_application_name(officer_client):
     h1_match = re.search(r'<h1[^>]*>(.*?)</h1>', page_header, re.S)
     if h1_match:
         h1_text = re.sub(r'<[^>]+>', '', h1_match.group(1)).strip()
-        assert "Kachieng AI Agent" not in h1_text, (
+        assert "Kachieng’ AI Agent" not in h1_text, (
             "Page header h1 must NOT repeat the application name — it's in the global header"
         )
 
@@ -368,13 +368,13 @@ def test_global_header_subtitle_does_not_duplicate_page_header(officer_client):
 
     # The global header must NOT contain the location subtitle that the
     # page header carries. The old global header had a <span> with
-    # 'Kachieng Ward · Nyatike Sub-County · Migori County, Kenya'.
+    # 'Kachieng’ Ward · Nyatike Sub-County · Migori County, Kenya'.
     # That exact phrase must NOT be in the global header.
-    assert "Kachieng Ward · Nyatike Sub-County · Migori County, Kenya" not in global_header, (
+    assert "Kachieng’ Ward · Nyatike Sub-County · Migori County, Kenya" not in global_header, (
         "Global header must not duplicate the full geographic subtitle"
     )
     # The page header DOES carry the location (compact form)
-    assert "Kachieng Ward" in page_header
+    assert "Kachieng’ Ward" in page_header
     assert "Nyatike Sub-County" in page_header
 
 
@@ -384,7 +384,7 @@ def test_global_header_subtitle_does_not_duplicate_page_header(officer_client):
 
 @pytest.mark.django_db
 def test_advisories_page_header(officer_client):
-    """/advisories/ must have a page header with 'Advisories' h1 + 'Kachieng Ward' subtitle."""
+    """/advisories/ must have a page header with 'Advisories' h1 + 'Kachieng’ Ward' subtitle."""
     from django.core.management import call_command
     from io import StringIO
     call_command("seed_kachieng_clusters", stdout=StringIO())
@@ -392,17 +392,17 @@ def test_advisories_page_header(officer_client):
     r = officer_client.get("/advisories/")
     assert r.status_code == 200
     html = r.content.decode("utf-8")
-    # Page header h1 must be 'Advisories' (not 'Advisories — Kachieng Ward')
+    # Page header h1 must be 'Advisories' (not 'Advisories — Kachieng’ Ward')
     assert re.search(r'<h1[^>]*>\s*Advisories\s*</h1>', html), (
         "Advisories page header h1 must be 'Advisories'"
     )
-    # The old 'Advisories — Kachieng Ward' h1 pattern must NOT appear
-    assert "Advisories — Kachieng Ward" not in html
+    # The old 'Advisories — Kachieng’ Ward' h1 pattern must NOT appear
+    assert "Advisories — Kachieng’ Ward" not in html
 
 
 @pytest.mark.django_db
 def test_tasks_page_header(officer_client):
-    """/tasks/ must have a page header with 'Tasks' h1 + 'Kachieng Ward · Follow-up activities' subtitle."""
+    """/tasks/ must have a page header with 'Tasks' h1 + 'Kachieng’ Ward · Follow-up activities' subtitle."""
     r = officer_client.get("/tasks/")
     assert r.status_code == 200
     html = r.content.decode("utf-8")
@@ -410,8 +410,8 @@ def test_tasks_page_header(officer_client):
         "Tasks page header h1 must be 'Tasks'"
     )
     assert "Follow-up activities" in html
-    # The old 'Follow-up tasks — Kachieng Ward' h1 must NOT appear
-    assert "Follow-up tasks — Kachieng Ward" not in html
+    # The old 'Follow-up tasks — Kachieng’ Ward' h1 must NOT appear
+    assert "Follow-up tasks — Kachieng’ Ward" not in html
 
 
 @pytest.mark.django_db
@@ -444,7 +444,7 @@ def test_data_sources_page_header(officer_client):
 
 @pytest.mark.django_db
 def test_map_page_header(officer_client):
-    """/dashboard/map/ must have a page header with 'Map' h1 + 'Kachieng Ward · Nyatike Sub-County' subtitle."""
+    """/dashboard/map/ must have a page header with 'Map' h1 + 'Kachieng’ Ward · Nyatike Sub-County' subtitle."""
     from django.core.management import call_command
     from io import StringIO
     call_command("seed_kachieng_clusters", stdout=StringIO())
@@ -455,10 +455,10 @@ def test_map_page_header(officer_client):
     assert re.search(r'<h1[^>]*>\s*Map\s*</h1>', html), (
         "Map page header h1 must be 'Map'"
     )
-    assert "Kachieng Ward" in html
+    assert "Kachieng’ Ward" in html
     assert "Nyatike Sub-County" in html
-    # The old 'Kachieng Ward — locality map' h1 must NOT appear
-    assert "Kachieng Ward — locality map" not in html
+    # The old 'Kachieng’ Ward — locality map' h1 must NOT appear
+    assert "Kachieng’ Ward — locality map" not in html
 
 
 # ---------------------------------------------------------------------------

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}{{ cluster.locality|default:cluster.name }} — Kachieng AI Agent{% endblock %}
+{% block title %}{{ cluster.locality|default:cluster.name }} — Kachieng’ AI Agent{% endblock %}
 {% block content %}
 <div class="bg-white p-4 rounded shadow border border-stone-200">
   <h1 class="text-lg font-semibold">{{ cluster.name }} — {{ cluster.cluster_id }}</h1>
-  <p class="text-sm text-stone-600">Locality: <strong>{{ cluster.locality|default:"—" }}</strong> · Nyatike / Kachieng / Migori</p>
+  <p class="text-sm text-stone-600">Locality: <strong>{{ cluster.locality|default:"—" }}</strong> · Nyatike / Kachieng’ / Migori</p>
   <p class="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded p-2 mt-3">
     Synthetic demonstration data — farmer groups and plot histories are not real household records.
   </p>

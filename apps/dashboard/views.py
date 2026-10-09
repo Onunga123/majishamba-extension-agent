@@ -596,8 +596,9 @@ class DashboardHomeView(LoginRequiredMixin, View):
             request,
             "dashboard/home.html",
             {
-                # Header
-                "ward": "Kachieng",
+                # Header — display context (not DB fields); use the correct
+                # spelling with typographic apostrophe per the v7 branding spec.
+                "ward": "Kachieng\u2019",
                 "sub_county": "Nyatike",
                 "county": "Migori",
                 "last_updated": last_updated,

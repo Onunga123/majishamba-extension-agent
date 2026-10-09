@@ -34,7 +34,7 @@ def test_login_page_has_minimal_public_header():
     html = r.content.decode("utf-8")
 
     # Required header elements
-    assert "Kachieng AI Agent" in html, "Logo / brand text missing"
+    assert "Kachieng’ AI Agent" in html, "Logo / brand text missing"
     assert 'href="/accounts/login/"' in html, "Sign in link missing"
     assert 'href="/accounts/register/"' in html, "Create account link missing"
 
@@ -57,7 +57,7 @@ def test_register_page_has_minimal_public_header():
     assert r.status_code == 200
     html = r.content.decode("utf-8")
 
-    assert "Kachieng AI Agent" in html
+    assert "Kachieng’ AI Agent" in html
     assert 'href="/accounts/login/"' in html
     assert 'href="/accounts/register/"' in html
 
@@ -75,7 +75,7 @@ def test_registration_pending_page_has_minimal_public_header():
     assert r.status_code == 200
     html = r.content.decode("utf-8")
 
-    assert "Kachieng AI Agent" in html
+    assert "Kachieng’ AI Agent" in html
     assert 'href="/accounts/login/"' in html
     assert 'href="/accounts/register/"' in html
 
@@ -110,7 +110,7 @@ def test_logo_links_to_login_not_dashboard():
         r = c.get(url)
         html = r.content.decode("utf-8")
         # The logo <a> tag must point at /accounts/login/.
-        # We accept any <a ... href="/accounts/login/" ...> that contains "Kachieng AI Agent".
+        # We accept any <a ... href="/accounts/login/" ...> that contains "Kachieng’ AI Agent".
         # The simplest robust assertion: at least one occurrence of the brand-text inside
         # an anchor pointing at /accounts/login/.
         assert 'href="/accounts/login/"' in html, f"Logo missing /accounts/login/ link on {url}"
@@ -154,13 +154,19 @@ def test_main_content_is_focusable_for_skip_link():
 
 @pytest.mark.django_db
 def test_service_description_line_present():
-    """The optional one-line service description must appear below the header."""
+    """The service description / brand subtitle must appear somewhere on the page
+    (either in the header or in the brand panel). The v7 auth theme removed the
+    redundant standalone service-description line (it duplicated the header
+    subtitle) and instead shows it in the brand panel on desktop + the header
+    brand subtitle on all screens."""
     c = Client()
     for url in ["/accounts/login/", "/accounts/register/"]:
         r = c.get(url)
         html = r.content.decode("utf-8")
-        assert "Climate-smart agricultural advisories for extension officers in Kachieng Ward." in html, (
-            f"Service description line missing on {url}"
+        # The brand subtitle 'Climate-smart agricultural advisories' must appear
+        # (it's in the header brand area + the brand panel on desktop)
+        assert "Climate-smart agricultural advisories" in html, (
+            f"Brand subtitle missing on {url}"
         )
 
 

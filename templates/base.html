@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Kachieng AI Agent{% endblock %}</title>
+  <title>{% block title %}Kachieng’ AI Agent{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css">
@@ -32,15 +32,15 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
 
-          {# Application identity: Kachieng AI Agent / Climate-smart advisories (no geography) #}
+          {# Application identity: Kachieng’ AI Agent / Climate-smart advisories (no geography) #}
           {% if user.is_authenticated %}
           <a href="{% url 'dashboard:home' %}" class="flex items-baseline gap-2 min-w-0 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
-            <span class="app-name text-base whitespace-nowrap">Kachieng AI Agent</span>
+            <span class="app-name text-base whitespace-nowrap">Kachieng’ AI Agent</span>
             <span class="app-subtitle text-sm hidden sm:inline">Climate-smart advisories</span>
           </a>
           {% else %}
           <span class="flex items-baseline gap-2 min-w-0">
-            <span class="app-name text-base whitespace-nowrap">Kachieng AI Agent</span>
+            <span class="app-name text-base whitespace-nowrap">Kachieng’ AI Agent</span>
             <span class="app-subtitle text-sm hidden sm:inline">Climate-smart advisories</span>
           </span>
           {% endif %}

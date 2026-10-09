@@ -31,7 +31,7 @@ def test_login_page_does_not_contain_old_header_subtitle_or_demo_content():
     header subtitle, the old taglines, or any demo-account section.
 
     Asserts absence of:
-        - 'Kachieng Ward · Nyatike Sub-County'   (old geographic subtitle)
+        - 'Kachieng’ Ward · Nyatike Sub-County'   (old geographic subtitle)
         - 'Climate-smart advisories. Extension officers decide.'  (old tagline)
         - 'Access agricultural advisories, field tasks'  (old second tagline)
         - 'Synthetic demo account'  (demo-account section)
@@ -45,7 +45,7 @@ def test_login_page_does_not_contain_old_header_subtitle_or_demo_content():
 
     # --- Assertions: unwanted strings MUST be absent ---
     unwanted = [
-        "Kachieng Ward · Nyatike Sub-County",
+        "Kachieng’ Ward · Nyatike Sub-County",
         "Climate-smart advisories. Extension officers decide.",
         "Access agricultural advisories, field tasks",
         "Synthetic demo account",
@@ -59,7 +59,7 @@ def test_login_page_does_not_contain_old_header_subtitle_or_demo_content():
 
     # --- Assertions: new minimal header MUST be present ---
     # (otherwise the test would pass even if the page 500'd or rendered empty)
-    assert "Kachieng AI Agent" in html, "Brand text missing — page may have failed to render"
+    assert "Kachieng’ AI Agent" in html, "Brand text missing — page may have failed to render"
     assert "Sign in" in html, "Sign in text missing"
     assert 'href="/accounts/login/"' in html, "Sign in link missing"
     assert 'href="/accounts/register/"' in html, "Create account link missing"
@@ -74,7 +74,7 @@ def test_register_page_does_not_contain_old_header_subtitle_or_demo_content():
     html = r.content.decode("utf-8")
 
     unwanted = [
-        "Kachieng Ward · Nyatike Sub-County",
+        "Kachieng’ Ward · Nyatike Sub-County",
         "Climate-smart advisories. Extension officers decide.",
         "Access agricultural advisories, field tasks",
         "Synthetic demo account",
@@ -85,24 +85,32 @@ def test_register_page_does_not_contain_old_header_subtitle_or_demo_content():
         )
 
     # New minimal header must be present
-    assert "Kachieng AI Agent" in html
+    assert "Kachieng’ AI Agent" in html
     assert "Create account" in html or "Request access" in html
 
 
 @pytest.mark.django_db
 def test_login_page_does_not_extend_base_html_operational_footer():
-    """The login page must NOT show the operational footer from base.html
-    (the 'Kachieng AI Agent — MIT licence · …' line and the 'Synthetic
-    household & plot data only' line)."""
+    """The login page must NOT show the OPERATIONAL footer from base.html
+    (the 'MIT licence' line + 'About / legal' link + 'Agent graph' link).
+    The v7 auth footer shows a short synthetic-data disclaimer — that's fine;
+    the point is the base.html operational footer (with MIT licence + About/legal
+    + Agent graph) must NOT appear on auth pages."""
     c = Client()
     r = c.get("/accounts/login/")
     html = r.content.decode("utf-8")
-    assert "Kachieng AI Agent — MIT licence" not in html, (
-        "Operational footer from base.html is leaking onto the login page — "
-        "the login template is extending the wrong base template."
+    # The operational footer with MIT licence must NOT appear
+    assert "MIT licence" not in html, (
+        "Operational footer from base.html (MIT licence) is leaking onto the login page"
     )
-    assert "Synthetic household & plot data only" not in html
-    assert "Synthetic household &amp; plot data only" not in html  # HTML-escaped form
+    # The 'About / legal' link (from the base.html operational footer) must NOT appear
+    assert "/dashboard/about/" not in html, (
+        "Operational footer 'About / legal' link is leaking onto the login page"
+    )
+    # The 'Agent graph (staff only)' link (from the base.html footer) must NOT appear
+    assert "Agent graph" not in html, (
+        "Operational footer 'Agent graph' link is leaking onto the login page"
+    )
 
 
 @pytest.mark.django_db

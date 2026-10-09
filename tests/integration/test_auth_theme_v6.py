@@ -41,7 +41,7 @@ def test_auth_pages_show_brand_name_and_subtitle():
         assert r.status_code == 200, f"{url} returned {r.status_code}"
         html = r.content.decode("utf-8")
         # Brand name must be present
-        assert "Kachieng AI Agent" in html, f"Brand name 'Kachieng AI Agent' missing on {url}"
+        assert "Kachieng’ AI Agent" in html, f"Brand name 'Kachieng AI Agent' missing on {url}"
         # Subtitle must be present (the new auth header shows it under the brand)
         assert "Climate-smart agricultural advisories" in html, (
             f"Subtitle 'Climate-smart agricultural advisories' missing on {url}"
@@ -134,11 +134,11 @@ def test_login_page_uses_welcome_back_heading():
 @pytest.mark.django_db
 def test_login_page_has_concise_supporting_text():
     """The login page must have concise supporting text mentioning
-    'climate-smart advisory tools for Kachieng Ward'."""
+    'climate-smart advisory tools for Kachieng’ Ward'."""
     c = Client()
     r = c.get("/accounts/login/")
     html = r.content.decode("utf-8")
-    assert "Sign in to access climate-smart advisory tools for Kachieng Ward" in html, (
+    assert "Sign in to access climate-smart advisory tools for Kachieng’ Ward" in html, (
         "Login page must have concise supporting text"
     )
 

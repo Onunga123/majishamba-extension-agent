@@ -417,7 +417,7 @@ def test_auth_pages_still_render_correctly():
     html = r.content.decode("utf-8")
     # Auth pages don't have the dark forest header — they have the minimal
     # auth-specific header from base_auth.html
-    assert "Kachieng AI Agent" in html
+    assert "Kachieng’ AI Agent" in html
     # No raw template syntax leaks
     assert "{#" not in html
     assert "{%" not in html

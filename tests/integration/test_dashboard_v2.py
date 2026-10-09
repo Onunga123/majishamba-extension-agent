@@ -394,7 +394,7 @@ def test_audit_timeline_limits_to_5_events(officer_client):
 
 @pytest.mark.django_db
 def test_dashboard_header_shows_location_and_last_updated(officer_client):
-    """The dashboard page header must show Kachieng Ward, Nyatike Sub-County ·
+    """The dashboard page header must show Kachieng’ Ward, Nyatike Sub-County ·
     Migori County, the 'Updated HH:MM' timestamp, and a refresh link.
 
     The v4 spec uses the compact 'Updated HH:MM' pattern (not the older
@@ -405,7 +405,7 @@ def test_dashboard_header_shows_location_and_last_updated(officer_client):
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
     # Page header carries the location context
-    assert "Kachieng Ward" in html
+    assert "Kachieng’ Ward" in html
     assert "Nyatike Sub-County" in html
     assert "Migori County" in html
     # Compact 'Updated HH:MM' pattern (the page header)
@@ -413,10 +413,10 @@ def test_dashboard_header_shows_location_and_last_updated(officer_client):
     # Refresh link
     assert "↻ Refresh" in html or "Refresh" in html
     # The global header must show the application name (no geographic subtitle)
-    assert "Kachieng AI Agent" in html
+    assert "Kachieng’ AI Agent" in html
     assert "Climate-smart advisories" in html
     # The global header must NOT repeat the geographic subtitle line that
-    # was in v3 ('Kachieng Ward · Nyatike Sub-County · Migori County, Kenya'
+    # was in v3 ('Kachieng’ Ward · Nyatike Sub-County · Migori County, Kenya'
     # as a header subtitle). The page header carries that context now.
     # The old global-header geographic subtitle used ', Kenya' at the end.
     # We don't assert 'Kenya' is absent because it may appear elsewhere

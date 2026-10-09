@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Advisories — Kachieng AI Agent{% endblock %}
+{% block title %}Advisories — Kachieng’ AI Agent{% endblock %}
 {% block content %}
-{# Page header: Advisories h1 + Kachieng Ward · N advisories #}
+{# Page header: Advisories h1 + Kachieng’ Ward · N advisories #}
 <header class="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
   <div>
     <h1 class="text-2xl font-semibold text-stone-900">Advisories</h1>
     <p class="text-sm text-stone-600 mt-1">
-      Kachieng Ward
+      Kachieng’ Ward
       <span class="text-stone-400 mx-1" aria-hidden="true">·</span>
       {{ advisory_count|default:"" }}{% if advisory_count %} advisories{% else %}Climate-smart advisories{% endif %}
     </p>

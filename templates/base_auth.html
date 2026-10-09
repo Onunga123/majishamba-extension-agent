@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Kachieng AI Agent{% endblock %}</title>
+  <title>{% block title %}Kachieng’ AI Agent{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
@@ -16,14 +16,14 @@
   {# Minimal public auth header — brand mark + Sign in / Create account links #}
   <header class="auth-header" role="banner">
     <div class="max-w-5xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <a href="{% url 'accounts:login' %}" class="auth-brand" aria-label="Kachieng AI Agent — back to sign in">
+      <a href="{% url 'accounts:login' %}" class="auth-brand" aria-label="Kachieng’ AI Agent — back to sign in">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="auth-brand-mark" aria-hidden="true">
           <path d="M12 2L2 7l10 5 10-5-10-5z"/>
           <path d="M2 17l10 5 10-5"/>
           <path d="M2 12l10 5 10-5"/>
         </svg>
         <span class="flex flex-col leading-tight">
-          <span class="auth-brand-name">Kachieng AI Agent</span>
+          <span class="auth-brand-name">Kachieng’ AI Agent</span>
           <span class="auth-brand-subtitle">Climate-smart agricultural advisories</span>
         </span>
       </a>
@@ -41,13 +41,6 @@
       </nav>
     </div>
   </header>
-
-  {# Optional short description line below header #}
-  {% block tagline %}
-  <p class="auth-service-description max-w-5xl mx-auto px-4 py-2" id="service-description">
-    Climate-smart agricultural advisories for extension officers in Kachieng Ward.
-  </p>
-  {% endblock %}
 
   <main id="main-content" class="flex-1 w-full max-w-md mx-auto px-4 py-6 sm:py-10" role="main" tabindex="-1">
     {% if messages %}
@@ -67,7 +60,7 @@
   </main>
 
   <footer class="auth-page-footer" role="contentinfo">
-    <p>Kachieng AI Agent — climate-smart advisories for extension officers.</p>
+    <p>Synthetic household &amp; plot data only — no real household records used.</p>
   </footer>
 </body>
 </html>

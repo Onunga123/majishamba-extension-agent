@@ -1,47 +1,64 @@
 {% extends "base_auth.html" %}
-{% block title %}Sign in — Kachieng AI Agent{% endblock %}
+{% block title %}Sign in — Kachieng’ AI Agent{% endblock %}
 {% block content %}
-<div class="auth-card">
-  <h1 class="auth-card-heading">Welcome back</h1>
-  <p class="auth-card-supporting">Sign in to access climate-smart advisory tools for Kachieng Ward.</p>
+<div class="auth-split">
+  {# Brand panel (desktop only — hidden on mobile where the header already shows the brand) #}
+  <div class="auth-brand-panel">
+    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="auth-brand-panel-mark" aria-hidden="true">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+      <path d="M2 17l10 5 10-5"/>
+      <path d="M2 12l10 5 10-5"/>
+    </svg>
+    <p class="auth-brand-panel-name">Kachieng’ AI Agent</p>
+    <p class="auth-brand-panel-subtitle">Climate-smart agricultural advisories for extension officers in Kachieng’ Ward, Migori County, Kenya.</p>
+    <p class="auth-brand-panel-tagline">Built for the Nyatike Sub-County Agricultural Office. Every advisory is sourced, auditable, and approved by an extension officer before any follow-up action.</p>
+  </div>
 
-  <form method="post" class="auth-form" novalidate>
-    {% csrf_token %}
-    {% if form.errors %}
-      <div class="auth-error-alert" role="alert" aria-live="assertive">
-        <p class="auth-error-title">Sign in failed</p>
-        <p class="auth-error-detail">Please check your username and password and try again.</p>
-      </div>
-    {% endif %}
+  {# Form panel #}
+  <div class="auth-form-panel">
+    <div class="auth-card">
+      <h1 class="auth-card-heading">Welcome back</h1>
+      <p class="auth-card-supporting">Sign in to access climate-smart advisory tools for Kachieng’ Ward.</p>
 
-    <div class="auth-field">
-      <label class="auth-label" for="id_username">Username</label>
-      <input id="id_username" name="username" class="auth-input" autocomplete="username" required aria-required="true">
-    </div>
+      <form method="post" class="auth-form" novalidate>
+        {% csrf_token %}
+        {% if form.errors %}
+          <div class="auth-error-alert" role="alert" aria-live="assertive">
+            <p class="auth-error-title">Sign in failed</p>
+            <p class="auth-error-detail">Please check your username and password and try again.</p>
+          </div>
+        {% endif %}
 
-    <div class="auth-field">
-      <label class="auth-label" for="id_password">Password</label>
-      <div class="auth-password-field">
-        <input id="id_password" name="password" type="password" class="auth-input" autocomplete="current-password" required aria-required="true">
-        <button type="button"
-                onclick="var p=document.getElementById('id_password');p.type=p.type==='password'?'text':'password';this.setAttribute('aria-label',p.type==='password'?'Show password':'Hide password');this.querySelector('svg').classList.toggle('hidden');this.querySelector('svg:last-child').classList.toggle('hidden')"
-                class="auth-password-toggle"
-                aria-label="Show password">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-7-10-7a13.16 13.16 0 0 1 1.67-2.68"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        <div class="auth-field">
+          <label class="auth-label" for="id_username">Username</label>
+          <input id="id_username" name="username" class="auth-input" autocomplete="username" required aria-required="true">
+        </div>
+
+        <div class="auth-field">
+          <label class="auth-label" for="id_password">Password</label>
+          <div class="auth-password-field">
+            <input id="id_password" name="password" type="password" class="auth-input" autocomplete="current-password" required aria-required="true">
+            <button type="button"
+                    onclick="var p=document.getElementById('id_password');p.type=p.type==='password'?'text':'password';this.setAttribute('aria-label',p.type==='password'?'Show password':'Hide password');this.querySelector('svg').classList.toggle('hidden');this.querySelector('svg:last-child').classList.toggle('hidden')"
+                    class="auth-password-toggle"
+                    aria-label="Show password">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-7-10-7a13.16 13.16 0 0 1 1.67-2.68"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary auth-submit">
+          Sign in
         </button>
+      </form>
+
+      <div class="auth-card-footer">
+        <p>
+          Need an account? <a href="{% url 'accounts:register' %}" class="auth-card-footer-link">Create one</a>
+        </p>
       </div>
     </div>
-
-    <button type="submit" class="btn-primary auth-submit">
-      Sign in
-    </button>
-  </form>
-
-  <div class="auth-card-footer">
-    <p>
-      Need an account? <a href="{% url 'accounts:register' %}" class="auth-card-footer-link">Create one</a>
-    </p>
   </div>
 </div>
 {% endblock %}
