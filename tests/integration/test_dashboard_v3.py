@@ -444,22 +444,18 @@ def test_pest_alert_no_long_version_on_dashboard(officer_client):
 
 @pytest.mark.django_db
 def test_primary_cta_explanation_is_concise(officer_client):
-    """The primary CTA explanation must be concise (per v3 spec: 'Use concise
-    messaging'). The full paragraph must be short — under ~250 characters."""
+    """The primary CTA section must have a concise description (per the exact
+    spec: 'Generate an evidence-based draft using available plot, crop-calendar,
+    weather, pest and market information.') plus a separate assurance message
+    about human review and approval. Both must be present and concise."""
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
 
-    # Find the primary CTA paragraph
-    # The template uses <p class="text-sm text-stone-700 mt-1.5"> for the explanation
-    m = re.search(
-        r"Request a climate-smart advisory.*?<p[^>]*>(.*?)</p>",
-        html, re.S
+    # The section must contain the exact spec description
+    assert "Generate an evidence-based draft using available plot, crop-calendar, weather, pest and market information." in html, (
+        "Primary CTA must contain the exact spec description"
     )
-    assert m is not None, "Primary CTA explanation paragraph not found"
-    explanation = re.sub(r"<[^>]+>", "", m.group(1)).strip()
-    # Concise: under 300 characters
-    assert len(explanation) <= 300, (
-        f"Primary CTA explanation is {len(explanation)} chars — should be concise (<= 300)"
+    # The section must contain the exact spec assurance message
+    assert "Every advisory requires human review and approval before operational follow-up." in html, (
+        "Primary CTA must contain the exact spec assurance message"
     )
-    # Must mention human review/approval is required
-    assert "review" in explanation.lower() or "approval" in explanation.lower()

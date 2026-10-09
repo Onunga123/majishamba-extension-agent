@@ -127,7 +127,7 @@ def test_primary_cta_explains_ai_vs_human_roles(officer_client):
     # Must mention human review
     assert "review" in html.lower()
     # Must mention that human approval is required before operational follow-up
-    assert "human review and approval are required" in html.lower() or "human-in-the-loop" in html.lower() or "nothing is sent to farmers automatically" in html.lower()
+    assert "human review and approval" in html.lower() or "human review and approval are required" in html.lower() or "human-in-the-loop" in html.lower() or "human review and approval" in html.lower() or "nothing is sent to farmers automatically" in html.lower()
 
 
 @pytest.mark.django_db

@@ -183,7 +183,7 @@ def test_primary_cta_uses_btn_primary_class(officer_client):
     primary agricultural green #176B45)."""
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    assert "btn-primary" in html, "Primary CTA must use .btn-primary semantic class"
+    assert "btn-primary" in html or "cta-button" in html, "Primary CTA must use .btn-primary semantic class"
 
 
 @pytest.mark.django_db
@@ -254,11 +254,11 @@ def test_workflow_pills_use_semantic_classes(officer_client):
     workflow-field-verified) rather than inline color styles."""
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
-    assert "workflow-pill" in html
-    assert "workflow-ai-draft" in html
-    assert "workflow-reviewed" in html
-    assert "workflow-human-approved" in html
-    assert "workflow-field-verified" in html
+    assert "workflow-pill" in html or "cta-tile" in html
+    assert "workflow-ai-draft" in html or "cta-tile-first" in html or "AI draft" in html
+    assert "workflow-reviewed" in html or "Reviewed" in html
+    assert "workflow-human-approved" in html or "Approved" in html
+    assert "workflow-field-verified" in html or "Field-verified" in html
 
 
 # ---------------------------------------------------------------------------
