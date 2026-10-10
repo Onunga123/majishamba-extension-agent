@@ -123,8 +123,8 @@ def test_guidance_publication_identity_panel_present(officer_client):
     """
     r = officer_client.get("/dashboard/guidance/")
     html = r.content.decode("utf-8")
-    # Title and subtitle must be present in the .pub-identity panel
-    assert 'class="pub-identity"' in html
+    # Title and subtitle must be present in the .pub-hero panel
+    assert 'class="pub-hero"' in html
     assert "KENYA Maize Extension Manual" in html
     assert "KCEP-CRAL Integrated Soil Fertility and Water Management Extension Manual" in html
     # Publisher short label and year must be in the meta row
@@ -137,7 +137,7 @@ def test_guidance_publication_identity_has_document_icon(officer_client):
     """The publication identity panel must include a document icon."""
     r = officer_client.get("/dashboard/guidance/")
     html = r.content.decode("utf-8")
-    assert 'class="pub-icon"' in html
+    assert 'class="pub-hero-icon"' in html
     # Must include an SVG (the document icon)
     assert "<svg" in html
 
@@ -152,10 +152,11 @@ def test_guidance_status_indicator_text_label(officer_client):
     """The status must include a text label, not colour alone."""
     r = officer_client.get("/dashboard/guidance/")
     html = r.content.decode("utf-8")
-    # The label must be present as visible text in the pub-status-pill
-    assert "Permission not confirmed" in html
+    # The label must be present as visible text in the pub-status-block
+    assert "Permission" in html
+    assert "Not confirmed" in html
     # Supporting label
-    assert "Bibliographic metadata only" in html
+    assert "Metadata only" in html
 
 
 @pytest.mark.django_db
@@ -218,17 +219,16 @@ def test_guidance_warning_not_relying_on_color_alone(officer_client):
 
 @pytest.mark.django_db
 def test_guidance_publication_metadata_complete(officer_client):
-    """All required metadata fields must be present in the metadata grid."""
+    """All required metadata fields must be present in the metadata dashboard."""
     r = officer_client.get("/dashboard/guidance/")
     html = r.content.decode("utf-8")
     expected_fields = [
-        "Publication title",
         "Full title",
         "Publisher",
         "Publication date",
+        "Geographic scope",
         "ISBN",
         "Document ID",
-        "Geographic scope",
         "Copyright",
         "Permission basis",
         "Content integration",
@@ -437,9 +437,9 @@ def test_guidance_source_cards_have_icons(officer_client):
     """Each source card must have an icon."""
     r = officer_client.get("/dashboard/guidance/")
     html = r.content.decode("utf-8")
-    assert "source-card-icon-sky" in html
-    assert "source-card-icon-amber" in html
-    assert "source-card-icon-green" in html
+    assert "source-card-icon-info" in html
+    assert "source-card-icon-warning" in html
+    assert "source-card-icon-success" in html
 
 
 @pytest.mark.django_db
@@ -469,17 +469,16 @@ def test_guidance_does_not_invent_data_sources(officer_client):
 
 @pytest.mark.django_db
 def test_guidance_lifecycle_stepper_present(officer_client):
-    """The permission lifecycle must use a visual stepper (not a long list)."""
+    """The permission lifecycle must use a connected visual timeline."""
     r = officer_client.get("/dashboard/guidance/")
     html = r.content.decode("utf-8")
-    assert 'class="lifecycle-stepper"' in html
-    # Each step must be in a <li class="lifecycle-step lifecycle-step-STATUS">
-    # element. Count only the <li> openings (which include "lifecycle-step "
-    # followed by a status modifier).
+    assert 'class="lifecycle-timeline"' in html
+    # Each step must be in a <li class="lifecycle-node lifecycle-node-STATUS">
+    # element. Count only the <li> openings.
     import re
 
-    step_count = len(re.findall(r'<li class="lifecycle-step lifecycle-step-', html))
-    assert step_count == 6, f"Expected 6 lifecycle steps, found {step_count}"
+    step_count = len(re.findall(r'<li class="lifecycle-node lifecycle-node-', html))
+    assert step_count == 6, f"Expected 6 lifecycle nodes, found {step_count}"
 
 
 @pytest.mark.django_db
@@ -513,11 +512,11 @@ def test_guidance_lifecycle_step_markers(officer_client):
     r = officer_client.get("/dashboard/guidance/")
     html = r.content.decode("utf-8")
     # Step 1 (Source registered) must be 'done'
-    assert "lifecycle-step-done" in html
+    assert "lifecycle-node-done" in html
     # Steps 2-6 must be pending/blocked/not_started
-    assert "lifecycle-step-pending" in html
-    assert "lifecycle-step-blocked" in html
-    assert "lifecycle-step-not_started" in html
+    assert "lifecycle-node-pending" in html
+    assert "lifecycle-node-blocked" in html
+    assert "lifecycle-node-not_started" in html
 
 
 @pytest.mark.django_db
@@ -540,7 +539,7 @@ def test_guidance_lifecycle_does_not_falsely_claim_progress(officer_client):
     # Only the Source registered step should have the 'done' status chip
     import re
 
-    done_count = len(re.findall(r"lifecycle-step-status-done", html))
+    done_count = len(re.findall(r"lifecycle-node-status-done", html))
     assert (
         done_count == 1
     ), f"Only 'Source registered' should be 'done'. Found {done_count} done-status chips."
@@ -739,12 +738,13 @@ def test_guidance_uses_design_token_classes(officer_client):
     assert 'class="guidance-page"' in html
     assert 'class="guidance-breadcrumb"' in html
     assert 'class="guidance-section"' in html
-    assert 'class="pub-identity"' in html
-    assert 'class="metadata-grid"' in html
+    assert 'class="pub-hero"' in html
+    assert 'class="metadata-tiles"' in html
+    assert 'class="metadata-detail"' in html
     assert 'class="guidance-warning' in html
     assert 'class="local-verification' in html
     assert 'class="source-card-grid"' in html
-    assert 'class="lifecycle-stepper"' in html
+    assert 'class="lifecycle-timeline"' in html
     assert 'class="secondary-disclosure"' in html
     assert 'class="guidance-return"' in html
 
@@ -772,8 +772,8 @@ def test_guidance_handles_missing_db_record(officer_client):
     html = r.content.decode("utf-8")
     # The page must show that the record is not found
     assert "not found" in html.lower() or "not recorded" in html.lower()
-    # The Source registered lifecycle step must now be 'not_started'
-    assert "lifecycle-step-not_started" in html
+    # The Source registered lifecycle node must now be 'not_started'
+    assert "lifecycle-node-not_started" in html
 
 
 # ---------------------------------------------------------------------------
