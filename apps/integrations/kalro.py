@@ -312,8 +312,13 @@ def guidance_page_context() -> dict[str, object]:
         # Render-ready publication date — only shown if the DB record has one.
         # We do NOT transform a missing date into "April 2021" just because the
         # static biblio dict says so.
+        # IMPORTANT: We use a manual day-without-leading-zero construction
+        # because Python's strftime "%-d" is Linux-only and "%#d" is
+        # Windows-only. Building the string manually is cross-platform.
         "publication_date_display": (
-            cc.publication_date.strftime("%-d %B %Y") if cc and cc.publication_date else None
+            f"{cc.publication_date.day} {cc.publication_date.strftime('%B %Y')}"
+            if cc and cc.publication_date
+            else None
         ),
         "isbn_or_id": (
             cc.source_document_id if cc and cc.source_document_id else biblio["isbn_or_id"]
