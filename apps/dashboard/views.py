@@ -777,8 +777,12 @@ class AboutView(LoginRequiredMixin, View):
 
 class GuidanceView(LoginRequiredMixin, View):
     def get(self, request):
-        kalro_state = kalro_permission_status()
-        return render(request, "dashboard/guidance.html", {"kalro_state": kalro_state})
+        from apps.integrations.kalro import guidance_page_context
+        context = guidance_page_context()
+        # Keep the legacy `kalro_state` key for backwards compatibility with
+        # any external callers or templates that still expect it.
+        context["kalro_state"] = kalro_permission_status()
+        return render(request, "dashboard/guidance.html", context)
 
 
 class DataSourcesView(LoginRequiredMixin, View):

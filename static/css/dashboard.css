@@ -1599,3 +1599,569 @@ select.auth-input {
   border-radius: 6px;
   margin-top: 12px;
 }
+
+/* ============================================================
+   Agronomic Guidance page — enterprise-grade source governance
+   ============================================================
+   Visual system: document-like, restrained, institutional.
+   Surfaces use design tokens (tokens.css) — no hard-coded colours.
+   Status indicator uses tone + text label (never colour alone).
+   ============================================================ */
+
+/* Page shell — single-column, generous whitespace, capped width */
+.guidance-page {
+  max-width: 56rem;          /* 896px — comfortable reading width */
+  margin: 0 auto;
+}
+
+/* Breadcrumb — small, neutral, accessible */
+.guidance-breadcrumb {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.guidance-breadcrumb a {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.25rem;
+}
+.guidance-breadcrumb a:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+.guidance-breadcrumb a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.guidance-breadcrumb [aria-current="page"] {
+  color: var(--color-text);
+  font-weight: 500;
+}
+.guidance-breadcrumb .breadcrumb-sep {
+  color: var(--color-text-muted);
+  user-select: none;
+}
+
+/* Page header */
+.guidance-page-header {
+  margin-bottom: var(--space-8);
+}
+.guidance-page-header h1 {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--space-2) 0;
+  letter-spacing: -0.01em;
+}
+.guidance-page-header p {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin: 0;
+  max-width: 48rem;
+  line-height: 1.5;
+}
+
+/* Section structure — consistent vertical rhythm */
+.guidance-section {
+  margin-bottom: var(--space-8);
+}
+.guidance-section-header {
+  margin-bottom: var(--space-4);
+}
+.guidance-section-header h2 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--space-2) 0;
+  letter-spacing: -0.005em;
+}
+.guidance-section-header p {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Source identity card — prominent title + status indicator */
+.guidance-identity {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+.guidance-identity h2 {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--space-2) 0;
+  line-height: 1.3;
+}
+.guidance-identity .identity-subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-4) 0;
+  line-height: 1.5;
+}
+
+/* Status indicator — colour + label + supporting text (never colour alone) */
+.guidance-status {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  border: 1px solid;
+  background-color: var(--color-surface);
+}
+.guidance-status.tone-warning {
+  background-color: var(--color-warning-soft);
+  border-color: var(--color-draft-border);
+  color: var(--color-draft-text);
+}
+.guidance-status.tone-info {
+  background-color: var(--color-info-soft);
+  border-color: var(--color-info-border);
+  color: var(--color-info-text);
+}
+.guidance-status.tone-success {
+  background-color: var(--color-success-soft);
+  border-color: var(--color-success-border);
+  color: var(--color-success-text);
+}
+.guidance-status.tone-danger {
+  background-color: var(--color-danger-soft);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger-text);
+}
+.guidance-status .status-icon {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+.guidance-status .status-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+.guidance-status .status-label {
+  font-weight: 600;
+  font-size: var(--text-base);
+  line-height: 1.3;
+}
+.guidance-status .status-supporting {
+  font-size: var(--text-sm);
+  opacity: 0.85;
+  line-height: 1.4;
+}
+.guidance-status .status-summary {
+  font-size: var(--text-sm);
+  margin-top: var(--space-2);
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+/* Metadata grid — definition-list-like layout */
+.guidance-metadata {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.guidance-metadata dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 640px) {
+  .guidance-metadata dl {
+    grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+  }
+}
+.guidance-metadata dt,
+.guidance-metadata dd {
+  padding: var(--space-3) var(--space-4);
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.guidance-metadata dt {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  border-top: 1px solid var(--color-border);
+}
+.guidance-metadata dd {
+  color: var(--color-text);
+  border-top: 1px solid var(--color-border);
+  word-break: break-word;
+}
+.guidance-metadata dl > dt:first-of-type,
+.guidance-metadata dl > dd:first-of-type {
+  border-top: none;
+}
+@media (min-width: 640px) {
+  .guidance-metadata dt {
+    border-top: 1px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
+  }
+  .guidance-metadata dt:first-of-type,
+  .guidance-metadata dd:first-of-type {
+    border-top: none;
+  }
+  .guidance-metadata dd {
+    border-top: 1px solid var(--color-border);
+  }
+}
+.guidance-metadata .metadata-value-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-success-text);
+  background-color: var(--color-success-soft);
+  border: 1px solid var(--color-success-border);
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+  margin-left: 0.5rem;
+  white-space: nowrap;
+}
+.guidance-metadata .metadata-value-unverified {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-draft-text);
+  background-color: var(--color-draft-soft);
+  border: 1px solid var(--color-draft-border);
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+  margin-left: 0.5rem;
+  white-space: nowrap;
+}
+.guidance-metadata .metadata-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.guidance-metadata .metadata-link:hover {
+  text-decoration: underline;
+}
+.guidance-metadata .metadata-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.guidance-metadata .metadata-link-note {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: 0.25rem;
+  line-height: 1.4;
+}
+.guidance-metadata .metadata-empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* Restriction callout — prominent but not alarmist */
+.guidance-restriction {
+  background-color: var(--color-warning-soft);
+  border: 1px solid var(--color-draft-border);
+  border-left: 4px solid var(--color-draft);
+  border-radius: var(--radius);
+  padding: var(--space-4) var(--space-6);
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+.guidance-restriction .restriction-icon {
+  flex-shrink: 0;
+  color: var(--color-draft-text);
+  margin-top: 0.125rem;
+}
+.guidance-restriction h2 {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-draft-text);
+  margin: 0 0 var(--space-2) 0;
+  line-height: 1.3;
+}
+.guidance-restriction p {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  margin: 0 0 var(--space-2) 0;
+  line-height: 1.55;
+}
+.guidance-restriction p:last-child {
+  margin-bottom: 0;
+}
+.guidance-restriction .restriction-instruction {
+  font-weight: 500;
+}
+
+/* Planting-date verification — informational, paired with the restriction */
+.guidance-planting {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-sky);
+  border-radius: var(--radius);
+  padding: var(--space-4) var(--space-6);
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+.guidance-planting .planting-icon {
+  flex-shrink: 0;
+  color: var(--color-sky-text);
+  margin-top: 0.125rem;
+}
+.guidance-planting h2 {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--space-2) 0;
+  line-height: 1.3;
+}
+.guidance-planting p {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  margin: 0 0 var(--space-2) 0;
+  line-height: 1.55;
+}
+.guidance-planting p:last-child {
+  margin-bottom: 0;
+}
+.guidance-planting .planting-note {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+/* Source categories — clean list with verification notes */
+.guidance-sources {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.guidance-sources ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.guidance-sources li {
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border);
+}
+.guidance-sources li:first-child {
+  border-top: none;
+}
+.guidance-sources .source-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--space-1) 0;
+  line-height: 1.4;
+}
+.guidance-sources .source-description {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-2) 0;
+  line-height: 1.5;
+}
+.guidance-sources .source-verification {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+.guidance-sources-footer {
+  padding: var(--space-3) var(--space-6);
+  background-color: var(--color-surface-muted);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+}
+.guidance-sources-footer a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.2rem;
+}
+.guidance-sources-footer a:hover { text-decoration: underline; }
+.guidance-sources-footer a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Workflow — list of steps with status values */
+.guidance-workflow {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+}
+.guidance-workflow .workflow-intro {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-4) 0;
+  line-height: 1.55;
+  max-width: 48rem;
+}
+.guidance-workflow ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: workflow-step;
+}
+.guidance-workflow ol li {
+  counter-increment: workflow-step;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border);
+  position: relative;
+}
+.guidance-workflow ol li:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+@media (min-width: 640px) {
+  .guidance-workflow ol li {
+    grid-template-columns: minmax(0, 14rem) minmax(0, 12rem) minmax(0, 1fr);
+    align-items: baseline;
+    gap: var(--space-4);
+    padding: var(--space-4) 0;
+  }
+}
+.guidance-workflow .step-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+.guidance-workflow .step-label::before {
+  content: counter(workflow-step) ". ";
+  color: var(--color-text-muted);
+  font-weight: 500;
+  margin-right: 0.25rem;
+}
+.guidance-workflow .step-value {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.4;
+}
+.guidance-workflow .step-value.is-yes {
+  color: var(--color-success-text);
+}
+.guidance-workflow .step-value.is-no {
+  color: var(--color-draft-text);
+}
+.guidance-workflow .step-value.is-neutral {
+  color: var(--color-text-secondary);
+}
+.guidance-workflow .step-detail {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+.guidance-workflow .workflow-next {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+.guidance-workflow .workflow-next a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  min-height: 44px;
+  background-color: var(--color-primary);
+  color: var(--color-text-on-forest);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-primary);
+}
+.guidance-workflow .workflow-next a:hover {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+.guidance-workflow .workflow-next a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.guidance-workflow .workflow-next-note {
+  margin: var(--space-2) 0 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  max-width: 40rem;
+}
+.guidance-workflow .workflow-confidentiality {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* Return navigation */
+.guidance-return {
+  margin-top: var(--space-8);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+  font-size: var(--text-sm);
+}
+.guidance-return a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.guidance-return a:hover { text-decoration: underline; }
+.guidance-return a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.guidance-return .return-sep {
+  color: var(--color-text-muted);
+  user-select: none;
+}
+
+/* SR-only — visually hidden but available to assistive tech */
+.guidance-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
