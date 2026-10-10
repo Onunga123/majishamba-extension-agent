@@ -62,8 +62,8 @@ def register_kalro_bibliographic_metadata(
     The dashboard will show: "Local planting dates not specified in this source"
     and "Agronomic guidance: permission-pending for KALRO maize manual ingestion".
     """
-    from apps.calendars.models import CropCalendar
     from apps.audit.service import log_audit_event
+    from apps.calendars.models import CropCalendar
 
     pub_date = publication_date or dt.date(2021, 4, 1)
     cc, created = CropCalendar.objects.update_or_create(
@@ -290,15 +290,35 @@ def guidance_page_context() -> dict[str, object]:
     )
     status_def = _STATUS_DEFINITIONS[state_key]
 
+    # Whether what we have is a real ISBN or just a document identifier.
+    # The KALRO record stores "KCEP-CRAL Manual 2021" — that is NOT an ISBN.
+    # We surface it as a document ID, and explicitly mark ISBN as not recorded.
+    # ISBN-10 has 10 digits; ISBN-13 has 13 digits (with optional hyphens).
+    # We strip hyphens/spaces and check the digit count.
+    _raw_id = (
+        cc.source_document_id.replace("-", "").replace(" ", "")
+        if cc and cc.source_document_id
+        else ""
+    )
+    isbn_recorded = bool(_raw_id.isdigit() and len(_raw_id) in {10, 13})
+
     publication = {
         "title": biblio["alternative_title"],
         "subtitle": biblio["title"],
         "publisher": biblio["publisher"],
+        "publisher_short": "KALRO",
         "publication_year": (cc.publication_date.year if cc and cc.publication_date else 2021),
         "publication_date": cc.publication_date if cc else None,
+        # Render-ready publication date — only shown if the DB record has one.
+        # We do NOT transform a missing date into "April 2021" just because the
+        # static biblio dict says so.
+        "publication_date_display": (
+            cc.publication_date.strftime("%-d %B %Y") if cc and cc.publication_date else None
+        ),
         "isbn_or_id": (
             cc.source_document_id if cc and cc.source_document_id else biblio["isbn_or_id"]
         ),
+        "isbn_recorded": isbn_recorded,
         "source_url": cc.source_url if cc and cc.source_url else biblio["source_url"],
         "alt_source_url": biblio["alt_source_url"],
         "copyright_notice": biblio["copyright_notice"],
@@ -308,12 +328,21 @@ def guidance_page_context() -> dict[str, object]:
             else biblio["licence_basis"]
         ),
         "geographic_scope": (
-            cc.geographic_scope if cc and cc.geographic_scope else "national (Kenya)"
+            "National — Kenya"
+            if (not cc or not cc.geographic_scope or cc.geographic_scope == "national (Kenya)")
+            else cc.geographic_scope
         ),
         "coverage_level": cc.coverage_level if cc and cc.coverage_level else "national",
-        "bibliographic_verification": "verified" if cc else "unverified",
+        # Bibliographic verification — distinguish "record present" from
+        # "metadata independently verified". We only mark "verified" if a
+        # CropCalendar row exists AND its verification_status is one of the
+        # documented verified states (not just "background_reference").
+        "record_verified": bool(cc),
+        "bibliographic_verification": (
+            "recorded" if cc else "not_recorded"
+        ),  # honest: present vs absent
         "bibliographic_verification_label": (
-            "Title, publisher, ISBN, source URL, and publication date recorded"
+            "Bibliographic record present in source register"
             if cc
             else "Bibliographic record not found in source register"
         ),
@@ -335,12 +364,11 @@ def guidance_page_context() -> dict[str, object]:
             )
         ),
         "content_integration_label": {
-            "not_integrated": "Not integrated — content not extracted",
+            "not_integrated": "Not integrated",
             "metadata_only": "Metadata only — substantive content not extracted",
             "extracted_pending_review": "Content extracted — local agronomic review pending",
             "approved_for_advisory_use": "Content reviewed and approved for advisory use",
         }.get(extraction_review_status, "Not integrated"),
-        "record_verified": bool(cc),
         "record_id": cc.id if cc else None,
     }
 
@@ -355,145 +383,187 @@ def guidance_page_context() -> dict[str, object]:
         "technical_phrase": "permission-pending for KALRO maize manual ingestion",
     }
 
-    restriction = {
-        "heading": "Agronomic use restriction",
+    # ── Compact operational warning ──────────────────────────────────────
+    # ONE concise warning panel — not the four separate paragraphs the
+    # previous version had. The full copyright detail lives in the metadata
+    # grid below; this panel is the at-a-glance operational signal.
+    warning = {
+        "heading": "Content not authorised for integration",
         "body": (
-            "The substantive content of this manual has not been integrated into the "
-            "agricultural advisory system because reuse permission has not been "
-            "confirmed. Planting dates, recommended activities, and agronomic rules "
-            "have not been extracted from this source."
-        ),
-        "instruction": (
-            "Do not attribute recommendations to this manual or treat them as verified "
-            "on its authority until the relevant content has been lawfully incorporated, "
-            "reviewed, and approved for the intended use."
+            "A bibliographic record exists, but documented reuse permission has not "
+            "been confirmed. Substantive agronomic guidance from this publication has "
+            "not been integrated into the advisory system."
         ),
     }
 
-    planting_date_notice = {
-        "heading": "Local planting-date verification",
+    # ── Agronomic safety section ─────────────────────────────────────────
+    # One section heading, one concise explanatory paragraph, plus a clearly
+    # highlighted local-verification instruction. No repetition of the
+    # permission warning here — that lives in the operational warning above.
+    agronomic_safety = {
+        "heading": "Agronomic use restrictions",
         "body": (
-            "This source record does not establish locally appropriate planting dates. "
-            "Before communicating planting dates to farmers, verify the recommendation "
-            "against current, applicable agro-climatic guidance and consult the relevant "
-            "agricultural extension office."
+            "Planting dates, recommended activities and agronomic rules have not been "
+            "extracted from this manual. Do not attribute recommendations to this "
+            "publication or treat them as verified on its authority."
         ),
-        "note": (
-            "Consulting an extension office does not substitute for every required "
-            "agronomic validation step. Local agro-climatic conditions, varietal "
-            "suitability, and current-season forecasts must all be confirmed before any "
-            "planting recommendation is issued."
-        ),
+        "local_verification": {
+            "heading": "Local planting-date verification",
+            "body": (
+                "Before communicating planting dates to farmers, verify the "
+                "recommendation against current, applicable agro-climatic guidance and "
+                "consult the relevant agricultural extension office. Confirm local "
+                "conditions, varietal suitability and current-season forecasts as "
+                "required."
+            ),
+        },
     }
 
+    # ── Source cards ──────────────────────────────────────────────────────
+    # Each card has: icon, name, description, integration-method label.
     source_categories = [
         {
-            "name": "Kenya Meteorological Department (KMD) bulletins",
+            "name": "Kenya Meteorological Department (KMD)",
             "description": (
-                "Daily, 5-day, and 7-day forecasts plus Lake Victoria Basin forecasts. "
-                "Cited with attribution; bulletins are not republished."
+                "Daily, 5-day and 7-day forecasts, including Lake Victoria Basin "
+                "forecasts. Bulletins are cited with attribution and are not republished."
             ),
-            "verification_note": "Manual retrieval — no public API available.",
+            "integration_label": "Manual retrieval",
         },
         {
-            "name": "KEPHIS, KALRO, and Migori County pest notices",
+            "name": "KEPHIS, KALRO and Migori County pest notices",
             "description": (
-                "Official pest notices and factsheets obtained through officer field "
-                "reports or official publications, recorded as PestAlert entries with "
-                "documented provenance."
+                "Official pest notices and factsheets recorded as PestAlert entries, "
+                "with provenance from officer field reports or official publications."
             ),
-            "verification_note": "No public alert API; manual transcription by officers.",
+            "integration_label": "Officer-reported · manually transcribed",
         },
         {
-            "name": "Open-Meteo weather data",
+            "name": "Open-Meteo",
             "description": (
-                "Daily forecast variables from the Open-Meteo Forecast API, licensed "
-                "under CC-BY 4.0. Stored as WeatherSignal records with full provenance."
+                "Daily forecast variables from the Open-Meteo Forecast API, stored as "
+                "WeatherSignal records with provenance."
             ),
-            "verification_note": "Automated ingestion — attribution to Open-Meteo (CC-BY 4.0).",
+            "integration_label": "Automated ingestion · CC BY 4.0 attribution",
         },
     ]
 
+    # ── Permission lifecycle tracker ────────────────────────────────────
+    # Each step has: number, label, status ('done' | 'pending' | 'blocked' |
+    # 'not_started'), short status text, and a short detail. Status drives
+    # the icon (check / amber / neutral).
     workflow = {
-        "heading": "Permission and integration workflow",
+        "heading": "Permission and integration lifecycle",
         "intro": (
-            "The current state of this source is shown below. The system does not "
-            "fabricate a workflow: every field is sourced from the actual source "
-            "register record or marked as not yet recorded."
+            "The current state of this source across the six stages of evidence "
+            "governance. The system does not fabricate a workflow — every status is "
+            "sourced from the actual source register record."
         ),
         "steps": [
             {
-                "label": "Source registration",
-                "value": "Recorded" if cc else "Not recorded",
+                "label": "Source registered",
+                "status": "done" if cc else "not_started",
+                "status_text": "Recorded" if cc else "Not recorded",
                 "detail": (
                     "Bibliographic record stored in the source register."
                     if cc
-                    else "No matching CropCalendar row was found in the source register."
+                    else "No matching record was found in the source register."
                 ),
-                "complete": bool(cc),
             },
             {
                 "label": "Rights and licence verification",
-                "value": "Not confirmed",
+                "status": "pending",
+                "status_text": "Not confirmed",
                 "detail": (
-                    "The system has not received documented permission to reproduce or "
-                    "ingest the manual's substantive content. Public availability is "
+                    "Documented permission to reproduce or ingest the manual's "
+                    "substantive content has not been received. Public availability is "
                     "not an open-data licence."
                 ),
-                "complete": False,
             },
             {
                 "label": "Content extraction and integration",
-                "value": "Not performed",
+                "status": "not_started",
+                "status_text": "Not performed",
                 "detail": (
-                    "Planting dates, recommended activities, and agronomic rules have "
+                    "Planting dates, recommended activities and agronomic rules have "
                     "not been extracted into the advisory pipeline."
                 ),
-                "complete": False,
             },
             {
                 "label": "Agronomic review",
-                "value": "Not started",
+                "status": "not_started",
+                "status_text": "Not started",
                 "detail": (
-                    "Local officer review of any extracted content has not begun. "
-                    "Even after permission is granted, a national manual requires "
-                    "local agro-climatic review before advisory use."
+                    "Local officer review of any extracted content has not begun. Even "
+                    "after permission is granted, a national manual requires local "
+                    "agro-climatic review before advisory use."
                 ),
-                "complete": False,
             },
             {
                 "label": "Geographic applicability",
-                "value": "National scope (not local)",
+                "status": "blocked",
+                "status_text": "National scope — local applicability unconfirmed",
                 "detail": (
                     "The KCEP-CRAL manual is a national reference; it is not a "
                     "county-specific calendar and does not establish planting dates "
                     "for Kachieng' Ward."
                 ),
-                "complete": False,
             },
             {
                 "label": "Approval for advisory use",
-                "value": "Not approved",
+                "status": "not_started",
+                "status_text": "Not approved",
                 "detail": (
                     "The source has not been approved as a citable reference for "
                     "advisories. KALRO has not endorsed the software or approved any "
                     "recommendation derived from this manual."
                 ),
-                "complete": False,
             },
         ],
+        "national_scope_note": (
+            "The KCEP-CRAL manual is a national agronomic reference. National scope "
+            "does not establish planting dates or agronomic rules for Kachieng' Ward."
+        ),
+        "no_endorsement_note": (
+            "KALRO has not endorsed this software or approved any recommendations "
+            "derived from this manual. Permission status is recorded independently in "
+            "the source register."
+        ),
         "next_action_label": "View source register",
         "next_action_url": reverse("dashboard:data_sources"),
-        "next_action_note": (
-            "Open the Data & Sources register to inspect all ingested source records "
-            "and officer-supplied metadata. Authorised officers can update documented "
-            "permission status when evidence is received."
-        ),
-        "confidentiality_note": (
-            "Internal legal correspondence and confidential licence terms are not "
-            "displayed here. They are restricted to authorised roles and stored "
-            "outside the advisory interface."
-        ),
+    }
+
+    # ── Secondary governance information (expandable) ────────────────────
+    secondary_info = {
+        "summary": "More about reuse, licensing and confidentiality",
+        "items": [
+            {
+                "title": "Public availability is not an open-data licence",
+                "body": (
+                    "The manual is publicly accessible on a Ministry of Agriculture "
+                    "statistics subdomain, but public availability does not grant "
+                    "reproduction, database storage, or transcription rights. The "
+                    "project's MIT licence does not cover third-party documents."
+                ),
+            },
+            {
+                "title": "Permission to reuse vs agronomic validation",
+                "body": (
+                    "Copyright permission governs whether the manual's content can be "
+                    "reproduced. Agronomic validation governs whether extracted content "
+                    "is locally applicable. Both must be satisfied before any "
+                    "recommendation is attributed to this source."
+                ),
+            },
+            {
+                "title": "Confidential legal correspondence",
+                "body": (
+                    "Internal legal correspondence and confidential licence terms are "
+                    "not displayed on this page. They are restricted to authorised "
+                    "roles and stored outside the advisory interface."
+                ),
+            },
+        ],
     }
 
     breadcrumb = [
@@ -504,16 +574,15 @@ def guidance_page_context() -> dict[str, object]:
 
     return {
         "title": "Agronomic Guidance",
-        "description": (
-            "Source registration, permission status, and agronomic evidence governance."
-        ),
+        "description": ("Publication governance, source verification and agronomic evidence."),
         "breadcrumb": breadcrumb,
         "publication": publication,
         "status": status,
-        "restriction": restriction,
-        "planting_date_notice": planting_date_notice,
+        "warning": warning,
+        "agronomic_safety": agronomic_safety,
         "source_categories": source_categories,
         "workflow": workflow,
+        "secondary_info": secondary_info,
         "return_url": reverse("dashboard:home"),
         "data_sources_url": reverse("dashboard:data_sources"),
         # Keep the legacy message for backwards compatibility with existing

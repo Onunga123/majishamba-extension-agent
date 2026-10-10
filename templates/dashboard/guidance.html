@@ -6,7 +6,7 @@
 <div class="guidance-page">
 
   {# ────────────────────────────────────────────────────────────────────── #}
-  {# Breadcrumb — Dashboard / Knowledge Sources / KALRO Maize Extension Manual #}
+  {# A. Compact navigation header — breadcrumb + page title + subtitle       #}
   {# ────────────────────────────────────────────────────────────────────── #}
   <nav class="guidance-breadcrumb" aria-label="Breadcrumb">
     {% for label, url in breadcrumb %}
@@ -21,233 +21,379 @@
     {% endfor %}
   </nav>
 
-  {# ────────────────────────────────────────────────────────────────────── #}
-  {# Page header — title + supporting description                          #}
-  {# ────────────────────────────────────────────────────────────────────── #}
   <header class="guidance-page-header">
     <h1>{{ title }}</h1>
     <p>{{ description }}</p>
   </header>
 
   {# ────────────────────────────────────────────────────────────────────── #}
-  {# B. Source identity and status                                         #}
+  {# B. Publication identity panel — composed header with status indicators #}
   {# ────────────────────────────────────────────────────────────────────── #}
   <section class="guidance-section" aria-labelledby="identity-heading">
-    <div class="guidance-identity">
-      <h2 id="identity-heading">{{ publication.title }}</h2>
-      <p class="identity-subtitle">{{ publication.subtitle }}</p>
+    <div class="pub-identity">
+      {# Left column: document icon + title block #}
+      <div class="pub-identity-main">
+        <div class="pub-icon" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="8" y1="13" x2="16" y2="13"/>
+            <line x1="8" y1="17" x2="13" y2="17"/>
+          </svg>
+        </div>
+        <div class="pub-text">
+          <h2 id="identity-heading">{{ publication.title }}</h2>
+          <p class="pub-subtitle">{{ publication.subtitle }}</p>
+          <div class="pub-meta-row">
+            <span class="pub-meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+              {{ publication.publisher_short }}
+            </span>
+            <span class="pub-meta-sep" aria-hidden="true">·</span>
+            <span class="pub-meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              {{ publication.publication_year }}
+            </span>
+          </div>
+        </div>
+      </div>
 
-      {# Status indicator: tone + label + supporting text (never colour alone) #}
-      <div class="guidance-status tone-{{ status.tone }}"
-           role="status"
-           aria-live="polite">
-        <span class="status-icon" aria-hidden="true">
-          {# Warning tone: alert triangle. Info: info circle. Success: check-circle. Danger: alert-octagon. #}
-          {% if status.tone == 'warning' %}
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          {% elif status.tone == 'info' %}
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-          {% elif status.tone == 'success' %}
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          {% elif status.tone == 'danger' %}
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          {% endif %}
-        </span>
-        <span class="status-text">
-          <span class="status-label">{{ status.label }}</span>
-          <span class="status-supporting">{{ status.supporting }}</span>
-          <span class="status-summary">{{ status.summary }}</span>
-        </span>
+      {# Right column: status indicators (responsive — stacks on mobile) #}
+      <div class="pub-status-stack">
+        <div class="pub-status-pill pub-status-warning"
+             role="status"
+             aria-live="polite">
+          <span class="pub-status-dot" aria-hidden="true"></span>
+          <span class="pub-status-text">
+            <span class="pub-status-label">{{ status.label }}</span>
+          </span>
+        </div>
+        <div class="pub-status-pill pub-status-neutral">
+          <span class="pub-status-dot pub-status-dot-neutral" aria-hidden="true"></span>
+          <span class="pub-status-text">
+            <span class="pub-status-label">{{ status.supporting }}</span>
+          </span>
+        </div>
       </div>
     </div>
   </section>
 
   {# ────────────────────────────────────────────────────────────────────── #}
-  {# C. Publication metadata — sourced from actual CropCalendar record     #}
+  {# C. Compact operational warning — ONE panel, concise                    #}
+  {# ────────────────────────────────────────────────────────────────────── #}
+  <section class="guidance-section" aria-labelledby="warning-heading">
+    <div class="guidance-warning" role="note" aria-labelledby="warning-heading">
+      <span class="guidance-warning-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </span>
+      <div class="guidance-warning-body">
+        <h2 id="warning-heading">{{ warning.heading }}</h2>
+        <p>{{ warning.body }}</p>
+      </div>
+    </div>
+  </section>
+
+  {# ────────────────────────────────────────────────────────────────────── #}
+  {# D. Publication metadata as a structured grid component                 #}
   {# ────────────────────────────────────────────────────────────────────── #}
   <section class="guidance-section" aria-labelledby="metadata-heading">
     <div class="guidance-section-header">
       <h2 id="metadata-heading">Publication metadata</h2>
-      <p>Bibliographic record sourced from the source register. Missing values are shown as not recorded rather than fabricated.</p>
     </div>
 
-    <div class="guidance-metadata">
-      <dl>
-        <dt>Publication title</dt>
-        <dd>{{ publication.title }}</dd>
+    <div class="metadata-grid">
+      <div class="metadata-row">
+        <dt class="metadata-label">Publication title</dt>
+        <dd class="metadata-value">{{ publication.title }}</dd>
+      </div>
 
-        <dt>Subtitle / full title</dt>
-        <dd>{{ publication.subtitle }}</dd>
+      <div class="metadata-row">
+        <dt class="metadata-label">Full title</dt>
+        <dd class="metadata-value">{{ publication.subtitle }}</dd>
+      </div>
 
-        <dt>Publisher</dt>
-        <dd>{{ publication.publisher }}</dd>
+      <div class="metadata-row">
+        <dt class="metadata-label">Publisher</dt>
+        <dd class="metadata-value">{{ publication.publisher }}</dd>
+      </div>
 
-        <dt>Publication year</dt>
-        <dd>
-          {{ publication.publication_year }}
-          {% if publication.publication_date %}
-            <span class="text-xs text-stone-500">({{ publication.publication_date|date:"Y-m-d" }})</span>
-          {% endif %}
-        </dd>
-
-        <dt>ISBN / document ID</dt>
-        <dd>
-          {{ publication.isbn_or_id|default:"Not recorded" }}
-          {% if publication.isbn_or_id %}
-          <span class="metadata-value-verified"
-                title="Identifier recorded in source register">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            recorded
-          </span>
+      <div class="metadata-row">
+        <dt class="metadata-label">Publication date</dt>
+        <dd class="metadata-value">
+          {% if publication.publication_date_display %}
+            {{ publication.publication_date_display }}
           {% else %}
-          <span class="metadata-value-unverified" title="No identifier recorded">unverified</span>
+            <span class="metadata-empty">Date not recorded</span>
           {% endif %}
         </dd>
+      </div>
 
-        <dt>Official publication URL</dt>
-        <dd>
-          {% if publication.source_url %}
-            <a href="{{ publication.source_url }}"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="metadata-link">
-              View official publication
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            </a>
-            <span class="metadata-link-note">
-              Opens the official publication page in a new tab. Linking does not imply permission to ingest or reproduce the manual's content.
-            </span>
+      <div class="metadata-row">
+        <dt class="metadata-label">ISBN</dt>
+        <dd class="metadata-value">
+          {% if publication.isbn_recorded %}
+            {{ publication.isbn_or_id }}
+          {% else %}
+            <span class="metadata-empty">ISBN not recorded</span>
+          {% endif %}
+        </dd>
+      </div>
+
+      <div class="metadata-row">
+        <dt class="metadata-label">Document ID</dt>
+        <dd class="metadata-value">
+          {% if publication.isbn_or_id and not publication.isbn_recorded %}
+            {{ publication.isbn_or_id }}
+          {% elif publication.isbn_recorded %}
+            <span class="metadata-empty">—</span>
           {% else %}
             <span class="metadata-empty">Not recorded</span>
           {% endif %}
         </dd>
+      </div>
 
-        <dt>Copyright statement</dt>
-        <dd>{{ publication.copyright_notice }}</dd>
+      <div class="metadata-row">
+        <dt class="metadata-label">Geographic scope</dt>
+        <dd class="metadata-value">{{ publication.geographic_scope }}</dd>
+      </div>
 
-        <dt>Reuse permission basis</dt>
-        <dd>{{ publication.licence_basis }}</dd>
+      <div class="metadata-row">
+        <dt class="metadata-label">Copyright</dt>
+        <dd class="metadata-value">{{ publication.copyright_notice }}</dd>
+      </div>
 
-        <dt>Geographic scope</dt>
-        <dd>{{ publication.geographic_scope }} (coverage level: {{ publication.coverage_level }})</dd>
-
-        <dt>Bibliographic verification</dt>
-        <dd>
-          {{ publication.bibliographic_verification_label }}
-          {% if publication.record_verified %}
-          <span class="metadata-value-verified"
-                title="CropCalendar record #{{ publication.record_id }} exists in source register">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            verified
+      <div class="metadata-row">
+        <dt class="metadata-label">Permission basis</dt>
+        <dd class="metadata-value">
+          <span class="metadata-status metadata-status-warning">
+            <span class="metadata-status-dot" aria-hidden="true"></span>
+            Reuse permission not confirmed
           </span>
+        </dd>
+      </div>
+
+      <div class="metadata-row">
+        <dt class="metadata-label">Content integration</dt>
+        <dd class="metadata-value">
+          <span class="metadata-status metadata-status-neutral">
+            <span class="metadata-status-dot" aria-hidden="true"></span>
+            {{ publication.content_integration_label }}
+          </span>
+        </dd>
+      </div>
+
+      <div class="metadata-row">
+        <dt class="metadata-label">Bibliographic verification</dt>
+        <dd class="metadata-value">
+          {% if publication.record_verified %}
+            <span class="metadata-status metadata-status-recorded">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              Record present (CropCalendar #{{ publication.record_id }})
+            </span>
           {% else %}
-          <span class="metadata-value-unverified" title="No matching source register record">unverified</span>
+            <span class="metadata-status metadata-status-warning">
+              <span class="metadata-status-dot" aria-hidden="true"></span>
+              Record not found in source register
+            </span>
           {% endif %}
         </dd>
-
-        <dt>Content integration status</dt>
-        <dd>{{ publication.content_integration_label }}</dd>
-      </dl>
+      </div>
     </div>
+
+    {# E. Official publication link — secondary action                       #}
+    {% if publication.source_url %}
+    <div class="metadata-action">
+      <a href="{{ publication.source_url }}"
+         target="_blank"
+         rel="noopener noreferrer"
+         class="metadata-link-button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        View official publication
+      </a>
+      <span class="metadata-action-note">
+        Opens the official publication page. Linking does not imply permission to reproduce or ingest the manual.
+      </span>
+    </div>
+    {% endif %}
   </section>
 
   {# ────────────────────────────────────────────────────────────────────── #}
-  {# D. Agronomic use restriction — prominent but not alarmist              #}
+  {# F. Agronomic safety section — one heading + local-verification panel   #}
   {# ────────────────────────────────────────────────────────────────────── #}
-  <section class="guidance-section" aria-labelledby="restriction-heading">
-    <div class="guidance-restriction"
+  <section class="guidance-section" aria-labelledby="safety-heading">
+    <div class="guidance-section-header">
+      <h2 id="safety-heading">{{ agronomic_safety.heading }}</h2>
+    </div>
+    <p class="guidance-section-body">{{ agronomic_safety.body }}</p>
+
+    <div class="local-verification"
          role="note"
-         aria-labelledby="restriction-heading">
-      <span class="restriction-icon" aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+         aria-labelledby="local-verification-heading">
+      <span class="local-verification-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
       </span>
-      <div>
-        <h2 id="restriction-heading">{{ restriction.heading }}</h2>
-        <p>{{ restriction.body }}</p>
-        <p class="restriction-instruction">{{ restriction.instruction }}</p>
+      <div class="local-verification-body">
+        <h3 id="local-verification-heading">{{ agronomic_safety.local_verification.heading }}</h3>
+        <p>{{ agronomic_safety.local_verification.body }}</p>
       </div>
     </div>
   </section>
 
   {# ────────────────────────────────────────────────────────────────────── #}
-  {# E. Local planting-date verification                                    #}
-  {# ────────────────────────────────────────────────────────────────────── #}
-  <section class="guidance-section" aria-labelledby="planting-heading">
-    <div class="guidance-planting"
-         role="note"
-         aria-labelledby="planting-heading">
-      <span class="planting-icon" aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      </span>
-      <div>
-        <h2 id="planting-heading">{{ planting_date_notice.heading }}</h2>
-        <p>{{ planting_date_notice.body }}</p>
-        <p class="planting-note">{{ planting_date_notice.note }}</p>
-      </div>
-    </div>
-  </section>
-
-  {# ────────────────────────────────────────────────────────────────────── #}
-  {# F. Sources currently supporting advisories                            #}
+  {# G. Current advisory sources — 3-column source cards                    #}
   {# ────────────────────────────────────────────────────────────────────── #}
   <section class="guidance-section" aria-labelledby="sources-heading">
     <div class="guidance-section-header">
       <h2 id="sources-heading">Sources currently supporting advisories</h2>
-      <p>The categories of source records currently integrated into the advisory system. Listed presence does not imply every advisory is supported by every source.</p>
     </div>
 
-    <div class="guidance-sources">
-      <ul>
-        {% for source in source_categories %}
-        <li>
-          <p class="source-name">{{ source.name }}</p>
-          <p class="source-description">{{ source.description }}</p>
-          <p class="source-verification">{{ source.verification_note }}</p>
-        </li>
-        {% endfor %}
-      </ul>
-      <div class="guidance-sources-footer">
-        <a href="{{ data_sources_url }}">Open the full source register →</a>
-      </div>
+    <ul class="source-card-grid" role="list">
+      {# Card 1: KMD #}
+      <li class="source-card">
+        <div class="source-card-header">
+          <span class="source-card-icon source-card-icon-sky" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.5 19a4.5 4.5 0 1 0 0-9h-1.8A7 7 0 1 0 4 14.9"/>
+            </svg>
+          </span>
+          <h3 class="source-card-name">{{ source_categories.0.name }}</h3>
+        </div>
+        <p class="source-card-desc">{{ source_categories.0.description }}</p>
+        <p class="source-card-integration">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          {{ source_categories.0.integration_label }}
+        </p>
+      </li>
+
+      {# Card 2: Pest notices #}
+      <li class="source-card">
+        <div class="source-card-header">
+          <span class="source-card-icon source-card-icon-amber" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+              <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+            </svg>
+          </span>
+          <h3 class="source-card-name">{{ source_categories.1.name }}</h3>
+        </div>
+        <p class="source-card-desc">{{ source_categories.1.description }}</p>
+        <p class="source-card-integration">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          {{ source_categories.1.integration_label }}
+        </p>
+      </li>
+
+      {# Card 3: Open-Meteo #}
+      <li class="source-card">
+        <div class="source-card-header">
+          <span class="source-card-icon source-card-icon-green" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+            </svg>
+          </span>
+          <h3 class="source-card-name">{{ source_categories.2.name }}</h3>
+        </div>
+        <p class="source-card-desc">{{ source_categories.2.description }}</p>
+        <p class="source-card-integration">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          {{ source_categories.2.integration_label }}
+        </p>
+      </li>
+    </ul>
+
+    <div class="sources-footer">
+      <a href="{{ data_sources_url }}">
+        Open full source register
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
     </div>
   </section>
 
   {# ────────────────────────────────────────────────────────────────────── #}
-  {# G. Permission and integration workflow                                #}
+  {# H. Permission lifecycle — visual stepper                               #}
   {# ────────────────────────────────────────────────────────────────────── #}
-  <section class="guidance-section" aria-labelledby="workflow-heading">
+  <section class="guidance-section" aria-labelledby="lifecycle-heading">
     <div class="guidance-section-header">
-      <h2 id="workflow-heading">{{ workflow.heading }}</h2>
+      <h2 id="lifecycle-heading">{{ workflow.heading }}</h2>
       <p>{{ workflow.intro }}</p>
     </div>
 
-    <div class="guidance-workflow">
-      <ol>
-        {% for step in workflow.steps %}
-        <li>
-          <span class="step-label">{{ step.label }}</span>
-          <span class="step-value {% if step.complete %}is-yes{% elif step.value == 'Not started' or step.value == 'Not approved' or step.value == 'Not performed' or step.value == 'Not confirmed' or step.value == 'Not recorded' %}is-no{% else %}is-neutral{% endif %}">
-            {{ step.value }}
-          </span>
-          <span class="step-detail">{{ step.detail }}</span>
-        </li>
-        {% endfor %}
-      </ol>
+    <ol class="lifecycle-stepper" role="list">
+      {% for step in workflow.steps %}
+      <li class="lifecycle-step lifecycle-step-{{ step.status }}">
+        <span class="lifecycle-step-marker" aria-hidden="true">
+          {% if step.status == 'done' %}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          {% elif step.status == 'pending' %}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          {% elif step.status == 'blocked' %}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          {% else %}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>
+          {% endif %}
+        </span>
+        <div class="lifecycle-step-body">
+          <div class="lifecycle-step-header">
+            <span class="lifecycle-step-label">{{ step.label }}</span>
+            <span class="lifecycle-step-status lifecycle-step-status-{{ step.status }}">{{ step.status_text }}</span>
+          </div>
+          <p class="lifecycle-step-detail">{{ step.detail }}</p>
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
 
-      <div class="workflow-next">
-        <a href="{{ workflow.next_action_url }}">
-          {{ workflow.next_action_label }}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-        <p class="workflow-next-note">{{ workflow.next_action_note }}</p>
-      </div>
+    {# Footnotes — national scope + no endorsement #}
+    <div class="lifecycle-notes">
+      <p class="lifecycle-note">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>{{ workflow.national_scope_note }}</span>
+      </p>
+      <p class="lifecycle-note">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>{{ workflow.no_endorsement_note }}</span>
+      </p>
+    </div>
 
-      <p class="workflow-confidentiality">{{ workflow.confidentiality_note }}</p>
+    {# Single secondary action — link to source register #}
+    <div class="lifecycle-action">
+      <a href="{{ workflow.next_action_url }}" class="lifecycle-action-button">
+        {{ workflow.next_action_label }}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
     </div>
   </section>
 
   {# ────────────────────────────────────────────────────────────────────── #}
-  {# Consistent return navigation                                          #}
+  {# I. Secondary governance info — expandable disclosure                   #}
+  {# ────────────────────────────────────────────────────────────────────── #}
+  <section class="guidance-section guidance-secondary" aria-labelledby="secondary-heading">
+    <details class="secondary-disclosure">
+      <summary id="secondary-heading">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        {{ secondary_info.summary }}
+      </summary>
+      <div class="secondary-items">
+        {% for item in secondary_info.items %}
+        <div class="secondary-item">
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.body }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </details>
+  </section>
+
+  {# ────────────────────────────────────────────────────────────────────── #}
+  {# J. Footer navigation                                                    #}
   {# ────────────────────────────────────────────────────────────────────── #}
   <nav class="guidance-return" aria-label="Return to dashboard">
     <a href="{{ return_url }}">
@@ -258,7 +404,7 @@
     <a href="{{ data_sources_url }}">Knowledge sources register</a>
   </nav>
 
-  {# Hidden legacy message for backwards compatibility with existing tests #}
+  {# Hidden legacy marker for backwards compatibility with existing tests #}
   <span class="guidance-sr-only">{{ legacy_message }}</span>
 
 </div>
