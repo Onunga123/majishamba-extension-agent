@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -27,6 +28,14 @@ CLUSTER_STATUS_FILTERS = (
     ("approved", "Approved"),
     ("needs_field_visit", "Needs field visit"),
     ("no_advisory", "No advisory"),
+)
+
+CARTO_TILE_URL = "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+CARTO_ATTRIBUTION = (
+    '<a href="https://www.openstreetmap.org/copyright" target="_blank" '
+    'rel="noopener noreferrer">© OpenStreetMap contributors</a> '
+    '<a href="https://carto.com/attributions" target="_blank" '
+    'rel="noopener noreferrer">© CARTO</a>'
 )
 
 # Workflow status taxonomy used to label advisories and cluster rows.
@@ -68,6 +77,21 @@ def _evidence_quality(advisory) -> str:
     if n >= 2 and stale_count == 0:
         return "Moderate"
     return "Limited"
+
+
+def _map_tile_url(tile_template: str, api_key: str) -> str:
+    """Build a browser-visible tile URL without logging or embedding the key."""
+    tile_url = (tile_template or CARTO_TILE_URL).strip()
+    key = (api_key or "").strip()
+    if not key:
+        return tile_url
+    if "{api_key}" in tile_url:
+        return tile_url.replace("{api_key}", key)
+
+    parts = urlsplit(tile_url)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    query["key"] = key
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
 
 def _audit_timeline(event: AuditEvent) -> dict:
@@ -730,20 +754,13 @@ class ClusterMapView(LoginRequiredMixin, View):
                 })
                 unmapped_count += 1
         cfg = settings.MAJISHAMBA
-        # Use OpenStreetMap raster tiles (production-ready, no API key required)
-        # Fall back to Stadia Maps if configured with an API key
+        tile_template = cfg.get("MAP_BASEMAP_TILES", CARTO_TILE_URL)
         api_key = cfg.get("MAP_API_KEY", "")
-        stadia_url = cfg.get("MAP_BASEMAP_TILES", "")
-        if api_key and stadia_url and "{api_key}" in stadia_url:
-            tile_url = stadia_url.replace("{api_key}", api_key).replace("{r}", "")
-            attribution = cfg.get("MAP_BASEMAP_ATTRIBUTION", "© Stadia Maps © OpenMapTiles © OpenStreetMap contributors")
-        else:
-            # Use CARTO basemap (free, production-ready, no API key required)
-            # OSM direct tiles (tile.openstreetmap.org) have strict usage policy
-            # that can block development servers; CARTO provides free OSM-based
-            # raster tiles with a more permissive policy.
-            tile_url = "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
-            attribution = "© OpenStreetMap contributors © CARTO"
+        tile_url = _map_tile_url(tile_template, api_key)
+        is_carto = "cartocdn.com" in tile_template
+        attribution = CARTO_ATTRIBUTION if is_carto else cfg.get(
+            "MAP_BASEMAP_ATTRIBUTION", "© OpenStreetMap contributors"
+        )
         return render(request, "dashboard/map.html", {
             "clusters": clusters,
             "localities": localities_for_template,
@@ -752,6 +769,9 @@ class ClusterMapView(LoginRequiredMixin, View):
             "total_count": len(clusters),
             "tile_url": tile_url,
             "attribution": attribution,
+            "basemap_key_configured": bool(api_key),
+            "basemap_provider": "CARTO" if is_carto else "configured provider",
+            "basemap_requires_key": is_carto,
             "max_zoom": cfg.get("MAP_MAX_ZOOM", 19),
             "can_request_advisory": bool(request.user.is_authenticated and request.user.is_officer()),
         })

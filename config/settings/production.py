@@ -91,12 +91,20 @@ MAJISHAMBA["OLLAMA_HOST"] = env_str("OLLAMA_HOST", "http://127.0.0.1:11434")
 MAJISHAMBA["OLLAMA_MODEL"] = env_str("OLLAMA_MODEL", "qwen2.5:7b-instruct")
 MAJISHAMBA["MODEL_TIMEOUT_SECONDS"] = 120
 
-# --- Map (production: API key required) -------------------------------------
-# In production, set KACHIENG_MAP_API_KEY to your Stadia Maps key.
-# The tile URL includes {api_key} which is substituted server-side.
+# --- Map (production: CARTO API key recommended) ----------------------------
+# Set CARTO_BASEMAP_API_KEY in the deployment environment. The key is sent to
+# the browser as part of CARTO tile requests, so configure CARTO referrer
+# restrictions for the deployed domain.
 MAJISHAMBA["MAP_BASEMAP_TILES"] = env_str(
     "KACHIENG_MAP_TILES",
-    "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png",
+    "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
 )
-MAJISHAMBA["MAP_API_KEY"] = env_str("KACHIENG_MAP_API_KEY", "")
+MAJISHAMBA["MAP_API_KEY"] = env_str(
+    "CARTO_BASEMAP_API_KEY",
+    env_str("KACHIENG_MAP_API_KEY", ""),
+)
+MAJISHAMBA["MAP_BASEMAP_ATTRIBUTION"] = env_str(
+    "KACHIENG_MAP_ATTRIBUTION",
+    "© OpenStreetMap contributors © CARTO",
+)
 MAJISHAMBA["MAP_MAX_ZOOM"] = 20

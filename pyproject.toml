@@ -42,6 +42,10 @@ dependencies = [
     "whitenoise>=6.6",
     # Pretty logging for audit events
     "python-json-logger>=2.0",
+    # Load local .env configuration for development (production uses env vars)
+    "python-dotenv>=1.0",
+    # PostgreSQL database driver used when USE_POSTGRES=1
+    "psycopg[binary]>=3.1",
 ]
 
 [project.optional-dependencies]

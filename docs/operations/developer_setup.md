@@ -135,5 +135,5 @@ gunicorn config.wsgi:application -b 127.0.0.1:8000
 - **`pip install` fails on classifier `Topic :: Scientific/Engineering :: Agriculture`.** Use the version in `pyproject.toml` (we use `Topic :: Scientific/Engineering` without the subtopic, since PyPI doesn't accept `Agriculture` as a classifier).
 - **`loaddata` fails on UNIQUE constraint for crop calendars.** The fixture has two entries with the same `crop/zone_label/season` — make sure the third entry has `zone_label="Migori-Low-Mid-Stale"` (which it does in the current fixtures).
 - **Ollama not installed.** The agent logs `WARN: Ollama not installed` and falls back to the deterministic template. The demo still works.
-- **MapLibre map is blank.** You need internet access to load the OSM raster tiles. The map is non-essential to the demo flow.
+- **MapLibre map is blank.** Copy `.env.example` to `.env`, set `CARTO_BASEMAP_API_KEY` to the key from CARTO, and ensure the key permits the local referrer (for example `http://127.0.0.1:8000`). The browser-visible key is not a backend secret. The locality list remains usable if tiles fail.
 - **Tests fail with `Missing staticfiles manifest entry for 'css/app.css'`.** Make sure `STATICFILES_STORAGE` is `django.contrib.staticfiles.storage.StaticFilesStorage` (set in `config/settings/development.py`).

@@ -40,9 +40,20 @@
         <p class="text-sm text-red-800 mt-1">The locality list below is still usable.</p>
       </div>
     </div>
-    <div class="absolute bottom-1 right-2 text-xs text-stone-600 bg-white/70 px-1.5 py-0.5 rounded z-5 pointer-events-none">
-      {{ attribution|default:"© OpenStreetMap contributors © CARTO" }}
+    <div class="absolute bottom-1 right-2 text-xs text-stone-600 bg-white/90 px-1.5 py-0.5 rounded z-5">
+      {% if basemap_provider == "CARTO" %}
+      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>
+      <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">© CARTO</a>
+      {% else %}
+      {{ attribution|default:"© OpenStreetMap contributors" }}
+      {% endif %}
     </div>
+    {% if basemap_requires_key and not basemap_key_configured %}
+    <div class="absolute top-2 left-2 right-2 bg-amber-50 border border-amber-300 text-amber-900 text-xs rounded px-3 py-2 z-5" role="status">
+      CARTO basemap key is not configured. Set <code>CARTO_BASEMAP_API_KEY</code> in your local <code>.env</code> or deployment environment.
+      The locality list remains available while the basemap is unavailable.
+    </div>
+    {% endif %}
   </div>
 
   <div class="lg:w-80 flex-shrink-0 bg-white rounded border border-stone-200 flex flex-col" style="max-height: 600px;">
@@ -117,12 +128,14 @@
   const attribution = "{{ attribution|escapejs }}";
   const maxZoom = {{ max_zoom|default:19 }};
   const canRequestAdvisory = {% if can_request_advisory %}true{% else %}false{% endif %};
+  const basemapKeyConfigured = {% if basemap_key_configured %}true{% else %}false{% endif %};
 
   const mappable = localities.filter(l => l.lat !== null && l.lon !== null);
   let map = null;
   let markers = {};
   let mapInitialized = false;
   let loadTimeoutId = null;
+  let controlsAdded = false;
 
   function hasWebGL() {
     try {
@@ -184,6 +197,10 @@
       return;
     }
 
+    if (!basemapKeyConfigured) {
+      console.warn('CARTO basemap key is not configured; set CARTO_BASEMAP_API_KEY in the local/deployment environment.');
+    }
+
     showLoading();
     mapInitialized = true;
 
@@ -229,6 +246,11 @@
         document.getElementById('map-loading').classList.add('hidden');
         addMarkers();
         map.addControl(new maplibregl.NavigationControl(), 'top-right');
+        map.addControl(new maplibregl.AttributionControl({
+          compact: true,
+          customAttribution: attribution,
+        }), 'bottom-right');
+        controlsAdded = true;
       });
 
       // Also handle 'sourcedata' as a fallback in case 'load' doesn't fire
@@ -237,16 +259,28 @@
           if (loadTimeoutId) { clearTimeout(loadTimeoutId); loadTimeoutId = null; }
           document.getElementById('map-loading').classList.add('hidden');
           addMarkers();
-          if (!map.hasControl) {
+          if (!controlsAdded) {
             map.addControl(new maplibregl.NavigationControl(), 'top-right');
+            map.addControl(new maplibregl.AttributionControl({
+              compact: true,
+              customAttribution: attribution,
+            }), 'bottom-right');
+            controlsAdded = true;
           }
         }
       });
 
       map.on('error', function(e) {
-        // Log but don't crash on individual tile errors
+        // Keep markers/list usable, but surface authentication failures clearly.
         if (e && e.error) {
-          console.warn('Map tile error (non-fatal):', e.error.message || e.error);
+          var status = e.error.status || e.error.statusCode || '';
+          var message = e.error.message || String(e.error);
+          console.warn('Map tile error (non-fatal):', message);
+          if (status === 401 || status === 403 || /401|403|unauthori[sz]ed|forbidden/i.test(message)) {
+            showError(basemapKeyConfigured
+              ? 'CARTO rejected the basemap request. Check the API key and its referrer restrictions.'
+              : 'CARTO requires a basemap key. Set CARTO_BASEMAP_API_KEY and check its referrer restrictions.');
+          }
         }
       });
 
@@ -262,6 +296,11 @@
   // Retry button
   document.getElementById('map-retry').addEventListener('click', function() {
     mapInitialized = false;
+    controlsAdded = false;
+    if (map) {
+      try { map.remove(); } catch(e) {}
+      map = null;
+    }
     var mapEl = document.getElementById('map');
     mapEl.innerHTML = '';
     showLoading();
@@ -271,7 +310,7 @@
   // Locality list click → focus marker + show detail
   document.querySelectorAll('.locality-item').forEach(function(item) {
     item.addEventListener('click', function() {
-      var clusterId = item.dataset.cluster_id;
+      var clusterId = item.dataset.clusterId;
       var lat = parseFloat(item.dataset.lat);
       var lon = parseFloat(item.dataset.lon);
 

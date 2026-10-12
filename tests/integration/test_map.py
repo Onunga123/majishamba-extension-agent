@@ -1,4 +1,4 @@
-"""Map tests — verify no Google Maps dependency, OSM attribution, synthetic coords labelled."""
+"""Map tests — verify CARTO/MapLibre integration and safe coordinate handling."""
 from __future__ import annotations
 
 import pytest
@@ -6,6 +6,7 @@ from django.core.management import call_command
 from io import StringIO
 
 from apps.clusters.models import FarmerCluster
+from apps.dashboard.views import _map_tile_url
 
 
 @pytest.mark.django_db
@@ -116,6 +117,7 @@ def test_invalid_coordinates_excluded_from_markers(officer_client):
     # The JS filters out clusters where lat or lon is null.
     # We assert the JS code contains the filter.
     assert "mappableClusters" in html or "lat !== null" in html, "Map JS does not filter invalid coords"
+    assert "item.dataset.clusterId" in html, "Locality selection must read data-cluster-id correctly"
     # And clusters with null coords appear only in the table, not as markers.
     # (The JS doesn't add a marker for them; we already assert the list shows them.)
 
@@ -124,9 +126,9 @@ def test_invalid_coordinates_excluded_from_markers(officer_client):
 def test_tile_url_configurable_via_settings():
     """The map tile URL must come from settings, allowing production to override it."""
     from django.conf import settings
-    # Default must be Stadia Maps (free for localhost dev).
+    # Default is CARTO Voyager and the key is passed as a query parameter.
     url = settings.MAJISHAMBA["MAP_BASEMAP_TILES"]
-    assert "stadiamaps.com" in url or "tile.openstreetmap.org" in url, f"Unexpected tile URL: {url}"
+    assert "basemaps.cartocdn.com/rastertiles/voyager" in url, f"Unexpected tile URL: {url}"
     # Attribution must be present.
     attribution = settings.MAJISHAMBA["MAP_BASEMAP_ATTRIBUTION"]
     assert "OpenStreetMap" in attribution or "Stadia" in attribution
@@ -134,3 +136,51 @@ def test_tile_url_configurable_via_settings():
     assert "MAP_API_KEY" in settings.MAJISHAMBA
     # Attribution must be present.
     assert "OpenStreetMap" in settings.MAJISHAMBA["MAP_BASEMAP_ATTRIBUTION"]
+
+
+def test_carto_key_is_appended_to_raster_template():
+    url = _map_tile_url(
+        "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+        "test-key",
+    )
+    assert url.endswith(".png?key=test-key")
+
+
+def test_carto_key_is_url_encoded_and_preserves_existing_query():
+    url = _map_tile_url(
+        "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?foo=bar",
+        "key with/slash",
+    )
+    assert "foo=bar" in url
+    assert "key=key+with%2Fslash" in url
+
+
+def test_map_tile_url_does_not_add_empty_key():
+    template = "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+    assert _map_tile_url(template, "") == template
+
+
+@pytest.mark.django_db
+def test_map_page_renders_configured_carto_key_without_logging_it(officer_client, settings):
+    """A configured key must reach the browser tile URL, never server logs/tests."""
+    call_command("seed_kachieng_clusters", stdout=StringIO())
+    settings.MAJISHAMBA = {**settings.MAJISHAMBA, "MAP_API_KEY": "testcartokey"}
+    response = officer_client.get("/dashboard/map/")
+    html = response.content.decode("utf-8")
+    # Django's escapejs filter encodes the tile-template braces in JavaScript.
+    assert "rastertiles/voyager/" in html
+    # escapejs also escapes the query-string separator as ``\\u003D``.
+    assert html.count("testcartokey") == 1
+    # The diagnostic names the environment variable intentionally; ensure the
+    # configured secret itself is not duplicated in warnings or page copy.
+
+
+@pytest.mark.django_db
+def test_map_page_diagnoses_missing_carto_key(officer_client, settings):
+    """A missing CARTO key must be visible without exposing a secret."""
+    call_command("seed_kachieng_clusters", stdout=StringIO())
+    settings.MAJISHAMBA["MAP_API_KEY"] = ""
+    response = officer_client.get("/dashboard/map/")
+    html = response.content.decode("utf-8")
+    assert "CARTO basemap key is not configured" in html
+    assert "CARTO_BASEMAP_API_KEY" in html
