@@ -142,6 +142,18 @@ Legend: ✅ PASS · ❌ FAIL · ⚠️ PARTIAL · 🟡 KNOWN LIMITATION
 
 ---
 
+## Task 10A — OpenRouter provider selection and transparent failure handling
+
+**Description.** The cloud demo can use OpenRouter without requiring local model hardware, while provider failures remain distinguishable from successful model output.
+
+**Expected behaviour.** With `LLM_PROVIDER=openrouter`, `OPENROUTER_MODEL=openrouter/free`, and a local API key, one request is sent to the official OpenRouter chat-completions endpoint. A successful response is validated as `AdvisoryDraft` and persisted as `generation_mode="llm_openrouter"`; the API key is never logged. Authentication failure, rate limiting, timeout, empty output, malformed JSON, or schema-invalid output uses the established `fallback_template` and records the attempted provider/model and safe error status. The implementation never silently rotates to another model.
+
+**Automated coverage.** `tests/integration/test_llm_provider.py` mocks HTTP responses for success, missing key, authentication failure, rate limiting, timeout, empty response, invalid provider and secret non-disclosure. These tests do not prove a live OpenRouter request.
+
+**Challenge note.** OpenRouter remote inference, including a remote open-weights model, is not claimed as proof that the challenge's local open-weights requirement has been met. That requires a separately verified `LLM_PROVIDER=ollama` run.
+
+---
+
 ## Task 11 (bonus) — Audit log captures every tool call with sanitised inputs
 
 **Description.** Every MCP tool call writes an `AuditEvent` with tool name, sanitised inputs, summarised outputs, timestamp, and approval status.
@@ -168,7 +180,7 @@ Legend: ✅ PASS · ❌ FAIL · ⚠️ PARTIAL · 🟡 KNOWN LIMITATION
 
 ---
 
-## Task 13 — Qwen2.5-7B-Instruct via Ollama: integration attempt + honest fallback
+## Task 13 — Qwen2.5-7B-Instruct via Ollama: local open-weights verification
 
 **Description.** The challenge requires at least one full advisory generation task on Qwen2.5-7B-Instruct via Ollama. The agent's `draft_advisory` node attempts this on every request; on CPU-only demo machines with limited free RAM, the 7B model times out and the agent falls back to the deterministic template.
 
@@ -176,14 +188,12 @@ Legend: ✅ PASS · ❌ FAIL · ⚠️ PARTIAL · 🟡 KNOWN LIMITATION
 
 **Expected behaviour.** The agent calls `ollama.Client(host=OLLAMA_HOST).generate(model="qwen2.5:7b-instruct", ...)` with the compact prompt. On success: `Advisory.generation_mode="ollama_qwen"`, body is 3–5 paragraphs of natural-language prose with `[Source: ...]` citations woven in, `Advisory.model_name="qwen2.5:7b-instruct"`. On timeout: `generation_mode="fallback_template"`, advisory still produced.
 
-**Actual behaviour.** ⚠️ PARTIAL — **integration is verified, but the live `ollama_qwen` path is hardware-limited on the demo machine.**
+**Actual behaviour.** 🟡 UNVERIFIED in the current audit environment. The provider is preserved and automated tests cover provider selection, but a successful local `llm_ollama` task must be run on capable hardware before claiming challenge compliance.
 
-- ✅ The agent calls Ollama on every request (visible in the server log: `Ollama call failed (timed out); will fall back to template.` — this proves the integration code is exercised).
-- ✅ On a Linux server with a GPU, the same code produces `Mode: ollama_qwen` advisories in ~30–90 seconds.
-- ⚠️ On the demo laptop (i7-1185G7, 16 GB RAM, ~600 MB free during the demo), the 7B model takes more than 5 minutes per request and Ollama times out. The agent falls back to the deterministic template.
-- ✅ The fallback path is the same one tested in Task 10 and verified by `tests/integration/test_pipeline.py::test_deterministic_fallback_runs_when_ollama_missing`.
+- ✅ The fallback path is tested by `tests/integration/test_pipeline.py::test_deterministic_fallback_runs_when_ollama_missing`.
+- ⏳ A live local run must record `generation_mode="llm_ollama"`, model `qwen2.5:7b-instruct`, validated evidence and DRAFT status.
 
-**Notes.** This is an honest engineering limitation, not a code defect. To run the live `ollama_qwen` path on the demo machine, free up ≥ 6 GB of RAM (close browsers and other heavy processes) and set `MAJISHAMBA_OLLAMA_TIMEOUT=900` (15 minutes). The challenge requirement is satisfied by the integration code, the attempt on every request, and the graceful fallback — the officer still gets a defensible DRAFT advisory.
+**Next verification.** On capable hardware, pull `qwen2.5:7b-instruct`, set `LLM_PROVIDER=ollama`, run the complete workflow, and preserve the resulting advisory metadata. Do not report the requirement as passed from fallback or mocked tests.
 
 ---
 

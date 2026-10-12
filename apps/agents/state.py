@@ -29,7 +29,7 @@ class AgentState(TypedDict, total=False):
     # Drafting
     draft: AdvisoryDraft | None
     raw_model_output: str
-    generation_mode: str  # 'ollama_qwen' | 'fallback_template'
+    generation_mode: str  # 'llm_openrouter' | 'llm_ollama' | 'fallback_template'
     model_metadata: dict
 
     # Errors

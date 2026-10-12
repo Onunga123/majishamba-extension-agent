@@ -18,11 +18,13 @@ def test_no_provider_falls_back_to_template():
 
 @pytest.mark.django_db
 def test_openrouter_without_key_returns_none():
-    """When LLM_PROVIDER=openrouter but no API key, call_llm returns None."""
+    """Missing credentials produce transparent failure metadata."""
     with patch.dict("os.environ", {"LLM_PROVIDER": "openrouter", "OPENROUTER_API_KEY": ""}, clear=False):
         from apps.agents.llm_provider import call_llm
         result = call_llm("Test prompt")
-        assert result is None
+        assert result["provider"] == "openrouter"
+        assert result["status"] == "failed"
+        assert result["error"] == "missing_api_key"
 
 
 @pytest.mark.django_db
@@ -53,11 +55,14 @@ def test_openrouter_with_mocked_api():
             assert result["provider"] == "openrouter"
             assert "gemma" in result["model"]
             assert "recommendation_type" in result["text"]
+            assert result["status"] == "success"
+            assert result["execution_mode"] == "openrouter"
+            assert mock_client.post.call_count == 1
 
 
 @pytest.mark.django_db
-def test_openrouter_rate_limit_returns_none():
-    """When OpenRouter returns 429, call_llm returns None (fallback to template)."""
+def test_openrouter_rate_limit_does_not_switch_models():
+    """A rate limit is recorded and never triggers a hidden model retry."""
     mock_resp = MagicMock()
     mock_resp.status_code = 429
     mock_resp.text = "Rate limited"
@@ -75,7 +80,10 @@ def test_openrouter_rate_limit_returns_none():
 
             from apps.agents.llm_provider import call_llm
             result = call_llm("Test")
-            assert result is None
+            assert result["status"] == "failed"
+            assert result["error"] == "rate_limited"
+            assert result["http_status"] == 429
+            assert mock_client.post.call_count == 1
 
 
 @pytest.mark.django_db
@@ -96,7 +104,52 @@ def test_openrouter_timeout_returns_none():
 
             from apps.agents.llm_provider import call_llm
             result = call_llm("Test")
-            assert result is None
+            assert result["status"] == "failed"
+            assert result["error"] == "timeout"
+
+
+@pytest.mark.django_db
+def test_openrouter_auth_failure_is_explicit():
+    mock_resp = MagicMock(status_code=401, text="unauthorized")
+    with patch.dict("os.environ", {
+        "LLM_PROVIDER": "openrouter",
+        "OPENROUTER_API_KEY": "sk-or-v1-test-key",
+    }, clear=False), patch("httpx.Client") as mock_client_class:
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=None)
+        mock_client.post.return_value = mock_resp
+        mock_client_class.return_value = mock_client
+        from apps.agents.llm_provider import call_llm
+        result = call_llm("Test")
+        assert result["error"] == "authentication_error"
+        assert result["http_status"] == 401
+
+
+@pytest.mark.django_db
+def test_openrouter_empty_response_is_explicit():
+    mock_resp = MagicMock(status_code=200)
+    mock_resp.json.return_value = {"model": "openrouter/free", "choices": []}
+    with patch.dict("os.environ", {
+        "LLM_PROVIDER": "openrouter",
+        "OPENROUTER_API_KEY": "sk-or-v1-test-key",
+    }, clear=False), patch("httpx.Client") as mock_client_class:
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=None)
+        mock_client.post.return_value = mock_resp
+        mock_client_class.return_value = mock_client
+        from apps.agents.llm_provider import call_llm
+        result = call_llm("Test")
+        assert result["error"] == "empty_response"
+
+
+@pytest.mark.django_db
+def test_invalid_provider_uses_none_without_network(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "unexpected-provider")
+    from apps.agents.llm_provider import call_llm, get_llm_provider
+    assert get_llm_provider() == "none"
+    assert call_llm("Test") is None
 
 
 @pytest.mark.django_db

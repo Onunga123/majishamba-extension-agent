@@ -32,7 +32,7 @@ After `officer_approval_gate` the agent stops. Approval happens **outside** the 
 
 ## Open-weights model
 
-`draft_advisory` calls `ollama.Client(host=OLLAMA_HOST).generate(model="qwen2.5:7b-instruct", ...)` with a strict JSON-only prompt. Output is fenced-stripped, JSON-parsed, and validated against `AdvisoryDraft` (Pydantic). If Ollama is unreachable or `MAJISHAMBA_SKIP_OLLAMA=1` is set, the node goes straight to the template. If validation fails, the graph routes to `use_fallback_template` (no Ollama re-call). `Advisory.generation_mode` records `ollama_qwen` vs `fallback_template` so the demo and EVALS can show the difference.
+`draft_advisory` calls the provider selected by `LLM_PROVIDER`: OpenRouter uses `https://openrouter.ai/api/v1/chat/completions` and `OPENROUTER_MODEL`; Ollama uses `ollama.Client(host=OLLAMA_HOST).generate(model=OLLAMA_MODEL, ...)`; `none` skips model inference. All model output is fenced-stripped, JSON-parsed, and validated against `AdvisoryDraft` (Pydantic). A provider failure never silently switches provider/model: it is recorded in metadata and the node uses the deterministic template. `Advisory.generation_mode` records `llm_openrouter`, `llm_ollama`, or `fallback_template`; metadata also records configured/actual model, status and safe error code.
 
 **Timeouts.** Dev default: 10 seconds (fast failure → fallback). Production default: 60 seconds. Override with `MAJISHAMBA_OLLAMA_TIMEOUT=<seconds>`. Tests set `MAJISHAMBA_SKIP_OLLAMA=1` via `tests/conftest.py` so the suite runs in ~2 seconds without depending on Ollama.
 
@@ -72,7 +72,7 @@ Extension Officer (browser) ──HTMX──▶ Django view (apps/advisories/vie
               ▼                           ▼                              ▼
    apps/mcp_tools/tools.*         Ollama qwen2.5:7b-instruct     Pydantic validation
    (custom MCP, in-process)        (or fallback template)        (AdvisoryDraft schema)
-              │                           │                              │
+    │             OpenRouter or Ollama (or fallback)            │
               └───────────┬───────────────┴──────────────────────────────┘
                           ▼
                   apps/audit/service.log_tool_call   (every call)
@@ -104,9 +104,9 @@ The custom MCP server is the contract surface. Tools can be invoked by the agent
 
 Because approved crop-calendar PDFs already exist as files; building a custom document loader would be reinventing a tested, maintained tool. The official filesystem MCP server is restricted to `docs/calendars/` so it cannot leak arbitrary files.
 
-## Why Qwen2.5-7B-Instruct via Ollama
+## Why OpenRouter and Ollama
 
-It is an open-weights model that runs locally on a single workstation, which matters for an institution that does not want to send household/plot data to a hosted API. The 7B-Instruct variant follows structured prompts (JSON-only, schema-strict) well enough to validate. The deterministic fallback covers outages.
+OpenRouter provides a practical cloud demonstration path for laptops that cannot run a local model; `openrouter/free` or a configured `:free` model is validated and its actual returned model is recorded. Ollama remains the local path for Qwen2.5-7B-Instruct and is the relevant path for demonstrating that the project downloaded and ran an open-weights model itself. OpenRouter remote inference is not represented as local open-weights execution. The deterministic fallback covers outages and malformed output.
 
 ## Security / governance defaults
 

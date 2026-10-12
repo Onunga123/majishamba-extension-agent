@@ -9,7 +9,7 @@ The agent gathers evidence, drafts a structured advisory, validates the output, 
 ## What the agent is allowed to do
 
 - Call read-only MCP tools to gather evidence (plot history, crop calendar, weather, pest alerts, market prices, evidence validation).
-- Draft an advisory using Qwen2.5-7B-Instruct via Ollama, or fall back to a deterministic template.
+- Draft an advisory using the explicitly selected OpenRouter or Ollama provider, or use a deterministic template when no provider is selected or the selected provider fails.
 - Validate its own draft against a strict Pydantic schema.
 - Persist a DRAFT advisory record (`Advisory.status="draft"`).
 - Stop and wait for human approval.
@@ -42,10 +42,10 @@ The agent gathers evidence, drafts a structured advisory, validates the output, 
 ## Open-weights model
 
 - **Model.** Qwen2.5-7B-Instruct.
-- **Runtime.** Ollama, local (no third-party API).
+- **Runtime.** OpenRouter cloud inference or Ollama local inference, selected explicitly by `LLM_PROVIDER`.
 - **Fallback.** Deterministic template generator when the model is unavailable or output is invalid.
-- **Provenance.** `Advisory.generation_mode` records `ollama_qwen` or `fallback_template`. `Advisory.model_name`, `model_run_id`, `model_prompt_hash` are stored on each Advisory row.
-- **No household/plot data leaves the local machine.** The model is invoked locally; the prompt contains synthetic household/plot data and aggregate weather/pest/market signals.
+- **Provenance.** `Advisory.generation_mode` records `llm_openrouter`, `llm_ollama`, or `fallback_template`. `Advisory.model_name`, `model_run_id`, and `model_prompt_hash` are stored on each Advisory row; provider status and safe failure code are included in the tool audit input.
+- **Data boundary.** Ollama keeps prompts local. OpenRouter is a cloud provider, so deployments must assess data-sharing policy before using it with anything other than the repository's synthetic demo records.
 
 ## Synthetic data conduct
 

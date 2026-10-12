@@ -563,21 +563,45 @@ def draft_advisory(state: AgentState) -> AgentState:
             "generation_mode": f"llm_{model_provider}",
             "model_metadata": {
                 "model": model_name,
+                "configured_model": out.get("configured_model", model_name),
                 "provider": model_provider,
+                "execution_mode": out.get("execution_mode", model_provider),
+                "status": out.get("status", "success"),
                 "elapsed_s": elapsed_s,
                 "prompt_hash": prompt_hash,
             },
         }
     else:
-        logger.warning("draft_advisory: LLM call returned None (provider=%s). Using fallback template.", provider)
+        failure_metadata = out if out and out.get("status") == "failed" else {}
+        if failure_metadata:
+            logger.warning(
+                "draft_advisory: provider=%s failed with error=%s; using fallback template.",
+                failure_metadata.get("provider", provider),
+                failure_metadata.get("error", "unknown"),
+            )
+        else:
+            logger.warning("draft_advisory: no provider selected (provider=%s); using fallback template.", provider)
 
     # Fallback
     fallback_json = _fallback_template(state)
+    fallback_metadata = {
+        "model": "fallback_template",
+        "configured_model": (out or {}).get("configured_model", "") if out else "",
+        "provider": (out or {}).get("provider", "none") if out else "none",
+        "execution_mode": "fallback_template",
+        "status": "fallback",
+        "elapsed_s": elapsed_s,
+        "prompt_hash": prompt_hash,
+    }
+    if out and out.get("error"):
+        fallback_metadata["provider_error"] = out["error"]
+        if out.get("http_status") is not None:
+            fallback_metadata["http_status"] = out["http_status"]
     return {
         **state,
         "raw_model_output": fallback_json,
         "generation_mode": "fallback_template",
-        "model_metadata": {"model": "fallback_template", "elapsed_s": elapsed_s, "prompt_hash": prompt_hash},
+        "model_metadata": fallback_metadata,
     }
 
 
@@ -833,6 +857,10 @@ def use_fallback_template(state: AgentState) -> AgentState:
         "generation_mode": "fallback_template",
         "model_metadata": {
             "model": "fallback_template",
+            "configured_model": prior_meta.get("configured_model", ""),
+            "provider": prior_meta.get("provider", "none"),
+            "execution_mode": "fallback_template",
+            "status": "fallback_after_invalid_output",
             "prompt_hash": prior_meta.get("prompt_hash", ""),
             "elapsed_s": elapsed_s,
         },

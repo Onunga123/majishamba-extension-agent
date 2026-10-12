@@ -2,7 +2,7 @@
 
 ## In one paragraph
 
-Kachieng AI Agent is a Django + LangGraph system with a custom MCP server (`majishamba-extension-mcp`) of eight tools. A Nyatike extension officer requests an advisory for a Kachieng cluster. A LangGraph agent calls the tools in order, drafts an advisory with Qwen2.5-7B-Instruct via Ollama (or a deterministic fallback), validates the output against a strict Pydantic schema, saves it as DRAFT, and stops. The officer reviews the DRAFT in the Django UI, approves / rejects / defers / requests-evidence. Only after approval can a follow-up task (field visit, cluster meeting, etc.) be created — enforced in code by an approval-gated action tool. The agent never sends SMS, places orders, or issues credit flags. The officer decides delivery.
+Kachieng AI Agent is a Django + LangGraph system with a custom MCP server (`majishamba-extension-mcp`) of eight tools. A Nyatike extension officer requests an advisory for a Kachieng cluster. A LangGraph agent calls the tools in order, drafts an advisory with the explicitly selected OpenRouter or Ollama provider (or a deterministic fallback), validates the output against a strict Pydantic schema, saves it as DRAFT, and stops. The officer reviews the DRAFT in the Django UI, approves / rejects / defers / requests-evidence. Only after approval can a follow-up task (field visit, cluster meeting, etc.) be created — enforced in code by an approval-gated action tool. The agent never sends SMS, places orders, or issues credit flags. The officer decides delivery.
 
 ## Components
 
@@ -20,7 +20,7 @@ The official filesystem MCP server, restricted to `docs/calendars/`, used in dev
 
 ### 4. Open-weights model
 
-`draft_advisory` calls `ollama.Client(host=OLLAMA_HOST).generate(model="qwen2.5:7b-instruct", ...)` with a strict JSON-only prompt. If Ollama is unreachable, the node falls back to a deterministic template. `Advisory.generation_mode` records `ollama_qwen` vs `fallback_template`.
+`draft_advisory` calls the provider selected by `LLM_PROVIDER` with a strict JSON-only prompt. `Advisory.generation_mode` records `llm_openrouter`, `llm_ollama`, or `fallback_template`; provider failures never silently switch models.
 
 ### 5. Approval gate
 
@@ -48,7 +48,7 @@ Django templates with Tailwind (CDN for the demo) and MapLibre GL JS for the clu
 - **Django** gives us ORM, admin, auth, migrations — the boring infrastructure that an institutional pilot needs.
 - **LangGraph** gives us named nodes, typed state, conditional edges, and a natural place to stop for a human gate. A custom state machine would have re-implemented the same primitives.
 - **MCP** gives us a single, observable tool interface that any client (the agent, the UI, an external MCP client) can call with identical behaviour.
-- **Qwen2.5-7B-Instruct via Ollama** gives us a local open-weights model that an institution can run without sending household/plot data to a hosted API.
+- **OpenRouter or Qwen2.5-7B-Instruct via Ollama** provides a cloud demo path or local open-weights path respectively; only the verified local path supports a claim that the project ran downloaded open weights itself.
 - **Pydantic schemas** give us strict validation on every tool input and on the model's JSON output. Invalid outputs are rejected and the agent falls back to the deterministic template.
 - **HTMX** keeps the UI server-rendered, which is what an institutional IT department can deploy and maintain.
 - **MapLibre GL JS** (no API key) gives us a free, open-source interactive map for the cluster view.

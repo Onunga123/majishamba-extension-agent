@@ -5,7 +5,7 @@
 ## Pre-recording checklist
 
 1. Fresh repo: `git clone ... && cd majishamba && make demo` has been run; the Django dev server is up on `http://127.0.0.1:8000`.
-2. Ollama running with `qwen2.5:7b-instruct` pulled (if available; otherwise the demo runs in `fallback_template` mode and you say so).
+2. Configure either `LLM_PROVIDER=openrouter` with a local `OPENROUTER_API_KEY`, `LLM_PROVIDER=ollama` with `qwen2.5:7b-instruct` pulled, or `LLM_PROVIDER=none` for the deterministic fallback.
 3. Browser open at the login page. Logged out.
 4. Two terminal windows side-by-side:
    - Left: Django dev server log (shows audit events as they happen).
@@ -38,9 +38,9 @@
 
 **Narration.** "The LangGraph agent is running. Each line is an audit event for a tool call. We see: get_cluster_plot_history, get_crop_calendar, get_weather_and_rainfall_context (twice — last 30 days and 10-day forecast), get_pest_alerts, get_market_price_context, validate_advisory_evidence. That's six read-only MCP tools from our custom server `majishamba-extension-mcp` — all eight tools are registered, two are action tools."
 
-**Action.** Wait for the redirect to the advisory detail page. Point at the "Mode: fallback_template" line if Ollama is not running, or "Mode: ollama_qwen" if it is.
+**Action.** Wait for the redirect to the advisory detail page. Point at the recorded mode: `llm_openrouter`, `llm_ollama`, or `fallback_template`.
 
-**Narration.** "The advisory was drafted with [Qwen2.5-7B-Instruct via Ollama | the deterministic fallback] — that's our one full task on an open-weights model. If Ollama is not installed, the system says so and falls back; the demo still works."
+**Narration.** "The advisory was drafted with [OpenRouter cloud inference | Qwen2.5-7B-Instruct via Ollama | the deterministic fallback]. The recorded mode is truthful: cloud inference is not presented as local open-weights execution, and failures remain visibly labelled as fallback."
 
 ## Shot 4 — 1:30–2:00 · Draft advisory with evidence, gaps, limitations
 
@@ -99,7 +99,7 @@
 - Custom MCP server with 8 tools, 2 action tools, 1 approval-gated.
 - Borrowed MCP server (filesystem) used in development for calendar PDFs.
 - LangGraph orchestration, not a custom state machine.
-- Qwen2.5-7B-Instruct via Ollama is the open-weights model run.
+- OpenRouter cloud inference is the laptop-friendly demo path; Qwen2.5-7B-Instruct via Ollama remains the local open-weights path.
 - Every tool call logged with sanitised inputs, summarised outputs, actor, approval status.
 - Approval gate enforced in code (`apps/tasks/service.py`).
 - Synthetic data only — clearly labelled in fixtures, README, dashboard footer.

@@ -50,7 +50,8 @@ class Advisory(models.Model):
     sub_county = models.CharField(max_length=80, default="Nyatike")
     ward = models.CharField(max_length=80, default="Kachieng")
 
-    # Open-weights model metadata (Qwen2.5-7B-Instruct via Ollama) or "fallback_template"
+    # Provider/model metadata. OpenRouter is cloud inference; Ollama is local
+    # open-weights inference; fallback_template is deterministic generation.
     model_name = models.CharField(max_length=120, blank=True)
     model_run_id = models.CharField(max_length=120, blank=True)
     model_prompt_hash = models.CharField(max_length=64, blank=True)
@@ -61,7 +62,7 @@ class Advisory(models.Model):
     generation_mode = models.CharField(
         max_length=40,
         default="fallback_template",
-        help_text="One of: 'ollama_qwen', 'fallback_template'.",
+        help_text="Examples: 'llm_openrouter', 'llm_ollama', 'fallback_template'.",
     )
     content_version = models.PositiveIntegerField(
         default=1,

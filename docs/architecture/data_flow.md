@@ -41,13 +41,12 @@
      → flags missing_required (plot_history, crop_calendar, weather) if absent
    draft_advisory
      → build prompt with the evidence (sanitised)
-     → try Ollama qwen2.5:7b-instruct
-     → if Ollama unreachable → fallback template (deterministic)
-     → sets state.generation_mode = "ollama_qwen" or "fallback_template"
+      → call the explicitly selected OpenRouter, Ollama, or none provider
+      → if the selected provider fails or output is invalid → fallback template (deterministic)
+      → sets state.generation_mode = "llm_openrouter", "llm_ollama", or "fallback_template"
    validate_output_schema
      → strip code fence, parse JSON, validate against AdvisoryDraft (Pydantic)
-     → if invalid and was Ollama → route back to draft_advisory (template)
-     → if invalid and was template → route to officer_approval_gate (terminal)
+      → if invalid → route to use_fallback_template, then validate once more
      → if valid → save_draft
    save_draft
      → call apps.mcp_tools.tools.create_draft_advisory_record (ACTION)

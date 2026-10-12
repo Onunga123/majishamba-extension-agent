@@ -319,7 +319,13 @@ def create_draft_advisory_record(
     """ACTION TOOL: create a DRAFT advisory record. No external message is sent."""
     inputs = _sanitize_inputs({
         "cluster_id": cluster_id, "recommendation_type": recommendation_type,
-        "evidence_count": len(evidence_links), "model_name": model_metadata.get("model", ""),
+        "evidence_count": len(evidence_links),
+        "model_name": model_metadata.get("model", ""),
+        "configured_model": model_metadata.get("configured_model", ""),
+        "provider": model_metadata.get("provider", "none"),
+        "execution_mode": model_metadata.get("execution_mode", "fallback_template"),
+        "generation_status": model_metadata.get("status", ""),
+        "provider_error": model_metadata.get("provider_error", ""),
     })
     try:
         cluster = FarmerCluster.objects.get(cluster_id=cluster_id)
@@ -343,7 +349,13 @@ def create_draft_advisory_record(
         model_run_id=model_metadata.get("prompt_hash", ""),
         model_prompt_hash=model_metadata.get("prompt_hash", ""),
         generation_seconds=model_metadata.get("elapsed_s"),
-        generation_mode=model_metadata.get("provider", "fallback") and f"llm_{model_metadata.get('provider', 'fallback')}" if model_metadata.get("provider") else ("fallback_template" if not model_metadata.get("model") or model_metadata["model"] == "fallback_template" else "llm_unknown"),
+        generation_mode=(
+            "fallback_template"
+            if model_metadata.get("execution_mode") == "fallback_template"
+            or model_metadata.get("status", "").startswith("fallback")
+            or model_metadata.get("model") == "fallback_template"
+            else f"llm_{model_metadata.get('provider', 'unknown')}"
+        ),
         created_by_id=actor_id,
     )
     for ev in evidence_links:

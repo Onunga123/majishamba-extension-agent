@@ -46,7 +46,7 @@ Both commands will:
 3. Apply migrations (defaults to **SQLite** so the demo runs without PostgreSQL/PostGIS).
 4. Load synthetic Kachieng Ward fixtures (3 original clusters KACH-01..KACH-03 with 14 households/12 plots, plus weather/pest/market signals).
 5. **Seed 14 Kachieng pilot clusters** via the idempotent `seed_kachieng_clusters` management command (renames KACH-01..KACH-03 to the locally-confirmed register; creates KACH-04..KACH-14 with 3 households + 1 plot each).
-6. Pull `qwen2.5:7b-instruct` via **Ollama** if installed (skipped gracefully otherwise — the deterministic fallback takes over).
+6. Select the configured provider: OpenRouter cloud inference is recommended for laptops; Ollama remains an optional local alternative; `none` selects deterministic fallback only.
 7. Start Django dev server on http://127.0.0.1:8000.
 
 The script **does not seed any demo accounts.** To create a real officer for local testing:
@@ -58,7 +58,49 @@ python manage.py changepassword jdoe
 
 Then open http://127.0.0.1:8000/accounts/login/ and sign in with the account you just created.
 
-> If Ollama is not installed, the agent logs `WARN: Ollama not installed` and falls back to a deterministic template generator. The demo still works end-to-end — the model is *one* of two drafting modes.
+> Provider failures never silently switch to another model. The advisory records `llm_openrouter`, `llm_ollama`, or `fallback_template`; an OpenRouter failure is still a fallback advisory, not a successful model run.
+
+## LLM execution modes
+
+### Option A — OpenRouter cloud inference (recommended for this demo)
+
+OpenRouter lets the application run on a computer without local model hardware. It uses the official chat-completions endpoint and the configured model identifier.
+
+1. Create an account and API key at [OpenRouter](https://openrouter.ai/keys).
+2. Copy `.env.example` to `.env` (never commit `.env`).
+3. Set these values in your local `.env`:
+
+```dotenv
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+OPENROUTER_MODEL=openrouter/free
+```
+
+You may instead set a specific available model ending in `:free`, for example `provider/model:free`. Free-model availability, rate limits, context limits and structured-output behavior vary. The application validates the response against `AdvisoryDraft`; empty, malformed, unauthorized, rate-limited or unavailable responses use the explicitly labelled deterministic fallback. The dashboard/database distinguishes the configured provider, actual returned model, status and fallback error without logging the key.
+
+For a one-session PowerShell setup without putting the key in a tracked file:
+
+```powershell
+$env:LLM_PROVIDER = "openrouter"
+$env:OPENROUTER_MODEL = "openrouter/free"
+$env:OPENROUTER_API_KEY = Read-Host "OpenRouter API key"
+.\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
+```
+
+### Option B — Ollama local inference
+
+Ollama remains supported for developers with compatible hardware and is the local open-weights path:
+
+```powershell
+# Install Ollama from https://ollama.com, then:
+ollama pull qwen2.5:7b-instruct
+$env:LLM_PROVIDER = "ollama"
+$env:OLLAMA_HOST = "http://127.0.0.1:11434"
+$env:OLLAMA_MODEL = "qwen2.5:7b-instruct"
+.\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
+```
+
+Use `LLM_PROVIDER=none` for deterministic fallback-only operation. OpenRouter remote inference—even when the remote model has open weights—is **not automatically evidence** that the Agriculture Challenge's requirement to download and run an open-weights model yourself has been satisfied. Demonstrate Ollama separately if submitting that claim.
 
 ---
 
@@ -66,7 +108,7 @@ Then open http://127.0.0.1:8000/accounts/login/ and sign in with the account you
 
 **Problem.** The Nyatike Sub-County Agricultural Extension Officer must manually compare rainfall forecasts, crop calendars, plot histories, pest alerts and market prices for many Kachieng smallholder households. Rainfall onset is erratic; false starts cause crop failure or replanting costs. Pest alerts (e.g. fall armyworm) arrive via WhatsApp and radio without cluster specificity. The officer cannot easily show farmers *why* a recommendation was made. The result is generic, late or conflicting advice, with limited auditability.
 
-**Solution.** Kachieng AI Agent is an MCP-based agentic system that gathers evidence through a custom MCP server (`majishamba-extension-mcp`, eight tools), uses **LangGraph** as the orchestration framework, drafts a structured advisory with the open-weights model **Qwen2.5-7B-Instruct via Ollama** (with a deterministic template fallback), validates the output against a strict Pydantic schema, and saves the advisory as **DRAFT**. A named Nyatike extension officer then reviews, edits, approves, defers or rejects it in a Django UI. Only after approval can a follow-up task (e.g. field visit, cluster meeting) be created — the action tool `create_follow_up_task_after_approval` enforces this gate in code. The agent never sends SMS, places orders or issues credit flags; the officer decides how to communicate.
+**Solution.** Kachieng AI Agent is an MCP-based agentic system that gathers evidence through a custom MCP server (`majishamba-extension-mcp`, eight tools), uses **LangGraph** as the orchestration framework, drafts a structured advisory through an explicitly selected OpenRouter cloud model or local **Qwen2.5-7B-Instruct via Ollama** (with a deterministic template fallback), validates the output against a strict Pydantic schema, and saves the advisory as **DRAFT**. A named Nyatike extension officer then reviews, edits, approves, defers or rejects it in a Django UI. Only after approval can a follow-up task (e.g. field visit, cluster meeting) be created — the action tool `create_follow_up_task_after_approval` enforces this gate in code. The agent never sends SMS, places orders or issues credit flags; the officer decides how to communicate.
 
 **Sub-theme.** Climate-smart advisory (Agriculture & Food Security).
 
@@ -88,7 +130,7 @@ Then open http://127.0.0.1:8000/accounts/login/ and sign in with the account you
 
 ### Solution
 
-- An MCP-based agentic system gathers evidence through a custom MCP server (8 tools), uses LangGraph for multi-step planning, drafts a structured advisory with Qwen2.5-7B-Instruct via Ollama, and requires officer approval before any advisory record or task is created.
+- An MCP-based agentic system gathers evidence through a custom MCP server (8 tools), uses LangGraph for multi-step planning, drafts a structured advisory with the selected OpenRouter/Ollama provider, and requires officer approval before any consequential follow-up task is created.
 - All household/plot data is **synthetic** but geographically realistic for Kachieng Ward.
 - The agent **never** sends messages or places orders; the officer decides how to communicate advice.
 
@@ -116,7 +158,8 @@ Then open http://127.0.0.1:8000/accounts/login/ and sign in with the account you
 | Orchestration | LangGraph (Python) |
 | Custom MCP server | `majishamba-extension-mcp` built with the official MCP Python SDK |
 | Borrowed MCP server | Official filesystem MCP server (restricted to `docs/calendars/`) |
-| Open-weights model | Qwen2.5-7B-Instruct via Ollama |
+| Cloud demo model | OpenRouter `openrouter/free` or configured `:free` model |
+| Local open-weights model | Qwen2.5-7B-Instruct via Ollama |
 | Fallback | Deterministic template generator when model is unavailable |
 | Queue/cache | Valkey (Redis-compatible) — **production only**; demo uses local-memory fallback |
 | Background jobs | Django-RQ — **production only**; demo runs jobs inline |
@@ -156,7 +199,7 @@ Restricted to `docs/calendars/` in development; **never** exposed in production.
 
 ## Open-weights model statement
 
-At least **one full end-to-end advisory generation task** is performed by **Qwen2.5-7B-Instruct via Ollama**. The `draft_advisory` LangGraph node calls `ollama.Client(host=OLLAMA_HOST).generate(model="qwen2.5:7b-instruct", ...)`. If Ollama is unavailable, the node falls back to a deterministic template generator and the `generation_mode` field on the Advisory record is set to `fallback_template`. The demo shows this fallback path explicitly.
+The application supports a full advisory task through OpenRouter cloud inference and preserves **Qwen2.5-7B-Instruct via Ollama** as the local open-weights path. The `generation_mode` field distinguishes `llm_openrouter`, `llm_ollama`, and `fallback_template`. OpenRouter remote inference is not claimed as proof of the challenge requirement to download and run open weights yourself; that claim requires a separately verified local Ollama run.
 
 See `EVALS.md` Task 10 for the degraded-mode test.
 
@@ -209,7 +252,7 @@ A real pilot would replace these fixtures with consented data feeds — see `doc
 | 1 | Own MCP server with ≥3 tools, ≥1 action tool | `apps/mcp_tools/` — 8 tools, 2 action tools (`create_draft_advisory_record`, `create_follow_up_task_after_approval`) |
 | 2 | One borrowed MCP server (community/official/vendor) | Official filesystem MCP server, restricted to `docs/calendars/`. Justification in `ARCHITECTURE.md` |
 | 3 | Open-source orchestration (LangGraph) | `apps/agents/graph.py` — LangGraph `StateGraph` with 11 nodes |
-| 4 | One full task on an open-weights model (Qwen2.5-7B via Ollama) | `apps/agents/graph.py:draft_advisory` calls Ollama; demo + `EVALS.md` show it |
+| 4 | Open-weights execution option preserved | `LLM_PROVIDER=ollama`; live challenge evidence still requires a verified local run |
 | 5 | Logged tool call for every action | `apps/audit/service.py:log_tool_call` + `AuditEvent` rows |
 | 6 | Gate on every irreversible action | `apps/tasks/service.py` enforces `OfficerApproval(decision=APPROVED)` |
 | 7 | Public repo, OSI-approved licence (MIT) | `LICENSE`, MIT |
@@ -369,7 +412,7 @@ The command:
 
 | Command | What it does |
 |---|---|
-| `make demo` | One-command demo: deps → migrate → fixtures → ollama → runserver |
+| `make demo` | One-command demo: deps → migrate → fixtures → configured provider → runserver |
 | `make test` | Run pytest suite |
 | `make lint` | Ruff + Black --check |
 | `make typecheck` | mypy |
