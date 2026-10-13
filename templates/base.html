@@ -181,6 +181,17 @@
               Audit
             </a>
           </li>
+          {% if user.is_system_admin %}
+          {% url 'accounts:user_management' as user_management_url %}
+          <li>
+            <a href="{{ user_management_url }}"
+               class="app-nav-link block py-2 md:inline-flex md:items-center
+               {% if request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name == 'user_management' %}is-active{% endif %}"
+               {% if request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name == 'user_management' %}aria-current="page"{% endif %}>
+              User management
+            </a>
+          </li>
+          {% endif %}
         </ul>
       </nav>
       {% endif %}

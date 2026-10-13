@@ -137,8 +137,8 @@ def test_short_password_rejected():
 
 
 @pytest.mark.django_db
-def test_account_review_requires_supervisor():
-    """Only supervisors/staff can access the account review page."""
+def test_account_review_requires_system_admin():
+    """Only an approved system administrator can access account review."""
     c = Client()
     r = c.get("/accounts/review/")
     assert r.status_code in {302, 301}
@@ -152,31 +152,39 @@ def test_viewer_cannot_access_account_review(viewer_client):
 
 
 @pytest.mark.django_db
-def test_supervisor_can_approve_account(supervisor):
-    """A supervisor can approve a pending account with the correct role."""
+def test_supervisor_cannot_review_accounts(supervisor):
+    """Operational supervisors cannot manage account registrations."""
+    c = Client()
+    c.force_login(supervisor)
+    assert c.get("/accounts/review/").status_code == 403
+
+
+@pytest.mark.django_db
+def test_system_admin_can_approve_account(system_admin):
+    """A system administrator can approve a pending account with the correct role."""
     pending = User.objects.create(
         username="pending1", full_name="Pending One", role="viewer",
         requested_role="extension_officer", approval_status="pending", is_active=True,
     )
     c = Client()
-    c.force_login(supervisor)
+    c.force_login(system_admin)
     r = c.post(f"/accounts/review/{pending.id}/approve/", {"effective_role": "extension_officer"})
     assert r.status_code == 302
     pending.refresh_from_db()
     assert pending.approval_status == "approved"
     assert pending.role == "extension_officer"
-    assert pending.approved_by == supervisor
+    assert pending.approved_by == system_admin
 
 
 @pytest.mark.django_db
-def test_supervisor_can_reject_account(supervisor):
-    """A supervisor can reject a pending account."""
+def test_system_admin_can_reject_account(system_admin):
+    """A system administrator can reject a pending account."""
     pending = User.objects.create(
         username="pending2", full_name="Pending Two", role="viewer",
         requested_role="supervisor", approval_status="pending", is_active=True,
     )
     c = Client()
-    c.force_login(supervisor)
+    c.force_login(system_admin)
     r = c.post(f"/accounts/review/{pending.id}/reject/", {"rejection_reason": "Not authorized"})
     assert r.status_code == 302
     pending.refresh_from_db()
@@ -186,11 +194,11 @@ def test_supervisor_can_reject_account(supervisor):
 
 
 @pytest.mark.django_db
-def test_user_cannot_approve_own_account(supervisor):
+def test_user_cannot_approve_own_account(system_admin):
     """A user cannot approve their own account."""
     c = Client()
-    c.force_login(supervisor)
-    r = c.post(f"/accounts/review/{supervisor.id}/approve/", {"effective_role": "supervisor"})
+    c.force_login(system_admin)
+    r = c.post(f"/accounts/review/{system_admin.id}/approve/", {"effective_role": "system_admin"})
     assert r.status_code == 403
 
 

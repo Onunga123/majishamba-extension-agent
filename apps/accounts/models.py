@@ -7,12 +7,13 @@ from django.utils.translation import gettext_lazy as _
 
 
 class User(AbstractUser):
-    """Named extension officer, supervisor, or viewer."""
+    """Application identity with separate operational and admin roles."""
 
     class Role(models.TextChoices):
         EXTENSION_OFFICER = "extension_officer", _("Extension Officer")
         SUPERVISOR = "supervisor", _("Supervisor")
         VIEWER = "viewer", _("Viewer")
+        SYSTEM_ADMIN = "system_admin", _("System Administrator")
 
     class ApprovalStatus(models.TextChoices):
         PENDING = "pending", _("Pending review")
@@ -50,6 +51,11 @@ class User(AbstractUser):
     )
     approved_at = models.DateTimeField(null=True, blank=True)
     rejection_reason = models.CharField(max_length=300, blank=True)
+    rejected_by = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="rejected_accounts",
+    )
+    rejected_at = models.DateTimeField(null=True, blank=True)
     # --- Identity ---
     full_name = models.CharField(
         max_length=160,
@@ -74,10 +80,21 @@ class User(AbstractUser):
     )
 
     def is_officer(self) -> bool:
-        return self.role in {self.Role.EXTENSION_OFFICER, self.Role.SUPERVISOR}
+        return bool(
+            self.is_active
+            and self.is_approved()
+            and self.role in {self.Role.EXTENSION_OFFICER, self.Role.SUPERVISOR}
+        )
 
     def can_approve(self) -> bool:
-        return self.role in {self.Role.EXTENSION_OFFICER, self.Role.SUPERVISOR}
+        """Return whether this user may approve operational advisories."""
+        return self.is_officer()
+
+    def is_system_admin(self) -> bool:
+        return self.role == self.Role.SYSTEM_ADMIN and self.is_active and self.is_approved()
+
+    def can_review_accounts(self) -> bool:
+        return self.is_system_admin()
 
     def is_pending(self) -> bool:
         return self.approval_status == self.ApprovalStatus.PENDING
@@ -93,3 +110,20 @@ class User(AbstractUser):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return f"{self.display_name()} ({self.get_role_display()})"
+
+
+class Notification(models.Model):
+    """Durable, recipient-scoped in-app notification."""
+
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    title = models.CharField(max_length=160)
+    body = models.TextField()
+    url = models.CharField(max_length=300, blank=True)
+    kind = models.CharField(max_length=60, default="general")
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [models.Index(fields=["recipient", "is_read", "created_at"])]

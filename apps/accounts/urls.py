@@ -15,6 +15,8 @@ urlpatterns = [
     path("registration/pending/", views.RegistrationPendingView.as_view(), name="registration_pending"),
     path("profile/", views.profile, name="profile"),
     path("review/", views.AccountReviewListView.as_view(), name="review"),
+    path("users/", views.AdminCreateUserView.as_view(), name="user_management"),
+    path("users/create/", views.AdminCreateUserView.as_view(), name="create_user"),
     path("review/<int:pk>/approve/", views.AccountApproveView.as_view(), name="approve"),
     path("review/<int:pk>/reject/", views.AccountRejectView.as_view(), name="reject"),
 ]

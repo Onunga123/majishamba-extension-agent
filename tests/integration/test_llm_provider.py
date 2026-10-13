@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import unittest
 from unittest.mock import patch, MagicMock
 
 import pytest
@@ -142,6 +143,33 @@ def test_openrouter_empty_response_is_explicit():
         from apps.agents.llm_provider import call_llm
         result = call_llm("Test")
         assert result["error"] == "empty_response"
+        assert result["status"] == "failed"
+        assert result["http_status"] == 200
+        assert result["model"] == "openrouter/free"
+
+
+@pytest.mark.django_db
+def test_openrouter_refusal_is_distinct_from_empty_content():
+    mock_resp = MagicMock(status_code=200)
+    mock_resp.json.return_value = {
+        "model": "qwen/qwen-2.5-7b-instruct:free",
+        "choices": [{"message": {"content": "", "refusal": "safety policy"}, "finish_reason": "stop"}],
+    }
+    with patch.dict("os.environ", {
+        "LLM_PROVIDER": "openrouter",
+        "OPENROUTER_API_KEY": "sk-or-v1-test-key",
+        "OPENROUTER_MODEL": "qwen/qwen-2.5-7b-instruct:free",
+    }, clear=False), patch("httpx.Client") as mock_client_class:
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=None)
+        mock_client.post.return_value = mock_resp
+        mock_client_class.return_value = mock_client
+        from apps.agents.llm_provider import call_llm
+        result = call_llm("Test")
+        assert result["error"] == "refusal"
+        assert result["finish_reason"] == "stop"
+        assert result["configured_model"] == "qwen/qwen-2.5-7b-instruct:free"
 
 
 @pytest.mark.django_db
@@ -231,3 +259,144 @@ def test_agent_graph_uses_call_llm(officer, monkeypatch):
     adv = Advisory.objects.get(id=result["advisory_id"])
     # With no provider, should be fallback_template
     assert adv.generation_mode == "fallback_template"
+
+
+class TestProviderAndGraphDeterministic(unittest.TestCase):
+    """Django-runner-compatible tests for provider and graph edge cases."""
+
+    @staticmethod
+    def _valid_json() -> str:
+        return json.dumps({
+            "recommendation_type": "delay",
+            "summary": "Delay planting until local rainfall onset is verified.",
+            "body": "Delay planting and verify local rainfall onset with the cluster representative before sowing. "
+            "Use the cited weather and calendar evidence, and review this advisory locally.",
+            "confidence": "medium",
+            "limitations": "Officer review required.",
+            "evidence": [{
+                "source_type": "weather",
+                "source_ref": "test-weather",
+                "claim": "Rainfall onset",
+                "source_url": "",
+            }],
+        })
+
+    def test_successful_json_requests_supported_response_format(self):
+        response = MagicMock(status_code=200)
+        response.json.return_value = {
+            "model": "openrouter/free",
+            "choices": [{"message": {"content": self._valid_json()}, "finish_reason": "stop"}],
+        }
+        with patch.dict("os.environ", {
+            "LLM_PROVIDER": "openrouter",
+            "OPENROUTER_API_KEY": "test-key",
+        }, clear=False), patch("httpx.Client") as client_class:
+            client = MagicMock()
+            client.__enter__.return_value = client
+            client.post.return_value = response
+            client_class.return_value = client
+            from apps.agents.llm_provider import call_llm
+
+            result = call_llm("Return JSON")
+
+        self.assertEqual(result["status"], "success")
+        request_body = client.post.call_args.kwargs["json"]
+        self.assertEqual(request_body["response_format"], {"type": "json_object"})
+        self.assertEqual(request_body["max_tokens"], 1200)
+
+    def test_truncated_json_is_incomplete_not_success(self):
+        response = MagicMock(status_code=200)
+        response.json.return_value = {
+            "model": "openrouter/free",
+            "choices": [{
+                "message": {"content": '{"recommendation_type":"delay"'},
+                "finish_reason": "length",
+            }],
+        }
+        with patch.dict("os.environ", {
+            "LLM_PROVIDER": "openrouter",
+            "OPENROUTER_API_KEY": "test-key",
+        }, clear=False), patch("httpx.Client") as client_class:
+            client = MagicMock()
+            client.__enter__.return_value = client
+            client.post.return_value = response
+            client_class.return_value = client
+            from apps.agents.llm_provider import call_llm
+
+            result = call_llm("Return JSON")
+
+        self.assertEqual(result["status"], "incomplete")
+        self.assertEqual(result["error"], "incomplete_response")
+        self.assertEqual(result["finish_reason"], "length")
+
+    def test_invalid_schema_retries_once_and_accepts_valid_retry(self):
+        from apps.agents.graph import draft_advisory
+
+        invalid = {"provider": "openrouter", "model": "test", "status": "success", "text": "{}"}
+        valid = {"provider": "openrouter", "model": "test", "status": "success", "text": self._valid_json()}
+        with patch("apps.agents.llm_provider.call_llm", side_effect=[invalid, valid]) as provider:
+            result = draft_advisory({"cluster_id": "KACH-01"})
+
+        self.assertEqual(provider.call_count, 2)
+        self.assertEqual(result["generation_mode"], "llm_openrouter")
+        self.assertEqual(result["model_metadata"]["status"], "success")
+        self.assertEqual(result["model_metadata"]["retry_count"], 1)
+
+    def test_invalid_schema_retry_exhaustion_uses_fallback_metadata(self):
+        from apps.agents.graph import draft_advisory
+
+        invalid = {"provider": "openrouter", "model": "test", "status": "success", "text": "{}"}
+        with patch("apps.agents.llm_provider.call_llm", side_effect=[invalid, invalid]) as provider:
+            result = draft_advisory({"cluster_id": "KACH-01"})
+
+        self.assertEqual(provider.call_count, 2)
+        self.assertEqual(result["generation_mode"], "fallback_template")
+        self.assertEqual(result["model_metadata"]["execution_mode"], "fallback_template")
+        self.assertEqual(result["model_metadata"]["status"], "fallback")
+        self.assertEqual(result["model_metadata"]["provider"], "openrouter")
+        self.assertEqual(result["model_metadata"]["provider_error"], "invalid_output")
+        self.assertEqual(result["model_metadata"]["retry_count"], 1)
+
+    def test_invalid_schema_retry_preserves_validation_error(self):
+        from apps.agents.graph import draft_advisory
+
+        invalid = {"provider": "openrouter", "model": "test", "status": "success", "text": "{}"}
+        with patch("apps.agents.llm_provider.call_llm", side_effect=[invalid, invalid]) as provider:
+            result = draft_advisory({"cluster_id": "KACH-01"})
+
+        self.assertEqual(provider.call_count, 2)
+        self.assertIn("recommendation_type", result["model_metadata"]["retry_error"])
+        self.assertNotEqual(result["model_metadata"]["retry_error"], "ValidationError")
+
+    def test_malformed_json_retry_preserves_parse_error(self):
+        from apps.agents.graph import draft_advisory
+
+        malformed = {
+            "provider": "openrouter",
+            "model": "test",
+            "status": "success",
+            "text": '{"recommendation_type":',
+        }
+        with patch("apps.agents.llm_provider.call_llm", side_effect=[malformed, malformed]) as provider:
+            result = draft_advisory({"cluster_id": "KACH-01"})
+
+        self.assertEqual(provider.call_count, 2)
+        self.assertIn("Expecting value", result["model_metadata"]["retry_error"])
+        self.assertNotEqual(result["model_metadata"]["retry_error"], "JSONDecodeError")
+
+    def test_provider_failure_uses_accurate_fallback_status(self):
+        from apps.agents.graph import draft_advisory
+
+        failure = {
+            "provider": "openrouter",
+            "model": "test",
+            "status": "failed",
+            "error": "rate_limited",
+        }
+        with patch("apps.agents.llm_provider.call_llm", return_value=failure):
+            result = draft_advisory({"cluster_id": "KACH-01"})
+
+        self.assertEqual(result["generation_mode"], "fallback_template")
+        self.assertEqual(result["model_metadata"]["status"], "fallback")
+        self.assertEqual(result["model_metadata"]["provider"], "openrouter")
+        self.assertEqual(result["model_metadata"]["provider_error"], "rate_limited")

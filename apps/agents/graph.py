@@ -378,9 +378,9 @@ def _build_prompt(state: AgentState) -> str:
         f"{mp[0].get('price_kes_per_90kg','?')} KES/90kg trend={mp[0].get('trend','?')} (src: {mp[0].get('source','?')})"
         if mp else "No market data"
     )
-    return f"""You are a climate-smart agriculture assistant. Draft a planting advisory for cluster {state.get('cluster_id')} (Kachieng Ward, Migori, Kenya) for the SHORT RAINS maize season.
+    return f"""You are a climate-smart agriculture assistant. Return exactly one valid JSON object for cluster {state.get('cluster_id')} in {state.get('ward', 'unknown')} Ward, {state.get('sub_county', 'unknown')} Sub-County, {state.get('county', 'unknown')} County, Kenya. Crop: maize. Season: short_rains.
 
-Based on this evidence, write the advisory as a JSON object.
+Use only the evidence below. Never invent observations, alerts, measurements, confidence, citations, or URLs. If a value is missing, say unknown in limitations or use data_gap/verify_locally. Keep summary <= 160 characters and body 80-900 characters. recommendation_type must be one of: plant, delay, verify_locally, pest_monitoring, data_gap. confidence must be low, medium, or high. evidence must contain at least one source object and only cite sources shown below.
 
 Evidence:
 - Plot history: {plot_summary}
@@ -389,18 +389,8 @@ Evidence:
 - Pest alerts: {pest_summary}
 - Market prices: {market_summary}
 
-Write the JSON now. Only JSON, nothing else.
-
-{{
-  "recommendation_type": "verify_locally",
-  "summary": "Short summary here",
-  "body": "Advisory body with [Source: ...] citations",
-  "confidence": "medium",
-  "limitations": "Any limitations",
-  "evidence": [{{"source_type": "weather", "source_ref": "source name", "claim": "what it supports", "source_url": ""}}]
-}}
-
-Replace the example values above with your advisory. Start with {{ and end with }}."""
+Return only JSON, with these exact keys and JSON string values:
+{{"recommendation_type":"verify_locally","summary":"...","body":"...","confidence":"medium","limitations":"...","evidence":[{{"source_type":"weather","source_ref":"...","claim":"...","source_url":""}}]}}"""
 
 
 def _strip_code_fence(text: str) -> str:
@@ -550,13 +540,60 @@ def draft_advisory(state: AgentState) -> AgentState:
     logger.info("draft_advisory: LLM_PROVIDER=%s, openrouter_configured=%s, prompt_len=%d", provider, or_configured, len(prompt))
 
     out = call_llm(prompt)
+    retry_count = 0
+
+    def _valid_model_output(result: dict[str, Any] | None) -> tuple[bool, str]:
+        if not result or not result.get("text"):
+            return False, (result or {}).get("error", "empty_response")
+        if result.get("status", "success") != "success":
+            return False, result.get("error", result.get("status", "provider_failure"))
+        try:
+            candidate = json.loads(_strip_code_fence(result["text"]))
+            AdvisoryDraft.model_validate(candidate)
+        except (json.JSONDecodeError, ValidationError, TypeError) as exc:
+            return False, str(exc)
+        return True, ""
+
+    valid, validation_error = _valid_model_output(out)
+    if not valid and out:
+        retry_count = 1
+        logger.warning(
+            "draft_advisory: provider output invalid (%s); retrying once with strict JSON prompt.",
+            validation_error,
+        )
+        retry_out = call_llm(
+            prompt + "\nIMPORTANT RETRY: Output one complete JSON object only. No Markdown or commentary.",
+            json_mode=False,
+        )
+        retry_valid, retry_error = _valid_model_output(retry_out)
+        if retry_valid:
+            out = {**retry_out, "retry_count": retry_count}
+            valid = True
+        else:
+            # Do not expose malformed or incomplete provider text as an LLM
+            # success. Preserve the attempted provider and retry diagnostics so
+            # the fallback metadata remains truthful.
+            out = {
+                **(retry_out or out),
+                "text": "",
+                "status": "failed",
+                "error": "invalid_output",
+                "retry_count": retry_count,
+                "retry_error": retry_error,
+                "initial_error": (out or {}).get("error", ""),
+                "initial_status": (out or {}).get("status", ""),
+                "initial_model": (out or {}).get("model", ""),
+                "initial_finish_reason": (out or {}).get("finish_reason", ""),
+                "initial_incomplete_details": (out or {}).get("incomplete_details", {}),
+            }
+            valid = False
     elapsed_s = round(time.time() - started, 2)
 
-    if out and out.get("text"):
+    if valid and out and out.get("text"):
         model_provider = out.get("provider", "unknown")
         model_name = out.get("model", "unknown")
-        logger.info("draft_advisory: LLM succeeded: provider=%s, model=%s, elapsed=%ss, output_len=%d",
-                    model_provider, model_name, elapsed_s, len(out["text"]))
+        logger.info("draft_advisory: provider response received: provider=%s, model=%s, elapsed=%ss, output_len=%d, retry_count=%d",
+                    model_provider, model_name, elapsed_s, len(out["text"]), retry_count)
         return {
             **state,
             "raw_model_output": out["text"],
@@ -569,6 +606,9 @@ def draft_advisory(state: AgentState) -> AgentState:
                 "status": out.get("status", "success"),
                 "elapsed_s": elapsed_s,
                 "prompt_hash": prompt_hash,
+                "retry_count": out.get("retry_count", retry_count),
+                "finish_reason": out.get("finish_reason", ""),
+                "incomplete_details": out.get("incomplete_details", {}),
             },
         }
     else:
@@ -592,6 +632,16 @@ def draft_advisory(state: AgentState) -> AgentState:
         "status": "fallback",
         "elapsed_s": elapsed_s,
         "prompt_hash": prompt_hash,
+        "retry_count": (out or {}).get("retry_count", retry_count),
+        "retry_error": (out or {}).get("retry_error", ""),
+        "finish_reason": (out or {}).get("finish_reason", ""),
+        "incomplete_details": (out or {}).get("incomplete_details", {}),
+        "actual_model": (out or {}).get("model", ""),
+        "initial_error": (out or {}).get("initial_error", ""),
+        "initial_status": (out or {}).get("initial_status", ""),
+        "initial_model": (out or {}).get("initial_model", ""),
+        "initial_finish_reason": (out or {}).get("initial_finish_reason", ""),
+        "initial_incomplete_details": (out or {}).get("initial_incomplete_details", {}),
     }
     if out and out.get("error"):
         fallback_metadata["provider_error"] = out["error"]
@@ -629,96 +679,20 @@ def validate_output_schema(state: AgentState) -> AgentState:
     data = None
     parse_errors = []
 
-    # Attempt 1: direct JSON parse (model returned pure JSON)
+    # Parse only complete JSON. We intentionally do not repair truncated
+    # strings/braces or trailing commas; doing so would turn unverified model
+    # text into apparently valid agricultural guidance.
     try:
         data = json.loads(text)
     except json.JSONDecodeError as exc:
         parse_errors.append(f"direct parse: {exc}")
 
-    # Attempt 2: look for the JSON object by finding "recommendation_type":
-    # (with colon — distinguishes JSON key from thinking text that just mentions the name)
-    # Free "thinking" models (nemotron) include reasoning text with braces
-    # BEFORE the actual JSON. Find the JSON key field and walk backward to its { .
-    if data is None:
-        marker = '"recommendation_type":'
-        idx = text.find(marker)
-        if idx < 0:
-            # Try with space: "recommendation_type" :
-            idx = text.find('"recommendation_type" :')
-        if idx >= 0:
-            # Walk backward from the marker to find the opening {
-            for i in range(idx, max(idx - 200, -1), -1):
-                if text[i] == "{":
-                    # Now find the matching closing } by counting braces
-                    depth = 0
-                    for j in range(i, len(text)):
-                        if text[j] == "{":
-                            depth += 1
-                        elif text[j] == "}":
-                            depth -= 1
-                            if depth == 0:
-                                chunk = text[i : j + 1]
-                                try:
-                                    data = json.loads(chunk)
-                                    logger.info("validate_output_schema: JSON found via recommendation_type: marker at char %d", i)
-                                except json.JSONDecodeError:
-                                    pass
-                                break
-                    break
-        if data is None:
-            parse_errors.append("recommendation_type: marker not found or parse failed")
-
-    # Attempt 3: find ALL { positions and try each from the last to the first
-    if data is None:
-        brace_positions = [i for i, c in enumerate(text) if c == "{"]
-        end_pos = text.rfind("}")
-        if end_pos >= 0:
-            for start in reversed(brace_positions):
-                if start >= end_pos:
-                    continue
-                chunk = text[start : end_pos + 1]
-                try:
-                    data = json.loads(chunk)
-                    logger.info("validate_output_schema: JSON found at char %d (last brace scan)", start)
-                    break
-                except json.JSONDecodeError:
-                    continue
-            if data is None:
-                parse_errors.append("bracket extraction (all positions tried)")
-
-    # Attempt 4: fix trailing commas + retry
+    # A complete Markdown JSON fence is safe to unwrap because it does not
+    # modify the JSON payload. The provider already strips ordinary fences,
+    # but this supports direct calls to validate_output_schema and tests.
     if data is None:
         import re
-        cleaned = re.sub(r',\s*([}\]])', r'\1', text)
-        marker = '"recommendation_type":'
-        idx = cleaned.find(marker)
-        if idx < 0:
-            idx = cleaned.find('"recommendation_type" :')
-        if idx >= 0:
-            for i in range(idx, max(idx - 200, -1), -1):
-                if cleaned[i] == "{":
-                    depth = 0
-                    for j in range(i, len(cleaned)):
-                        if cleaned[j] == "{":
-                            depth += 1
-                        elif cleaned[j] == "}":
-                            depth -= 1
-                            if depth == 0:
-                                chunk = cleaned[i : j + 1]
-                                try:
-                                    data = json.loads(chunk)
-                                    logger.info("validate_output_schema: JSON found via marker+comma-fix at char %d", i)
-                                except json.JSONDecodeError:
-                                    pass
-                                break
-                    break
-        if data is None:
-            parse_errors.append("cleaned parse (marker + comma-fix)")
-
-    # Attempt 5: code fences
-    if data is None:
-        import re
-        match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
+        match = re.fullmatch(r"```(?:json)?\s*(\{.*\})\s*```", text, re.DOTALL | re.IGNORECASE)
         if match:
             try:
                 data = json.loads(match.group(1))
@@ -863,6 +837,17 @@ def use_fallback_template(state: AgentState) -> AgentState:
             "status": "fallback_after_invalid_output",
             "prompt_hash": prior_meta.get("prompt_hash", ""),
             "elapsed_s": elapsed_s,
+            "provider_error": prior_meta.get("provider_error", ""),
+            "retry_count": prior_meta.get("retry_count", 0),
+            "retry_error": prior_meta.get("retry_error", ""),
+            "actual_model": prior_meta.get("actual_model", prior_meta.get("model", "")),
+            "finish_reason": prior_meta.get("finish_reason", ""),
+            "incomplete_details": prior_meta.get("incomplete_details", {}),
+            "initial_error": prior_meta.get("initial_error", ""),
+            "initial_status": prior_meta.get("initial_status", ""),
+            "initial_model": prior_meta.get("initial_model", ""),
+            "initial_finish_reason": prior_meta.get("initial_finish_reason", ""),
+            "initial_incomplete_details": prior_meta.get("initial_incomplete_details", {}),
         },
         "errors": [],
         "warnings": new_warnings,

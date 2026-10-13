@@ -58,6 +58,20 @@ def supervisor(db):
 
 
 @pytest.fixture
+def system_admin(db):
+    User = get_user_model()
+    user, _ = User.objects.get_or_create(
+        username="test_system_admin",
+        defaults={"role": User.Role.SYSTEM_ADMIN, "full_name": "Test System Administrator", "sub_county": "Nyatike", "ward": "Kachieng"},
+    )
+    user.set_password("test-password")
+    user.is_staff = False
+    user.is_superuser = False
+    user.save()
+    return user
+
+
+@pytest.fixture
 def viewer(db):
     User = get_user_model()
     user, _ = User.objects.get_or_create(

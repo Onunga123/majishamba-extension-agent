@@ -7,6 +7,7 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django import forms
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
@@ -16,6 +17,7 @@ from django.views import View
 from apps.audit.service import log_audit_event
 
 from .models import User
+from .permissions import require_system_admin
 
 
 # --- Registration form ---
@@ -94,6 +96,59 @@ class RegistrationForm(forms.ModelForm):
         return user
 
 
+class AdminCreateUserForm(forms.ModelForm):
+    """Form used by a system administrator to provision an approved account."""
+
+    password1 = forms.CharField(
+        label="Password",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "class": "auth-input"}),
+        help_text="At least 10 characters.",
+    )
+    password2 = forms.CharField(
+        label="Confirm password",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "class": "auth-input"}),
+    )
+    role = forms.ChoiceField(
+        label="Role",
+        choices=User.Role.choices,
+        widget=forms.Select(attrs={"class": "auth-input"}),
+        help_text="The account is approved immediately with this role.",
+    )
+
+    class Meta:
+        model = User
+        fields = ["full_name", "username", "email", "role", "organization", "sub_county", "ward"]
+        widgets = {
+            "full_name": forms.TextInput(attrs={"class": "auth-input"}),
+            "username": forms.TextInput(attrs={"class": "auth-input"}),
+            "email": forms.EmailInput(attrs={"class": "auth-input"}),
+            "organization": forms.TextInput(attrs={"class": "auth-input"}),
+            "sub_county": forms.TextInput(attrs={"class": "auth-input"}),
+            "ward": forms.TextInput(attrs={"class": "auth-input"}),
+        }
+
+    def clean_password2(self):
+        password = self.cleaned_data.get("password1")
+        confirmation = self.cleaned_data.get("password2")
+        if password and password != confirmation:
+            raise forms.ValidationError("Passwords do not match.")
+        if password and len(password) < 10:
+            raise forms.ValidationError("Password must be at least 10 characters.")
+        return confirmation
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data["password1"])
+        user.requested_role = user.role
+        user.approval_status = User.ApprovalStatus.APPROVED
+        user.is_active = True
+        user.is_staff = False
+        user.is_superuser = False
+        if commit:
+            user.save()
+        return user
+
+
 class RegisterView(View):
     """Public registration page. Creates a PENDING account — no operational access."""
 
@@ -144,21 +199,47 @@ def profile(request: HttpRequest, *args: object, **kwargs: object) -> HttpRespon
 
 # --- Account review interface ---
 class AccountReviewListView(LoginRequiredMixin, View):
-    """Supervisors/staff can see pending accounts."""
+    """Approved system administrators can see pending accounts."""
 
     def get(self, request):
-        if not (request.user.is_staff or request.user.can_approve()):
-            raise PermissionDenied("Only supervisors can review accounts.")
+        require_system_admin(request.user)
         pending = User.objects.filter(approval_status=User.ApprovalStatus.PENDING).exclude(username=request.user.username)
         return render(request, "accounts/account_review.html", {"pending_accounts": pending})
+
+
+class AdminCreateUserView(LoginRequiredMixin, View):
+    """Allow only an approved system administrator to provision an account."""
+
+    def get(self, request):
+        require_system_admin(request.user)
+        return render(request, "accounts/create_user.html", {"form": AdminCreateUserForm()})
+
+    def post(self, request):
+        require_system_admin(request.user)
+        form = AdminCreateUserForm(request.POST)
+        if not form.is_valid():
+            return render(request, "accounts/create_user.html", {"form": form})
+
+        with transaction.atomic():
+            user = form.save(commit=False)
+            user.approved_by = request.user
+            user.approved_at = timezone.now()
+            user.save()
+        log_audit_event(
+            actor=request.user,
+            action="account:create_by_admin",
+            target=user,
+            metadata={"role": user.role, "created_by": request.user.username},
+        )
+        messages.success(request, f"Account '{user.username}' created as {user.get_role_display()}.")
+        return redirect("accounts:review")
 
 
 class AccountApproveView(LoginRequiredMixin, View):
     """Approve a pending account and assign the effective role."""
 
     def post(self, request, pk: int):
-        if not (request.user.is_staff or request.user.can_approve()):
-            raise PermissionDenied("Only supervisors can approve accounts.")
+        require_system_admin(request.user)
         account = get_object_or_404(User, pk=pk)
         if account.pk == request.user.pk:
             raise PermissionDenied("You cannot approve your own account.")
@@ -190,8 +271,7 @@ class AccountRejectView(LoginRequiredMixin, View):
     """Reject a pending account."""
 
     def post(self, request, pk: int):
-        if not (request.user.is_staff or request.user.can_approve()):
-            raise PermissionDenied("Only supervisors can reject accounts.")
+        require_system_admin(request.user)
         account = get_object_or_404(User, pk=pk)
         if account.pk == request.user.pk:
             raise PermissionDenied("You cannot reject your own account.")

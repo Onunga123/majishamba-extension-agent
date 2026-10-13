@@ -40,8 +40,9 @@ def get_openrouter_api_key() -> str:
 
 
 def get_openrouter_model() -> str:
-    """Return ``openrouter/free`` or a configured model ID (including ``:free``)."""
-    return os.environ.get("OPENROUTER_MODEL", "openrouter/free").strip() or "openrouter/free"
+    """Return the configured free instruction-following model ID."""
+    default = "qwen/qwen-2.5-7b-instruct:free"
+    return os.environ.get("OPENROUTER_MODEL", default).strip() or default
 
 
 def get_openrouter_timeout() -> int:
@@ -49,7 +50,17 @@ def get_openrouter_timeout() -> int:
 
 
 def get_openrouter_max_tokens() -> int:
-    return _positive_int_env("OPENROUTER_MAX_OUTPUT_TOKENS", 800)
+    return _positive_int_env("OPENROUTER_MAX_OUTPUT_TOKENS", 1200)
+
+
+def get_openrouter_json_mode() -> bool:
+    """Whether to request the provider's JSON object response mode."""
+    return _env_bool("OPENROUTER_JSON_MODE", True)
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    return default if value is None else value.lower() in {"1", "true", "yes", "on"}
 
 
 def is_openrouter_configured() -> bool:
@@ -66,7 +77,7 @@ def is_ollama_configured() -> bool:
     return True
 
 
-def call_llm(prompt: str) -> dict[str, Any] | None:
+def call_llm(prompt: str, *, json_mode: bool | None = None) -> dict[str, Any] | None:
     """Call the selected provider and return text plus execution metadata.
 
     A successful result has non-empty ``text``. A failed configured-provider
@@ -85,7 +96,7 @@ def call_llm(prompt: str) -> dict[str, Any] | None:
         if not is_openrouter_configured():
             logger.warning("OpenRouter selected but OPENROUTER_API_KEY is not set.")
             return _failure(provider, get_openrouter_model(), prompt_hash, started, "missing_api_key")
-        return _call_openrouter(prompt, prompt_hash, started)
+        return _call_openrouter(prompt, prompt_hash, started, json_mode=json_mode)
     if provider == "ollama":
         if not is_ollama_configured():
             logger.warning("Ollama selected but the client is unavailable.")
@@ -100,7 +111,13 @@ def call_llm(prompt: str) -> dict[str, Any] | None:
     return None  # Defensive; get_llm_provider normalizes unsupported values.
 
 
-def _call_openrouter(prompt: str, prompt_hash: str, started: float) -> dict[str, Any]:
+def _call_openrouter(
+    prompt: str,
+    prompt_hash: str,
+    started: float,
+    *,
+    json_mode: bool | None = None,
+) -> dict[str, Any]:
     """Make exactly one request to OpenRouter using the configured model."""
     import httpx
 
@@ -112,6 +129,10 @@ def _call_openrouter(prompt: str, prompt_hash: str, started: float) -> dict[str,
         "max_tokens": get_openrouter_max_tokens(),
         "temperature": 0.2,
     }
+    # OpenRouter passes this through to compatible chat-completion models.  It
+    # is deliberately configurable because some legacy/free models reject it.
+    if get_openrouter_json_mode() if json_mode is None else json_mode:
+        body["response_format"] = {"type": "json_object"}
     headers = {
         "Authorization": f"Bearer {get_openrouter_api_key()}",
         "Content-Type": "application/json",
@@ -139,22 +160,75 @@ def _call_openrouter(prompt: str, prompt_hash: str, started: float) -> dict[str,
         except (TypeError, ValueError):
             return _failure("openrouter", model, prompt_hash, started, "malformed_response", 200)
         choices = data.get("choices") if isinstance(data, dict) else None
-        content = choices[0].get("message", {}).get("content") if choices else ""
-        if not isinstance(content, str) or not content.strip():
-            return _failure("openrouter", model, prompt_hash, started, "empty_response", 200)
+        choice = choices[0] if isinstance(choices, list) and choices else {}
+        if not isinstance(choice, dict):
+            choice = {}
+        message = choice.get("message")
+        if not isinstance(message, dict):
+            message = {}
         actual_model = data.get("model") or model
+        finish_reason = choice.get("finish_reason")
+        incomplete_details = choice.get("incomplete_details") or data.get("incomplete_details")
+        refusal = message.get("refusal")
+        incomplete = finish_reason in {"length", "max_tokens", "incomplete"} or bool(incomplete_details)
+        if refusal:
+            return _failure(
+                "openrouter",
+                actual_model,
+                prompt_hash,
+                started,
+                "refusal",
+                200,
+                configured_model=model,
+                finish_reason=finish_reason,
+                incomplete_details=incomplete_details,
+            )
+        if incomplete:
+            if not isinstance(message.get("content", ""), str) or not message.get("content", "").strip():
+                return _failure(
+                    "openrouter",
+                    actual_model,
+                    prompt_hash,
+                    started,
+                    "incomplete_response",
+                    200,
+                    configured_model=model,
+                    finish_reason=finish_reason,
+                    incomplete_details=incomplete_details,
+                )
+            return _incomplete_result(
+                message["content"], actual_model, model, prompt_hash, started, finish_reason, incomplete_details
+            )
+        content = message.get("content", "")
+        if not isinstance(content, str) or not content.strip():
+            return _failure(
+                "openrouter",
+                actual_model,
+                prompt_hash,
+                started,
+                "empty_response",
+                200,
+                configured_model=model,
+                finish_reason=finish_reason,
+                incomplete_details=incomplete_details,
+            )
         elapsed = round(time.time() - started, 2)
         logger.info("OpenRouter request succeeded: model=%s elapsed=%ss", actual_model, elapsed)
-        return {
+        result = {
             "text": _strip_code_fence(content),
             "model": actual_model,
             "configured_model": model,
             "provider": "openrouter",
             "execution_mode": "openrouter",
-            "status": "success",
+            "status": "incomplete" if incomplete else "success",
+            "finish_reason": finish_reason or "",
+            "incomplete_details": incomplete_details or {},
             "elapsed_s": elapsed,
             "prompt_hash": prompt_hash,
         }
+        if incomplete:
+            result["error"] = "incomplete_response"
+        return result
     except httpx.TimeoutException:
         logger.warning("OpenRouter request timed out after %ss.", timeout)
         return _failure("openrouter", model, prompt_hash, started, "timeout")
@@ -221,11 +295,15 @@ def _failure(
     started: float,
     error: str,
     http_status: int | None = None,
+    *,
+    configured_model: str | None = None,
+    finish_reason: str | None = None,
+    incomplete_details: Any = None,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {
         "provider": provider,
         "execution_mode": provider,
-        "configured_model": model,
+        "configured_model": configured_model or model,
         "model": model,
         "status": "failed",
         "error": error,
@@ -234,7 +312,36 @@ def _failure(
     }
     if http_status is not None:
         result["http_status"] = http_status
+    if finish_reason:
+        result["finish_reason"] = finish_reason
+    if incomplete_details:
+        result["incomplete_details"] = incomplete_details
     return result
+
+
+def _incomplete_result(
+    content: str,
+    actual_model: str,
+    configured_model: str,
+    prompt_hash: str,
+    started: float,
+    finish_reason: str | None,
+    incomplete_details: Any,
+) -> dict[str, Any]:
+    """Preserve incomplete provider text without treating it as usable output."""
+    return {
+        "text": _strip_code_fence(content),
+        "model": actual_model,
+        "configured_model": configured_model,
+        "provider": "openrouter",
+        "execution_mode": "openrouter",
+        "status": "incomplete",
+        "error": "incomplete_response",
+        "finish_reason": finish_reason or "",
+        "incomplete_details": incomplete_details or {},
+        "elapsed_s": round(time.time() - started, 2),
+        "prompt_hash": prompt_hash,
+    }
 
 
 def _positive_int_env(name: str, default: int) -> int:

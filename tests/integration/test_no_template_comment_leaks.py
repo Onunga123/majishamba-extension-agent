@@ -247,8 +247,12 @@ def test_no_template_syntax_leaks_on_profile_page(officer_client):
 
 
 @pytest.mark.django_db
-def test_no_template_syntax_leaks_on_account_review_page(supervisor_client):
-    r = supervisor_client.get("/accounts/review/")
+def test_no_template_syntax_leaks_on_account_review_page(system_admin):
+    from django.test import Client
+
+    client = Client()
+    client.force_login(system_admin)
+    r = client.get("/accounts/review/")
     assert r.status_code == 200
     _assert_no_template_syntax_leaks(r.content.decode("utf-8"), "/accounts/review/")
 

@@ -1,0 +1,146 @@
+[1mdiff --git a/apps/accounts/urls.py b/apps/accounts/urls.py[m
+[1mindex f042234..551d339 100755[m
+[1m--- a/apps/accounts/urls.py[m
+[1m+++ b/apps/accounts/urls.py[m
+[36m@@ -15,6 +15,7 @@[m [murlpatterns = [[m
+     path("registration/pending/", views.RegistrationPendingView.as_view(), name="registration_pending"),[m
+     path("profile/", views.profile, name="profile"),[m
+     path("review/", views.AccountReviewListView.as_view(), name="review"),[m
+[32m+[m[32m    path("users/create/", views.AdminCreateUserView.as_view(), name="create_user"),[m
+     path("review/<int:pk>/approve/", views.AccountApproveView.as_view(), name="approve"),[m
+     path("review/<int:pk>/reject/", views.AccountRejectView.as_view(), name="reject"),[m
+ ][m
+[1mdiff --git a/apps/accounts/views.py b/apps/accounts/views.py[m
+[1mindex b22adba..c3343de 100755[m
+[1m--- a/apps/accounts/views.py[m
+[1m+++ b/apps/accounts/views.py[m
+[36m@@ -16,6 +16,7 @@[m [mfrom django.views import View[m
+ from apps.audit.service import log_audit_event[m
+ [m
+ from .models import User[m
+[32m+[m[32mfrom .permissions import require_system_admin[m
+ [m
+ [m
+ # --- Registration form ---[m
+[36m@@ -94,6 +95,59 @@[m [mclass RegistrationForm(forms.ModelForm):[m
+         return user[m
+ [m
+ [m
+[32m+[m[32mclass AdminCreateUserForm(forms.ModelForm):[m
+[32m+[m[32m    """Form used by a system administrator to provision an approved account."""[m
+[32m+[m
+[32m+[m[32m    password1 = forms.CharField([m
+[32m+[m[32m        label="Password",[m
+[32m+[m[32m        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "class": "auth-input"}),[m
+[32m+[m[32m        help_text="At least 10 characters.",[m
+[32m+[m[32m    )[m
+[32m+[m[32m    password2 = forms.CharField([m
+[32m+[m[32m        label="Confirm password",[m
+[32m+[m[32m        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "class": "auth-input"}),[m
+[32m+[m[32m    )[m
+[32m+[m[32m    role = forms.ChoiceField([m
+[32m+[m[32m        label="Role",[m
+[32m+[m[32m        choices=User.Role.choices,[m
+[32m+[m[32m        widget=forms.Select(attrs={"class": "auth-input"}),[m
+[32m+[m[32m        help_text="The account is approved immediately with this role.",[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m[32m    class Meta:[m
+[32m+[m[32m        model = User[m
+[32m+[m[32m        fields = ["full_name", "username", "email", "role", "organization", "sub_county", "ward"][m
+[32m+[m[32m        widgets = {[m
+[32m+[m[32m            "full_name": forms.TextInput(attrs={"class": "auth-input"}),[m
+[32m+[m[32m            "username": forms.TextInput(attrs={"class": "auth-input"}),[m
+[32m+[m[32m            "email": forms.EmailInput(attrs={"class": "auth-input"}),[m
+[32m+[m[32m            "organization": forms.TextInput(attrs={"class": "auth-input"}),[m
+[32m+[m[32m            "sub_county": forms.TextInput(attrs={"class": "auth-input"}),[m
+[32m+[m[32m            "ward": forms.TextInput(attrs={"class": "auth-input"}),[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m    def clean_password2(self):[m
+[32m+[m[32m        password = self.cleaned_data.get("password1")[m
+[32m+[m[32m        confirmation = self.cleaned_data.get("password2")[m
+[32m+[m[32m        if password and password != confirmation:[m
+[32m+[m[32m            raise forms.ValidationError("Passwords do not match.")[m
+[32m+[m[32m        if password and len(password) < 10:[m
+[32m+[m[32m            raise forms.ValidationError("Password must be at least 10 characters.")[m
+[32m+[m[32m        return confirmation[m
+[32m+[m
+[32m+[m[32m    def save(self, commit=True):[m
+[32m+[m[32m        user = super().save(commit=False)[m
+[32m+[m[32m        user.set_password(self.cleaned_data["password1"])[m
+[32m+[m[32m        user.requested_role = user.role[m
+[32m+[m[32m        user.approval_status = User.ApprovalStatus.APPROVED[m
+[32m+[m[32m        user.is_active = True[m
+[32m+[m[32m        user.is_staff = False[m
+[32m+[m[32m        user.is_superuser = False[m
+[32m+[m[32m        if commit:[m
+[32m+[m[32m            user.save()[m
+[32m+[m[32m        return user[m
+[32m+[m
+[32m+[m
+ class RegisterView(View):[m
+     """Public registration page. Creates a PENDING account — no operational access."""[m
+ [m
+[36m@@ -144,21 +198,46 @@[m [mdef profile(request: HttpRequest, *args: object, **kwargs: object) -> HttpRespon[m
+ [m
+ # --- Account review interface ---[m
+ class AccountReviewListView(LoginRequiredMixin, View):[m
+[31m-    """Supervisors/staff can see pending accounts."""[m
+[32m+[m[32m    """Approved system administrators can see pending accounts."""[m
+ [m
+     def get(self, request):[m
+[31m-        if not (request.user.is_staff or request.user.can_approve()):[m
+[31m-            raise PermissionDenied("Only supervisors can review accounts.")[m
+[32m+[m[32m        require_system_admin(request.user)[m
+         pending = User.objects.filter(approval_status=User.ApprovalStatus.PENDING).exclude(username=request.user.username)[m
+         return render(request, "accounts/account_review.html", {"pending_accounts": pending})[m
+ [m
+ [m
+[32m+[m[32mclass AdminCreateUserView(LoginRequiredMixin, View):[m
+[32m+[m[32m    """Allow only an approved system administrator to provision an account."""[m
+[32m+[m
+[32m+[m[32m    def get(self, request):[m
+[32m+[m[32m        require_system_admin(request.user)[m
+[32m+[m[32m        return render(request, "accounts/create_user.html", {"form": AdminCreateUserForm()})[m
+[32m+[m
+[32m+[m[32m    def post(self, request):[m
+[32m+[m[32m        require_system_admin(request.user)[m
+[32m+[m[32m        form = AdminCreateUserForm(request.POST)[m
+[32m+[m[32m        if not form.is_valid():[m
+[32m+[m[32m            return render(request, "accounts/create_user.html", {"form": form})[m
+[32m+[m
+[32m+[m[32m        user = form.save(commit=False)[m
+[32m+[m[32m        user.approved_by = request.user[m
+[32m+[m[32m        user.approved_at = timezone.now()[m
+[32m+[m[32m        user.save()[m
+[32m+[m[32m        log_audit_event([m
+[32m+[m[32m            actor=request.user,[m
+[32m+[m[32m            action="account:create_by_admin",[m
+[32m+[m[32m            target=user,[m
+[32m+[m[32m            metadata={"role": user.role, "created_by": request.user.username},[m
+[32m+[m[32m        )[m
+[32m+[m[32m        messages.success(request, f"Account '{user.username}' created as {user.get_role_display()}.")[m
+[32m+[m[32m        return redirect("accounts:review")[m
+[32m+[m
+[32m+[m
+ class AccountApproveView(LoginRequiredMixin, View):[m
+     """Approve a pending account and assign the effective role."""[m
+ [m
+     def post(self, request, pk: int):[m
+[31m-        if not (request.user.is_staff or request.user.can_approve()):[m
+[31m-            raise PermissionDenied("Only supervisors can approve accounts.")[m
+[32m+[m[32m        require_system_admin(request.user)[m
+         account = get_object_or_404(User, pk=pk)[m
+         if account.pk == request.user.pk:[m
+             raise PermissionDenied("You cannot approve your own account.")[m
+[36m@@ -190,8 +269,7 @@[m [mclass AccountRejectView(LoginRequiredMixin, View):[m
+     """Reject a pending account."""[m
+ [m
+     def post(self, request, pk: int):[m
+[31m-        if not (request.user.is_staff or request.user.can_approve()):[m
+[31m-            raise PermissionDenied("Only supervisors can reject accounts.")[m
+[32m+[m[32m        require_system_admin(request.user)[m
+         account = get_object_or_404(User, pk=pk)[m
+         if account.pk == request.user.pk:[m
+             raise PermissionDenied("You cannot reject your own account.")[m
