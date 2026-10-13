@@ -757,6 +757,7 @@ def save_draft(state: AgentState) -> AgentState:
         limitations=draft.limitations,
         evidence_links=evidence_links,
         model_metadata=state.get("model_metadata", {}),
+        generation_mode=state.get("generation_mode", ""),
         cluster_id=state["cluster_id"],
         ward=state.get("ward", "Kachieng"),
         sub_county=state.get("sub_county", "Nyatike"),

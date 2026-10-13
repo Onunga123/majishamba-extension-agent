@@ -310,6 +310,7 @@ def create_draft_advisory_record(
     limitations: str,
     evidence_links: list[dict],
     model_metadata: dict,
+    generation_mode: str = "",
     cluster_id: str,
     ward: str = "Kachieng",
     sub_county: str = "Nyatike",
@@ -349,13 +350,7 @@ def create_draft_advisory_record(
         model_run_id=model_metadata.get("prompt_hash", ""),
         model_prompt_hash=model_metadata.get("prompt_hash", ""),
         generation_seconds=model_metadata.get("elapsed_s"),
-        generation_mode=(
-            "fallback_template"
-            if model_metadata.get("execution_mode") == "fallback_template"
-            or model_metadata.get("status", "").startswith("fallback")
-            or model_metadata.get("model") == "fallback_template"
-            else f"llm_{model_metadata.get('provider', 'unknown')}"
-        ),
+        generation_mode=generation_mode,
         created_by_id=actor_id,
     )
     for ev in evidence_links:

@@ -6,11 +6,13 @@ import json
 import pytest
 
 from apps.advisories.models import Advisory
+from apps.advisories.display import generation_mode_label
 from apps.agents.runner import run_advisory_pipeline
 from apps.approvals.models import OfficerApproval
 from apps.audit.models import AuditEvent
 from apps.clusters.models import FarmerCluster
 from apps.mcp_tools.tools import (
+    create_draft_advisory_record,
     create_follow_up_task_after_approval_tool,
     get_cluster_plot_history,
     get_crop_calendar,
@@ -18,6 +20,86 @@ from apps.mcp_tools.tools import (
     get_weather_and_rainfall_context,
 )
 from apps.tasks.models import FollowUpTask
+
+
+@pytest.mark.django_db
+def test_create_draft_advisory_record_persists_explicit_generation_mode():
+    """The persisted mode comes from the graph, not provider metadata inference."""
+    from tests.factories.models import FarmerClusterFactory
+
+    cluster = FarmerClusterFactory(cluster_id="GEN-MODE-TEST")
+    result = create_draft_advisory_record(
+        advisory_text="Review local conditions before acting.",
+        summary="Test draft",
+        recommendation_type="monitor",
+        confidence="medium",
+        limitations="Officer review required.",
+        evidence_links=[],
+        model_metadata={
+            "model": "configured-model",
+            "provider": "openrouter",
+            "execution_mode": "fallback_template",
+        },
+        generation_mode="fallback_template",
+        cluster_id=cluster.cluster_id,
+    )
+
+    advisory = Advisory.objects.get(id=result["advisory_id"])
+    assert advisory.generation_mode == "fallback_template"
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("generation_mode", "expected_label"),
+    [
+        ("llm_openrouter", "LLM-generated (OpenRouter)"),
+        ("fallback_template", "Template-generated draft — model unavailable"),
+        ("", "Draft generation mode not recorded"),
+    ],
+)
+def test_generation_mode_labels_are_distinct(generation_mode, expected_label):
+    """Display labels come from the explicit mode and preserve missing-mode semantics."""
+    from tests.factories.models import AdvisoryFactory
+
+    advisory = AdvisoryFactory(
+        generation_mode=generation_mode,
+        model_name="qwen/qwen-2.5-7b-instruct",
+    )
+
+    assert generation_mode_label(advisory) == expected_label
+
+
+@pytest.mark.django_db
+def test_advisory_detail_renders_openrouter_generation_mode(officer_client):
+    """The actual detail page must render the persisted OpenRouter mode."""
+    from tests.factories.models import AdvisoryFactory
+
+    advisory = AdvisoryFactory(
+        generation_mode="llm_openrouter",
+        model_name="qwen/qwen-2.5-7b-instruct",
+    )
+
+    response = officer_client.get(f"/advisories/{advisory.id}/")
+
+    assert response.status_code == 200
+    html = response.content.decode("utf-8")
+    assert "LLM-generated (OpenRouter)" in html
+    assert "Draft generation mode not recorded" not in html
+
+
+@pytest.mark.django_db
+def test_advisory_detail_keeps_blank_and_fallback_labels_distinct(officer_client):
+    """Blank modes remain unrecorded while template fallback stays explicit."""
+    from tests.factories.models import AdvisoryFactory
+
+    blank = AdvisoryFactory(generation_mode="", model_name="some-model")
+    fallback = AdvisoryFactory(generation_mode="fallback_template")
+
+    blank_response = officer_client.get(f"/advisories/{blank.id}/")
+    fallback_response = officer_client.get(f"/advisories/{fallback.id}/")
+
+    assert "Draft generation mode not recorded" in blank_response.content.decode("utf-8")
+    assert "Template-generated draft — model unavailable" in fallback_response.content.decode("utf-8")
 
 
 @pytest.mark.django_db

@@ -5,9 +5,17 @@ from .models import Advisory
 
 
 def generation_mode_label(advisory: Advisory) -> str:
-    mode = advisory.generation_mode or ""
+    mode = (advisory.generation_mode or "").strip()
     if mode == "fallback_template":
         return "Template-generated draft — model unavailable"
+    if mode.startswith("llm_"):
+        provider_key = mode.removeprefix("llm_").strip().lower()
+        provider_labels = {"openrouter": "OpenRouter"}
+        provider = provider_labels.get(
+            provider_key,
+            provider_key.replace("_", " ").title(),
+        )
+        return f"LLM-generated ({provider})"
     if mode == "ollama_qwen" and advisory.model_name:
         return f"Model-generated draft — {advisory.model_name}"
     if mode == "ollama_qwen":
