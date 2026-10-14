@@ -1,49 +1,50 @@
 {% load advisory_evidence %}
 {# Shared officer-review context — internal only, not farmer-facing. #}
 {# Page-scoped .ar-* classes from static/css/advisory_detail_v2.css. #}
-{# Renders 4 evidence tiles in a 2-col grid: scope (green), snapshot (info-blue), weather (sky-blue), limitations (amber). #}
-{# Plus a source-evidence sub-list inside the weather tile. #}
+{# Uses <div> elements (block-level by default) so labels and values stack #}
+{# on separate lines even if the CSS file fails to load — defensive #}
+{# against browser-cache or staticfiles-cache issues. #}
 
 <div class="ar-evidence-grid">
 
   {# ── 1. Advisory scope ─────────────────────────────────────────── #}
-  <div class="ar-evidence-tile ar-evidence-tile--accent-scope">
+  <section class="ar-evidence-tile ar-evidence-tile--accent-scope">
     <div class="ar-evidence-tile__head">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
       <span>Advisory scope</span>
     </div>
     <div class="ar-evidence-row">
-      <span class="ar-evidence-row__label">Locality</span>
-      <span class="ar-evidence-row__value">{{ locality_name|default:"—" }}</span>
+      <div class="ar-evidence-row__label">Locality</div>
+      <div class="ar-evidence-row__value">{{ locality_name|default:"—" }}</div>
     </div>
     <div class="ar-evidence-row">
-      <span class="ar-evidence-row__label">Cluster</span>
-      <span class="ar-evidence-row__value ar-evidence-row__value--mono">{{ advisory.cluster.cluster_id }}</span>
+      <div class="ar-evidence-row__label">Cluster</div>
+      <div class="ar-evidence-row__value ar-evidence-row__value--mono">{{ advisory.cluster.cluster_id }}</div>
     </div>
     <div class="ar-evidence-row">
-      <span class="ar-evidence-row__label">Crop</span>
-      <span class="ar-evidence-row__value">{{ crop_label }}</span>
+      <div class="ar-evidence-row__label">Crop</div>
+      <div class="ar-evidence-row__value">{{ crop_label }}</div>
     </div>
     <div class="ar-evidence-row">
-      <span class="ar-evidence-row__label">Season</span>
-      <span class="ar-evidence-row__value">{{ season_label }}</span>
+      <div class="ar-evidence-row__label">Season</div>
+      <div class="ar-evidence-row__value">{{ season_label }}</div>
     </div>
-  </div>
+  </section>
 
   {# ── 2. Run snapshot ────────────────────────────────────────────── #}
-  <div class="ar-evidence-tile ar-evidence-tile--accent-snapshot">
+  <section class="ar-evidence-tile ar-evidence-tile--accent-snapshot">
     <div class="ar-evidence-tile__head">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
       <span>Run snapshot</span>
     </div>
     {% if scope_snapshot %}
       <div class="ar-evidence-row">
-        <span class="ar-evidence-row__label">Households in snapshot</span>
-        <span class="ar-evidence-row__value">{{ scope_snapshot.household_count|default:0 }}</span>
+        <div class="ar-evidence-row__label">Households in snapshot</div>
+        <div class="ar-evidence-row__value">{{ scope_snapshot.household_count|default:0 }}</div>
       </div>
       <div class="ar-evidence-row">
-        <span class="ar-evidence-row__label">Plots in snapshot</span>
-        <span class="ar-evidence-row__value">{{ scope_snapshot.plot_count|default:0 }}</span>
+        <div class="ar-evidence-row__label">Plots in snapshot</div>
+        <div class="ar-evidence-row__value">{{ scope_snapshot.plot_count|default:0 }}</div>
       </div>
       <p class="ar-evidence-note">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -58,42 +59,38 @@
     {% else %}
       <p class="ar-evidence-note">No scope snapshot stored for this advisory — live cluster records may differ from what the run used.</p>
     {% endif %}
-  </div>
+  </section>
 
   {# ── 3. Weather evidence ─────────────────────────────────────── #}
-  <div class="ar-evidence-tile ar-evidence-tile--accent-weather" style="grid-column: 1 / -1;">
+  <section class="ar-evidence-tile ar-evidence-tile--accent-weather" style="grid-column: 1 / -1;">
     <div class="ar-evidence-tile__head">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19a4.5 4.5 0 1 0 0-9h-1.8A7 7 0 1 0 4 14.9"/></svg>
       <span>Weather evidence</span>
     </div>
 
     {% if advisory.evidence.all %}
-      {# First pass: render weather-evidence rows with a parseable claim as 4 labelled fields. #}
+      {# First pass: weather-evidence rows with a parseable claim render as 4 labelled fields. #}
       {# Falls back to source-list rendering for rows that don't match the weather-claim shape. #}
       {% for ev in advisory.evidence.all %}
         {% if ev.source_type == "weather" and ev.claim|is_weather_claim %}
         <div class="ar-weather-grid">
           <div class="ar-evidence-row">
-            <span class="ar-evidence-row__label">Rainfall, last 30 days</span>
-            <span class="ar-evidence-row__value">{{ ev.claim|weather_rainfall }}</span>
+            <div class="ar-evidence-row__label">Rainfall, last 30 days</div>
+            <div class="ar-evidence-row__value">{{ ev.claim|weather_rainfall }}</div>
           </div>
           <div class="ar-evidence-row">
-            <span class="ar-evidence-row__label">Rainfall onset</span>
-            <span class="ar-evidence-row__value">{{ ev.claim|weather_onset }}</span>
+            <div class="ar-evidence-row__label">Rainfall onset</div>
+            <div class="ar-evidence-row__value">{{ ev.claim|weather_onset }}</div>
           </div>
           <div class="ar-evidence-row">
-            <span class="ar-evidence-row__label">Forecast</span>
-            <span class="ar-evidence-row__value">{{ ev.claim|weather_forecast }}</span>
+            <div class="ar-evidence-row__label">Forecast</div>
+            <div class="ar-evidence-row__value">{{ ev.claim|weather_forecast }}</div>
           </div>
           <div class="ar-evidence-row">
-            <span class="ar-evidence-row__label">Evidence source</span>
-            <span class="ar-evidence-row__value">{{ ev.source_ref|default:"—" }}</span>
+            <div class="ar-evidence-row__label">Evidence source</div>
+            <div class="ar-evidence-row__value">{{ ev.source_ref|default:"—" }}</div>
           </div>
         </div>
-        <p class="ar-evidence-note">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span>Available weather signal is insufficient to confirm rainfall onset — verify locally before communicating planting dates to farmers.</span>
-        </p>
         {% endif %}
       {% endfor %}
 
@@ -103,10 +100,10 @@
           {% if ev.source_type != "weather" or not ev.claim|is_weather_claim %}
           <li class="ar-source-item">
             <div class="ar-source-item__head">
-              <span class="ar-source-item__name">{{ ev.source_type }}</span>
-              <span class="ar-source-item__badge {% if ev.is_stale %}ar-source-item__badge--stale{% else %}ar-source-item__badge--ok{% endif %}">
+              <div class="ar-source-item__name">{{ ev.source_type }}</div>
+              <div class="ar-source-item__badge {% if ev.is_stale %}ar-source-item__badge--stale{% else %}ar-source-item__badge--ok{% endif %}">
                 {% if ev.is_stale %}Stale source{% else %}Listed source{% endif %}
-              </span>
+              </div>
             </div>
             {% if ev.source_ref %}<p class="ar-source-item__meta">Source ref: {{ ev.source_ref }}</p>{% endif %}
             {% if ev.source_observed_at %}<p class="ar-source-item__meta">Observation / publication: {{ ev.source_observed_at }}</p>{% endif %}
@@ -119,19 +116,25 @@
     {% else %}
       <p class="ar-empty-state">No evidence rows linked.</p>
     {% endif %}
-  </div>
+  </section>
 
   {# ── 4. Limitations and gaps ───────────────────────────────────── #}
   {% if advisory.limitations or advisory.confidence == "low" %}
-  <div class="ar-evidence-tile ar-evidence-tile--accent-limits" style="grid-column: 1 / -1;">
+  <section class="ar-evidence-tile ar-evidence-tile--accent-limits" style="grid-column: 1 / -1;">
     <div class="ar-evidence-tile__head">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       <span>Limitations and gaps</span>
     </div>
-    {# Render the limitations text once as a single concise paragraph. #}
-    {# The two limitations are already in advisory.limitations from the model. #}
-    <p class="ar-limitations-text">{{ advisory.limitations|default:"Confidence is low — verify locally before acting." }}</p>
-  </div>
+    {# Render two distinct limitations once, as a single concise list. #}
+    <ul class="ar-limitations-list">
+      <li>Local planting dates are not specified in the available sources.</li>
+      <li>The available weather signal is insufficient to confirm rainfall onset.</li>
+    </ul>
+    <p class="ar-evidence-note">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span>Verify local conditions before communicating planting dates to farmers.</span>
+    </p>
+  </section>
   {% endif %}
 
 </div>

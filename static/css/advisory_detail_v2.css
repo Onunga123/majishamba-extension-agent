@@ -736,6 +736,16 @@
   color: var(--color-text-muted);
   white-space: nowrap;
 }
+/* Visible colon separator so the label and value can never visually
+   concatenate, even if the CSS file fails to load and the layout
+   collapses to inline rendering. */
+.ar-audit-label::after {
+  content: ":";
+  color: var(--color-text-muted);
+  font-weight: 500;
+  margin-left: 0.05rem;
+  opacity: 0.7;
+}
 .ar-audit-value {
   color: var(--color-text-secondary);
   font-weight: 500;
