@@ -112,20 +112,30 @@
 .ar-hero__meta-item {
   display: inline-flex;
   align-items: baseline;
-  gap: 0.3rem;
+  gap: 0.4rem;
   font-size: 0.75rem;
   color: var(--color-forest-muted);
 }
 .ar-hero__meta-label {
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   font-size: 0.625rem;
   opacity: 0.85;
+  white-space: nowrap;
+}
+/* Visible separator so the label can never visually concatenate with
+   its value, even on narrow viewports. */
+.ar-hero__meta-label::after {
+  content: ":";
+  opacity: 0.7;
+  margin-left: 0.05rem;
+  font-weight: 500;
 }
 .ar-hero__meta-value {
   color: var(--color-text-on-forest);
   font-weight: 500;
+  white-space: nowrap;
 }
 .ar-hero__meta-sep {
   color: rgba(168, 197, 181, 0.4);
@@ -353,26 +363,48 @@
 .ar-evidence-tile--accent-weather  .ar-evidence-tile__head { color: var(--color-sky-text); }
 .ar-evidence-tile--accent-limits   .ar-evidence-tile__head { color: var(--color-draft-text); }
 
+/* Evidence row: a labelled value pair inside an evidence tile. Uses
+   a 2-column grid (label / value) so the label and value never
+   concatenate visually. On narrow tiles the grid collapses to a
+   stacked label-over-value layout. */
 .ar-evidence-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr);
+  gap: 0.5rem 1rem;
   align-items: baseline;
-  gap: 0.5rem;
   padding: 0.4rem 0;
   border-top: 1px solid var(--color-border);
+}
+@media (max-width: 380px) {
+  /* Very narrow screens (e.g. small mobile inside a 1-col tile):
+     stack label over value rather than risk horizontal squeeze. */
+  .ar-evidence-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.15rem;
+  }
 }
 .ar-evidence-row:first-of-type { padding-top: 0.25rem; }
 .ar-evidence-row__label {
   font-size: 0.75rem;
   color: var(--color-text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Label always ends with a colon — a visible separator so it can
+   never visually concatenate with its value. */
+.ar-evidence-row__label::after {
+  content: ":";
+  color: var(--color-text-muted);
   font-weight: 500;
+  margin-left: 0.05rem;
 }
 .ar-evidence-row__value {
   font-size: 0.875rem;
   color: var(--color-text);
   font-weight: 600;
-  text-align: right;
+  text-align: left;
+  min-width: 0;
+  word-break: break-word;
 }
 .ar-evidence-row__value--mono {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
@@ -380,7 +412,6 @@
   font-weight: 500;
 }
 .ar-evidence-row__value--full {
-  text-align: left;
   font-weight: 400;
   line-height: 1.5;
   font-size: 0.8125rem;
@@ -541,15 +572,26 @@
   outline-offset: 2px;
 }
 .ar-btn--ghost {
-  background: transparent;
-  border-color: transparent;
+  /* Ghost = still a clearly bounded button (matches .ar-btn--secondary
+     sizing and shape) but uses the primary green accent on a neutral
+     surface so it reads as a secondary action, not as plain text. */
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
   color: var(--color-primary);
-  padding: 0.55rem 0.6rem;
+  padding: 0.55rem 0.9rem;
 }
-.ar-btn--ghost:hover { background: var(--color-primary-soft); text-decoration: none; }
+.ar-btn--ghost:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  text-decoration: none;
+}
 .ar-btn--ghost:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+.ar-btn--ghost:active {
+  background: var(--color-sage);
+  border-color: var(--color-primary);
 }
 .ar-btn--danger {
   background: var(--color-surface);
@@ -599,27 +641,40 @@
   text-decoration: underline;
 }
 
-/* Delete details/summary form */
+/* Delete details/summary form — styled as a clearly bounded rectangular
+   danger-outline button that matches the .ar-btn sizing and shape, with
+   an icon + label inside. The text label is always visible so the
+   destructive action is never communicated by colour alone. */
 .ar-delete-summary {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  justify-content: center;
+  gap: 0.4rem;
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-danger-text);
-  padding: 0.45rem 0.6rem;
+  padding: 0.55rem 0.9rem;
+  min-height: 40px;
   border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  background: transparent;
+  border: 1px solid var(--color-danger-border);
+  background: var(--color-surface);
   list-style: none;
   user-select: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .ar-delete-summary::-webkit-details-marker { display: none; }
-.ar-delete-summary:hover { background: var(--color-danger-soft); border-color: var(--color-danger-border); }
+.ar-delete-summary:hover {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger);
+}
 .ar-delete-summary:focus-visible {
   outline: 2px solid var(--color-danger);
   outline-offset: 2px;
+}
+.ar-delete-summary:active {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger);
 }
 .ar-delete-form {
   display: flex;
@@ -654,24 +709,40 @@
   border-top: 1px solid var(--color-border);
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
+  gap: 0.625rem 1.25rem;
   font-size: 0.75rem;
   color: var(--color-text-muted);
   line-height: 1.5;
   align-items: baseline;
 }
-.ar-audit-item { display: inline-flex; align-items: baseline; gap: 0.3rem; }
+/* Each audit item is a small labelled chip — visible border + muted
+   surface so 'Created' / 'Run time' / 'By' are clearly separated
+   from each other and from their values. Prevents the visual
+   concatenation 'Created2026-10-13 12:46ByChristopher Onunga'. */
+.ar-audit-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
 .ar-audit-label {
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   font-size: 0.625rem;
   color: var(--color-text-muted);
+  white-space: nowrap;
 }
-.ar-audit-value { color: var(--color-text-secondary); font-weight: 500; }
+.ar-audit-value {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
 .ar-audit-sep { color: var(--color-border-strong); user-select: none; }
 @media (max-width: 640px) {
-  .ar-audit { flex-direction: column; gap: 0.25rem; align-items: flex-start; }
+  .ar-audit { flex-direction: row; gap: 0.4rem; align-items: stretch; flex-wrap: wrap; }
   .ar-audit-sep { display: none; }
 }
 
