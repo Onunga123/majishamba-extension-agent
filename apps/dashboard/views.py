@@ -612,12 +612,27 @@ class DashboardHomeView(LoginRequiredMixin, View):
         )
 
         # --- Recent activity timeline (5 max, decision-oriented, no tool:*) ---
+        # Phase B visibility: account-management events (registration, approval,
+        # rejection, admin-created accounts) expose information about who is
+        # joining/leaving the system. Only System Administrators may see these
+        # in the activity feed. Non-administrators see other operational
+        # events (advisory approvals, task completions, ingest events, etc.).
+        _ACCOUNT_MANAGEMENT_ACTIONS = (
+            "account:register",
+            "account:approve",
+            "account:reject",
+            "account:create_by_admin",
+        )
         recent_event_qs = (
             AuditEvent.objects
             .select_related("actor")
             .exclude(action__startswith="tool:")
-            .order_by("-created_at")[:5]
         )
+        if not request.user.is_system_admin():
+            recent_event_qs = recent_event_qs.exclude(
+                action__in=_ACCOUNT_MANAGEMENT_ACTIONS
+            )
+        recent_event_qs = recent_event_qs.order_by("-created_at")[:5]
         recent_events = [_audit_timeline(e) for e in recent_event_qs]
 
         # Badges for the nav and dashboard

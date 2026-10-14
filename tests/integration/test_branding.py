@@ -65,8 +65,12 @@ def test_tasks_list_shows_kachieng_ai_agent(officer_client):
 
 
 @pytest.mark.django_db
-def test_audit_list_shows_kachieng_ai_agent(officer_client):
-    r = officer_client.get("/audit/")
+def test_audit_list_shows_kachieng_ai_agent(system_admin_client):
+    """Phase B: /audit/ is restricted to System Administrators. The test
+    exercises the page as a system admin. Non-admin denial is covered in
+    tests/security/test_phase_b_audit_visibility.py.
+    """
+    r = system_admin_client.get("/audit/")
     assert r.status_code == 200
     html = r.content.decode("utf-8")
     assert "MajiShamba" not in html

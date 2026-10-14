@@ -10,6 +10,8 @@ from django.http import HttpRequest, HttpResponse
 from django.views import View
 from django.views.generic import ListView
 
+from apps.accounts.permissions import require_system_admin
+
 from .models import AuditEvent
 
 
@@ -143,12 +145,32 @@ def _approval_label(event: AuditEvent) -> str:
 
 
 class AuditEventListView(LoginRequiredMixin, ListView):
+    """Full audit log — restricted to authenticated, active, approved System Administrators.
+
+    Access policy (matches the established AccountReviewListView pattern):
+      - Anonymous users are redirected to /accounts/login/ (302) by
+        LoginRequiredMixin.
+      - Authenticated non-administrators (Viewer, Extension Officer,
+        Supervisor) receive 403 from the require_system_admin() check in
+        get_queryset().
+      - Authenticated System Administrators get 200.
+
+    The dashboard's 'Recent activity' feed (filtered to exclude
+    account-management events for non-admins) is the activity surface
+    available to non-administrators.
+    """
+
     model = AuditEvent
     template_name = "audit/list.html"
     context_object_name = "events"
     paginate_by = 50
 
     def get_queryset(self):
+        # Authorisation check — LoginRequiredMixin has already redirected
+        # anonymous users to /accounts/login/. Here we enforce that the
+        # authenticated user is an approved System Administrator; non-admins
+        # receive 403 (PermissionDenied) before any query runs.
+        require_system_admin(self.request.user)
         qs = AuditEvent.objects.select_related("actor").order_by("-created_at")
 
         # --- Search ---
@@ -234,11 +256,24 @@ class AuditEventListView(LoginRequiredMixin, ListView):
 class AuditEventCSVExportView(LoginRequiredMixin, View):
     """Export audit events as CSV for compliance review.
 
+    Restricted to authenticated, active, approved System Administrators —
+    the CSV contains the full audit trail (including account-management
+    events) and must not be accessible to other authenticated roles.
+
+    Anonymous users are redirected to /accounts/login/ by LoginRequiredMixin;
+    authenticated non-admins receive 403 from the require_system_admin()
+    check in get().
+
     Supports optional date-range filtering via ?from=YYYY-MM-DD&to=YYYY-MM-DD.
     Returns all events if no filter is provided.
     """
 
     def get(self, request: HttpRequest) -> HttpResponse:
+        # Authorisation check — LoginRequiredMixin has already redirected
+        # anonymous users to /accounts/login/. Here we enforce that the
+        # authenticated user is an approved System Administrator; non-admins
+        # receive 403 (PermissionDenied) before any data is exported.
+        require_system_admin(request.user)
         qs = AuditEvent.objects.select_related("actor").order_by("-created_at")
         # Optional date-range filter (by created_at date, not datetime).
         from_str = request.GET.get("from")

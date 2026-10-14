@@ -84,6 +84,13 @@ def viewer(db):
 
 
 @pytest.fixture
+def system_admin_client(system_admin):
+    c = Client()
+    c.force_login(system_admin)
+    return c
+
+
+@pytest.fixture
 def officer_client(officer):
     c = Client()
     c.force_login(officer)

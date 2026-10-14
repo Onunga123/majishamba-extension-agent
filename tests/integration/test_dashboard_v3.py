@@ -339,14 +339,19 @@ def test_dashboard_has_audit_log_link_separate_from_activity(officer_client):
 
 
 @pytest.mark.django_db
-def test_audit_page_has_technical_detail_for_authorized_users(supervisor_client):
-    """The /audit/ page must contain technical audit detail for authorized
-    users (it's the detailed accountability view, separate from the
-    human-readable activity feed on the dashboard)."""
+def test_audit_page_has_technical_detail_for_authorized_users(system_admin_client):
+    """The /audit/ page must contain audit detail for authorised System
+    Administrators (it's the detailed accountability view, separate from
+    the human-readable activity feed on the dashboard).
+
+    Phase B: /audit/ is restricted to System Administrators. The test uses
+    system_admin_client. Non-admin denial is covered in
+    tests/security/test_phase_b_audit_visibility.py.
+    """
     from apps.audit.models import AuditEvent
     AuditEvent.objects.create(actor=None, action="http:POST:/tasks/1/complete/")
 
-    r = supervisor_client.get("/audit/")
+    r = system_admin_client.get("/audit/")
     assert r.status_code == 200
     html = r.content.decode("utf-8")
     # The audit page must show some audit content (the human-readable timeline

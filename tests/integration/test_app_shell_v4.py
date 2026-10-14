@@ -415,9 +415,15 @@ def test_tasks_page_header(officer_client):
 
 
 @pytest.mark.django_db
-def test_audit_page_header(officer_client):
-    """/audit/ must have a page header with 'Audit' h1 + 'System activity and accountability records' subtitle."""
-    r = officer_client.get("/audit/")
+def test_audit_page_header(system_admin_client):
+    """/audit/ must have a page header with 'Audit' h1 + 'System activity and accountability records' subtitle.
+
+    Phase B: /audit/ is restricted to System Administrators — the test uses
+    the system_admin_client fixture to exercise the page that an authorised
+    administrator would see. Non-administrators get 403 (covered in
+    tests/security/test_phase_b_audit_visibility.py).
+    """
+    r = system_admin_client.get("/audit/")
     assert r.status_code == 200
     html = r.content.decode("utf-8")
     assert re.search(r'<h1[^>]*>\s*Audit\s*</h1>', html), (

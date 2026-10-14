@@ -214,8 +214,13 @@ def test_no_template_syntax_leaks_on_task_detail(officer_client):
 
 
 @pytest.mark.django_db
-def test_no_template_syntax_leaks_on_audit_list(officer_client):
-    r = officer_client.get("/audit/")
+def test_no_template_syntax_leaks_on_audit_list(system_admin_client):
+    """Phase B: /audit/ is restricted to System Administrators. The test
+    exercises the page as a system admin to verify the template renders
+    cleanly. Non-admin denial is covered in
+    tests/security/test_phase_b_audit_visibility.py.
+    """
+    r = system_admin_client.get("/audit/")
     assert r.status_code == 200
     _assert_no_template_syntax_leaks(r.content.decode("utf-8"), "/audit/")
 
