@@ -234,18 +234,29 @@ class RequestAdvisoryView(LoginRequiredMixin, View):
 
 
 class AdvisoryRunStatusView(LoginRequiredMixin, View):
-    """Officer-visible run progress (HTMX polls the partial)."""
+    """Officer-visible run progress (HTMX polls the partial).
+
+    Phase D authorization: the run owner, any Extension Officer/Supervisor,
+    or a System Administrator may view a run. ``is_staff`` is no longer
+    used as the bypass — a Viewer with ``is_staff=True`` (mis-provisioned
+    via ``create_officer --role viewer``) cannot read another user's run.
+    """
 
     def get(self, request: HttpRequest, run_id) -> HttpResponse:
         run = get_object_or_404(AdvisoryRun.objects.select_related("cluster", "result_advisory"), run_id=run_id)
-        if run.requested_by_id != request.user.id and not request.user.is_staff:
+        if run.requested_by_id != request.user.id and not request.user.is_officer() and not request.user.is_system_admin():
             return HttpResponseForbidden("You cannot view this run.")
         return render(request, "advisories/run_status.html", {"run": run})
 
 
 class AdvisoryRunProgressPartialView(LoginRequiredMixin, View):
+    """HTMX partial polled by the run-status page.
+
+    Same Phase D authorization as ``AdvisoryRunStatusView``.
+    """
+
     def get(self, request: HttpRequest, run_id) -> HttpResponse:
         run = get_object_or_404(AdvisoryRun.objects.select_related("cluster", "result_advisory"), run_id=run_id)
-        if run.requested_by_id != request.user.id and not request.user.is_staff:
+        if run.requested_by_id != request.user.id and not request.user.is_officer() and not request.user.is_system_admin():
             return HttpResponseForbidden("You cannot view this run.")
         return render(request, "advisories/partials/run_progress.html", {"run": run})

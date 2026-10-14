@@ -22,7 +22,8 @@ def test_create_officer_command():
     assert u.full_name == "John Doe"
     assert u.sub_county == "Nyatike"
     assert u.ward == "Kachieng"
-    assert u.is_staff is True
+    assert u.is_staff is False
+    assert u.is_superuser is False
     # Password should be unusable until set via changepassword
     assert not u.has_usable_password()
     # Login should fail

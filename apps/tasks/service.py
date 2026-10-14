@@ -40,6 +40,15 @@ def create_follow_up_task_after_approval(
 
     This is the function the MCP `create_follow_up_task_after_approval` tool calls.
     It is approval-gated by design and returns an error dict if the gate is not satisfied.
+
+    Phase D (D-14): prevents task-owner impersonation. The ``actor`` (the
+    authenticated caller) must be the officer who approved the advisory
+    (``officer_id``), OR a System Administrator acting on that officer's
+    behalf. An ordinary officer cannot create a task attributed to a
+    different officer by supplying a different ``officer_id``. This closes
+    the impersonation gap identified in the Phase D audit. Delegation
+    beyond system-admin-on-behalf-of-officer is not supported by the
+    current governance docs and is left for a separate policy decision.
     """
     try:
         advisory = Advisory.objects.get(pk=approved_advisory_id)
@@ -65,6 +74,33 @@ def create_follow_up_task_after_approval(
     if advisory.status != Advisory.Status.APPROVED:
         return {
             "error": f"Advisory status is {advisory.status}, not APPROVED.",
+            "advisory_id": advisory.id,
+        }
+
+    # D-14: prevent task-owner impersonation. The actor must be the
+    # approving officer (officer_id) or a System Administrator. An
+    # ordinary officer cannot supply a different officer_id to create a
+    # task attributed to that other officer.
+    from apps.accounts.models import User
+    if actor is None:
+        return {
+            "error": "Actor is required to create a follow-up task.",
+            "advisory_id": advisory.id,
+        }
+    try:
+        actor_user = actor if isinstance(actor, User) else User.objects.get(pk=actor)
+    except (User.DoesNotExist, ValueError, TypeError):
+        return {
+            "error": "Actor user not found.",
+            "advisory_id": advisory.id,
+        }
+    if actor_user.id != officer_id and not actor_user.is_system_admin():
+        logger.warning(
+            "Impersonation blocked: actor=%s attempted to create task for officer=%s on advisory=%s",
+            actor_user.id, officer_id, advisory.id,
+        )
+        return {
+            "error": "You are not authorized to create a follow-up task for another officer.",
             "advisory_id": advisory.id,
         }
 

@@ -33,7 +33,7 @@
         <td class="px-2 py-1 font-mono">Task {{ t.id }}</td>
         <td class="px-2 py-1 font-mono"><a href="{% url 'advisories:detail' t.approved_advisory_id %}" class="text-emerald-700 hover:underline">Advisory {{ t.approved_advisory_id }}</a></td>
         <td class="px-2 py-1">{{ t.approved_advisory.cluster.locality|default:"—" }}</td>
-        <td class="px-2 py-1">{% if t.owner %}{{ t.owner.display_name }}{% else %}Unassigned{% endif %}</td>
+        <td class="px-2 py-1">{% if t.owner %}{% if is_viewer %}Officer{% else %}{{ t.owner.display_name }}{% endif %}{% else %}Unassigned{% endif %}</td>
         <td class="px-2 py-1">{{ t.get_task_type_display }}</td>
         <td class="px-2 py-1">{{ t.deadline|default:"(none)" }}</td>
         <td class="px-2 py-1">

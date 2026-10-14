@@ -26,7 +26,7 @@
     </div>
     <div class="flex flex-col sm:flex-row sm:gap-4">
       <dt class="font-medium text-stone-700 sm:w-32 sm:flex-shrink-0">Owner</dt>
-      <dd>{% if task.owner %}{{ task.owner.display_name }}{% else %}Unassigned{% endif %}</dd>
+      <dd>{% if task.owner %}{% if is_viewer %}Officer{% else %}{{ task.owner.display_name }}{% endif %}{% else %}Unassigned{% endif %}</dd>
     </div>
     <div class="flex flex-col sm:flex-row sm:gap-4">
       <dt class="font-medium text-stone-700 sm:w-32 sm:flex-shrink-0">Cluster</dt>
@@ -108,15 +108,17 @@
   </form>
   {% endif %}
 
+  {% if show_findings %}
   <h2 class="font-semibold mt-6 mb-3">Submitted findings</h2>
-  {% for f in task.field_findings.all %}
+  {% for f in findings %}
   <div class="border border-stone-200 rounded p-3 text-sm mb-2">
-    <p>Visit {{ f.visit_date }} · by {{ f.submitted_by.display_name|default:"—" }}</p>
+    <p>Visit {{ f.visit_date }} · by {% if is_viewer %}Officer{% else %}{{ f.submitted_by.display_name|default:"—" }}{% endif %}</p>
     <p class="mt-1">{{ f.observations|default:"—" }}</p>
-    {% if f.verified_by %}<p class="text-xs text-emerald-800 mt-1">Verified by {{ f.verified_by.display_name }} at {{ f.verified_at|date:"Y-m-d H:i" }}</p>{% endif %}
+    {% if f.verified_by %}<p class="text-xs text-emerald-800 mt-1">Verified by {% if is_viewer %}Supervisor{% else %}{{ f.verified_by.display_name }}{% endif %} at {{ f.verified_at|date:"Y-m-d H:i" }}</p>{% endif %}
   </div>
   {% empty %}
   <p class="text-sm text-stone-500 italic">No field findings yet.</p>
   {% endfor %}
+  {% endif %}
 </div>
 {% endblock %}

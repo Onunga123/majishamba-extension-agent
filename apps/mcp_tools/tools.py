@@ -317,7 +317,19 @@ def create_draft_advisory_record(
     county: str = "Migori",
     actor_id: int | None = None,
 ) -> dict[str, Any]:
-    """ACTION TOOL: create a DRAFT advisory record. No external message is sent."""
+    """ACTION TOOL: create a DRAFT advisory record. No external message is sent.
+
+    Phase D (D-13): enforces the application-role authorization inside the
+    tool boundary, not only in the HTTP view. Only an active, approved
+    Extension Officer or Supervisor (``is_officer()``) may create a DRAFT
+    advisory. A Viewer or unauthenticated caller is rejected with an error
+    dict; no ``Advisory`` row is created. This preserves the governance
+    policy (docs/governance/human_approval_policy.md:45-48) that a Viewer
+    cannot request or create advisories, even if the caller reaches the
+    tool through an alternate path (e.g. a future MCP transport). The
+    human approval gate is NOT bypassed — the created draft still has
+    ``status="DRAFT"`` and requires officer review.
+    """
     inputs = _sanitize_inputs({
         "cluster_id": cluster_id, "recommendation_type": recommendation_type,
         "evidence_count": len(evidence_links),
@@ -328,6 +340,26 @@ def create_draft_advisory_record(
         "generation_status": model_metadata.get("status", ""),
         "provider_error": model_metadata.get("provider_error", ""),
     })
+    # D-13: enforce is_officer() at the tool boundary.
+    from apps.accounts.models import User
+    if actor_id is None:
+        out = {"error": "Actor is required to create a draft advisory."}
+        log_tool_call(tool_name="create_draft_advisory_record", inputs=inputs, outputs=out, approval_status="rejected", actor_id=None)
+        return out
+    try:
+        actor = User.objects.get(pk=actor_id)
+    except User.DoesNotExist:
+        out = {"error": f"Actor user {actor_id} not found."}
+        # Log with actor_id=None to avoid a FK constraint violation on a
+        # nonexistent user. The attempted actor_id is not preserved in the
+        # audit record to prevent log forging via a nonexistent id.
+        log_tool_call(tool_name="create_draft_advisory_record", inputs=inputs, outputs=out, approval_status="rejected", actor_id=None)
+        return out
+    if not actor.is_officer():
+        out = {"error": f"Actor {actor.username} (role={actor.role}) is not authorized to create draft advisories. Only extension officers and supervisors may create drafts."}
+        log_tool_call(tool_name="create_draft_advisory_record", inputs=inputs, outputs=out, approval_status="rejected", actor_id=actor_id)
+        return out
+
     try:
         cluster = FarmerCluster.objects.get(cluster_id=cluster_id)
     except FarmerCluster.DoesNotExist:

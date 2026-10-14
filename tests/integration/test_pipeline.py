@@ -23,8 +23,13 @@ from apps.tasks.models import FollowUpTask
 
 
 @pytest.mark.django_db
-def test_create_draft_advisory_record_persists_explicit_generation_mode():
-    """The persisted mode comes from the graph, not provider metadata inference."""
+def test_create_draft_advisory_record_persists_explicit_generation_mode(officer):
+    """The persisted mode comes from the graph, not provider metadata inference.
+
+    Phase D (D-13): the tool now requires an authenticated officer actor.
+    The ``officer`` fixture (extension_officer, active, approved) is
+    passed as ``actor_id`` so the tool's role check passes.
+    """
     from tests.factories.models import FarmerClusterFactory
 
     cluster = FarmerClusterFactory(cluster_id="GEN-MODE-TEST")
@@ -42,6 +47,7 @@ def test_create_draft_advisory_record_persists_explicit_generation_mode():
         },
         generation_mode="fallback_template",
         cluster_id=cluster.cluster_id,
+        actor_id=officer.id,
     )
 
     advisory = Advisory.objects.get(id=result["advisory_id"])

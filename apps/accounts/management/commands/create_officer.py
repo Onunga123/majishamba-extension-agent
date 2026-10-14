@@ -5,8 +5,17 @@ Usage:
     python manage.py create_officer --username jsmith --full-name "Jane Smith" --role supervisor
 
 The password is NOT set by this command — use `python manage.py changepassword <username>`
-to set it interactively after creation. This prevents passwords from appearing
-in command-line history or logs.
+to set it interactively after creation. This prevents passwords from appearing in
+command-line history or logs.
+
+Phase D (P-01): ``is_staff`` is no longer set to ``True`` unconditionally.
+The application role (extension_officer/supervisor/viewer) is the source of
+truth for authorization. Django admin access (``is_staff=True``) is a separate
+privilege that should be granted explicitly via the Django admin UI if needed —
+not automatically by this provisioning command. The previous unconditional
+``is_staff=True`` caused a Viewer provisioned via ``--role viewer`` to pass
+``is_staff``-based authorization checks (now fixed in D-01), and was inconsistent
+with ``create_system_admin`` which sets ``is_staff=False``.
 """
 from __future__ import annotations
 
@@ -42,7 +51,8 @@ class Command(BaseCommand):
             full_name=full_name,
             sub_county=sub_county,
             ward=ward,
-            is_staff=True,
+            is_staff=False,
+            is_superuser=False,
         )
         # Set an unusable password — officer must set it via `changepassword`
         user.set_unusable_password()
@@ -56,3 +66,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  python manage.py changepassword {username}")
         self.stdout.write("")
         self.stdout.write("The account is active but has no password — login will fail until you set one.")
+        self.stdout.write("")
+        self.stdout.write("NOTE: Django admin access (is_staff) is NOT granted by this command.")
+        self.stdout.write("      If the account needs Django admin access, grant it explicitly via")
+        self.stdout.write("      /admin/auth/user/ in the Django admin UI.")
