@@ -1,3 +1,4 @@
+{% load advisory_evidence %}
 {# Shared officer-review context — internal only, not farmer-facing. #}
 {# Page-scoped .ar-* classes from static/css/advisory_detail_v2.css. #}
 {# Renders 4 evidence tiles in a 2-col grid: scope (green), snapshot (info-blue), weather (sky-blue), limitations (amber). #}
@@ -59,46 +60,77 @@
     {% endif %}
   </div>
 
-  {# ── 3. Weather evidence (sources) ───────────────────────────── #}
+  {# ── 3. Weather evidence ─────────────────────────────────────── #}
   <div class="ar-evidence-tile ar-evidence-tile--accent-weather" style="grid-column: 1 / -1;">
     <div class="ar-evidence-tile__head">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19a4.5 4.5 0 1 0 0-9h-1.8A7 7 0 1 0 4 14.9"/></svg>
       <span>Weather evidence</span>
     </div>
+
     {% if advisory.evidence.all %}
-    <ul class="ar-source-list">
+      {# First pass: render weather-evidence rows with a parseable claim as 4 labelled fields. #}
+      {# Falls back to source-list rendering for rows that don't match the weather-claim shape. #}
       {% for ev in advisory.evidence.all %}
-      <li class="ar-source-item">
-        <div class="ar-source-item__head">
-          <span class="ar-source-item__name">{{ ev.source_type }}</span>
-          <span class="ar-source-item__badge {% if ev.is_stale %}ar-source-item__badge--stale{% else %}ar-source-item__badge--ok{% endif %}">
-            {% if ev.is_stale %}Stale source{% else %}Listed source{% endif %}
-          </span>
+        {% if ev.source_type == "weather" and ev.claim|is_weather_claim %}
+        <div class="ar-weather-grid">
+          <div class="ar-evidence-row">
+            <span class="ar-evidence-row__label">Rainfall, last 30 days</span>
+            <span class="ar-evidence-row__value">{{ ev.claim|weather_rainfall }}</span>
+          </div>
+          <div class="ar-evidence-row">
+            <span class="ar-evidence-row__label">Rainfall onset</span>
+            <span class="ar-evidence-row__value">{{ ev.claim|weather_onset }}</span>
+          </div>
+          <div class="ar-evidence-row">
+            <span class="ar-evidence-row__label">Forecast</span>
+            <span class="ar-evidence-row__value">{{ ev.claim|weather_forecast }}</span>
+          </div>
+          <div class="ar-evidence-row">
+            <span class="ar-evidence-row__label">Evidence source</span>
+            <span class="ar-evidence-row__value">{{ ev.source_ref|default:"—" }}</span>
+          </div>
         </div>
-        {% if ev.source_ref %}<p class="ar-source-item__meta">Source ref: {{ ev.source_ref }}</p>{% endif %}
-        {% if ev.source_observed_at %}<p class="ar-source-item__meta">Observation / publication: {{ ev.source_observed_at }}</p>{% endif %}
-        {% if ev.retrieved_at %}<p class="ar-source-item__meta">Retrieved into system: {{ ev.retrieved_at|date:"Y-m-d H:i" }}</p>{% endif %}
-        <p class="ar-source-item__claim">Supports: {{ ev.claim }}</p>
-      </li>
+        <p class="ar-evidence-note">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>Available weather signal is insufficient to confirm rainfall onset — verify locally before communicating planting dates to farmers.</span>
+        </p>
+        {% endif %}
       {% endfor %}
-    </ul>
+
+      {# Source-list section — for evidence rows that did not get the structured weather rendering above. #}
+      <ul class="ar-source-list">
+        {% for ev in advisory.evidence.all %}
+          {% if ev.source_type != "weather" or not ev.claim|is_weather_claim %}
+          <li class="ar-source-item">
+            <div class="ar-source-item__head">
+              <span class="ar-source-item__name">{{ ev.source_type }}</span>
+              <span class="ar-source-item__badge {% if ev.is_stale %}ar-source-item__badge--stale{% else %}ar-source-item__badge--ok{% endif %}">
+                {% if ev.is_stale %}Stale source{% else %}Listed source{% endif %}
+              </span>
+            </div>
+            {% if ev.source_ref %}<p class="ar-source-item__meta">Source ref: {{ ev.source_ref }}</p>{% endif %}
+            {% if ev.source_observed_at %}<p class="ar-source-item__meta">Observation / publication: {{ ev.source_observed_at }}</p>{% endif %}
+            {% if ev.retrieved_at %}<p class="ar-source-item__meta">Retrieved into system: {{ ev.retrieved_at|date:"Y-m-d H:i" }}</p>{% endif %}
+            <p class="ar-source-item__claim">Supports: {{ ev.claim }}</p>
+          </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
     {% else %}
       <p class="ar-empty-state">No evidence rows linked.</p>
     {% endif %}
   </div>
 
-  {# ── 4. Limitations ─────────────────────────────────────────────── #}
+  {# ── 4. Limitations and gaps ───────────────────────────────────── #}
   {% if advisory.limitations or advisory.confidence == "low" %}
   <div class="ar-evidence-tile ar-evidence-tile--accent-limits" style="grid-column: 1 / -1;">
     <div class="ar-evidence-tile__head">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       <span>Limitations and gaps</span>
     </div>
+    {# Render the limitations text once as a single concise paragraph. #}
+    {# The two limitations are already in advisory.limitations from the model. #}
     <p class="ar-limitations-text">{{ advisory.limitations|default:"Confidence is low — verify locally before acting." }}</p>
-    <ul class="ar-limitations-list">
-      <li>Local planting dates are not specified in the available sources.</li>
-      <li>The available weather signal is insufficient to confirm rainfall onset.</li>
-    </ul>
   </div>
   {% endif %}
 

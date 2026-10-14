@@ -1,63 +1,251 @@
 {% extends "base.html" %}
+{% load static %}
+{% load advisory_evidence %}
 {% block title %}Review advisory {{ advisory.id }} — Kachieng’ AI Agent{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/advisory_detail_v2.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="max-w-3xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
-  <h1 class="text-lg font-semibold mb-1">{{ advisory_title }}</h1>
-  <p class="text-sm text-stone-600 mb-4">
-    Review this <strong>DRAFT</strong> (version {{ advisory.content_version }}) before you decide.
-    Submitting will record your decision on this version only. No farmer message will be sent.
-  </p>
+<div class="ar-page">
 
-  {% include "advisories/partials/review_context.html" %}
+{# ── Generation notice (kept slim) ──────────────────────────────────── #}
+{% if advisory.generation_mode == "fallback_template" %}
+<div class="ar-gen-notice ar-gen-notice--fallback" role="status">
+  <span class="ar-gen-notice-icon" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  </span>
+  <span><strong>Template-generated draft — model unavailable.</strong> {{ generation_label }} Officer review is still required before any follow-up action.</span>
+</div>
+{% else %}
+<div class="ar-gen-notice" role="status">
+  <span class="ar-gen-notice-icon" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+  </span>
+  <span>{{ generation_label }}</span>
+</div>
+{% endif %}
 
-  <div class="bg-stone-50 border border-stone-200 rounded p-3 text-sm mb-4">
-    <h2 class="font-semibold text-sm">Draft text (internal review)</h2>
-    <p class="font-medium mt-1">{{ advisory.summary }}</p>
-    <div class="whitespace-pre-wrap mt-2 text-stone-800">{{ advisory.body }}</div>
-  </div>
-
-  <div class="bg-emerald-50 border border-emerald-200 rounded p-3 text-sm mb-4">
-    <strong>What happens when you submit</strong>
-    <ul class="list-disc ml-5 mt-1">
-      <li>Your decision is saved for advisory {{ advisory.id }} at version {{ advisory.content_version }}.</li>
-      <li>If you choose <em>Approved</em> and tick the follow-up box, one <strong>internal</strong> task is created.</li>
-      <li>No SMS, WhatsApp, or other farmer message is sent by this system.</li>
-    </ul>
-  </div>
-
-  <form method="post" class="space-y-3">
-    {% csrf_token %}
-    <input type="hidden" name="content_version" value="{{ advisory.content_version }}">
-    {% for field in form %}
-      <div>
-        <label class="block text-sm font-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {% if field.errors %}<div class="text-red-700 text-xs">{{ field.errors }}</div>{% endif %}
+{# ── Decision-card wrapper: contains review surface + decision form ─ #}
+<div class="ar-grid">
+  <main class="ar-card">
+    {# ── 1. Record heading and status ─────────────────────────────── #}
+    <header class="ar-hero">
+      <p class="ar-hero__eyebrow">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Officer review &amp; decision · {{ crop_label }}
+      </p>
+      <div class="ar-hero__row">
+        <h1 class="ar-hero__title">{{ advisory_title }}</h1>
+        <span class="ar-status
+          {% if advisory.status == 'approved' %}ar-status--approved
+          {% elif advisory.status == 'rejected' %}ar-status--rejected
+          {% elif advisory.status == 'draft' %}ar-status--draft
+          {% else %}ar-status--default{% endif %}">{{ advisory.get_status_display }}</span>
       </div>
-    {% endfor %}
-    <div class="border-t border-stone-200 pt-3">
-      <label class="flex items-center text-sm gap-2 min-h-[44px]">
-        <input type="checkbox" name="create_followup" class="h-4 w-4">
-        On <strong>Approved</strong> only: also create an internal follow-up task
-      </label>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-        <div>
-          <label class="text-xs block font-medium" for="task_type">Task type</label>
-          <select name="task_type" id="task_type" class="w-full border border-stone-300 rounded px-2 py-2 text-sm">
-            <option value="field_visit">Field visit to cluster</option>
-            <option value="cluster_meeting">Cluster meeting</option>
-            <option value="re_evidence">Re-collect evidence</option>
-            <option value="print_advisory">Print advisory for delivery</option>
-          </select>
+      <p class="ar-hero__summary">
+        Review this <strong style="color: var(--color-text-on-forest);">DRAFT</strong> (version {{ advisory.content_version }}) before you decide.
+        Submitting will record your decision on this version only. No farmer message will be sent.
+      </p>
+      {# ── 2. Advisory metadata ─────────────────────────────────────── #}
+      <div class="ar-hero__meta" aria-label="Advisory metadata">
+        <span class="ar-hero__meta-item">
+          <span class="ar-hero__meta-label">Cluster</span>
+          <span class="ar-hero__meta-value">{{ advisory.cluster.cluster_id }}</span>
+        </span>
+        <span class="ar-hero__meta-sep" aria-hidden="true">·</span>
+        <span class="ar-hero__meta-item">
+          <span class="ar-hero__meta-label">Crop</span>
+          <span class="ar-hero__meta-value">{{ crop_label }}</span>
+        </span>
+        <span class="ar-hero__meta-sep" aria-hidden="true">·</span>
+        <span class="ar-hero__meta-item">
+          <span class="ar-hero__meta-label">Season</span>
+          <span class="ar-hero__meta-value">{{ season_label }}</span>
+        </span>
+        <span class="ar-hero__meta-sep" aria-hidden="true">·</span>
+        <span class="ar-hero__meta-item">
+          <span class="ar-hero__meta-label">Version</span>
+          <span class="ar-hero__meta-value">{{ advisory.content_version }}</span>
+        </span>
+      </div>
+    </header>
+
+    <div class="ar-card__body">
+      {# ── 3. Internal officer-review warning ──────────────────────── #}
+      <div class="ar-internal-alert" role="alert">
+        <span class="ar-internal-alert-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </span>
+        <div class="ar-internal-alert-body">
+          <strong>Internal officer review — not a farmer message</strong>
+          <p>This generated draft requires officer review and decision before any content is shared with farmers or used in field operations.</p>
         </div>
-        <div>
-          <label class="text-xs block font-medium" for="deadline">Deadline</label>
-          <input name="deadline" id="deadline" type="date" class="w-full border border-stone-300 rounded px-2 py-2 text-sm">
+      </div>
+
+      {# ── 4. Recommendation and next step ──────────────────────────── #}
+      <section class="ar-assessment" aria-labelledby="assessment-heading">
+        <div class="ar-assessment__icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
         </div>
+        <div class="ar-assessment__body">
+          <p class="ar-assessment__kicker">Recommended next step</p>
+          <h2 id="assessment-heading" class="ar-assessment__title">{{ advisory.get_recommendation_type_display }}</h2>
+          <p class="ar-assessment__copy">Suggested officer action — verify locally before communicating to farmers.</p>
+          <p class="ar-assessment__help">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>{{ confidence_help }}</span>
+          </p>
+        </div>
+      </section>
+
+      {# ── 5. Generated advisory ────────────────────────────────────── #}
+      <section class="ar-section" aria-labelledby="advisory-heading">
+        <div class="ar-section__header">
+          <div>
+            <p class="ar-section__kicker">Generated advisory</p>
+            <h2 id="advisory-heading" class="ar-section__title">Draft body</h2>
+          </div>
+          <span class="ar-section__note ar-section__note--warning">Review before sharing</span>
+        </div>
+        {% if advisory.summary %}
+        <p class="ar-advisory-summary">{{ advisory.summary }}</p>
+        {% endif %}
+        <div class="ar-advisory-body">{{ advisory.body }}</div>
+        <a href="{% url 'advisories:edit' advisory.id %}" class="ar-advisory-edit">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit draft
+        </a>
+      </section>
+
+      {# ── 6. Evidence and scope ──────────────────────────────────── #}
+      <section class="ar-section" aria-labelledby="evidence-heading">
+        <div class="ar-section__header">
+          <div>
+            <p class="ar-section__kicker">Verification context</p>
+            <h2 id="evidence-heading" class="ar-section__title">Evidence and scope</h2>
+          </div>
+          <span class="ar-section__note">Traceable inputs</span>
+        </div>
+        {% include "advisories/partials/review_context.html" %}
+      </section>
+
+      {# ── 8. Decision actions (form) ─────────────────────────────── #}
+      <section class="ar-section ar-decision-section" aria-labelledby="decision-heading">
+        <div class="ar-section__header">
+          <div>
+            <p class="ar-section__kicker">Officer decision</p>
+            <h2 id="decision-heading" class="ar-section__title">Record your decision</h2>
+          </div>
+        </div>
+
+        <div class="ar-decision-info">
+          <strong>What happens when you submit</strong>
+          <ul>
+            <li>Your decision is saved for advisory {{ advisory.id }} at version {{ advisory.content_version }}.</li>
+            <li>If you choose <em>Approved</em> and tick the follow-up box, one <strong>internal</strong> task is created.</li>
+            <li>No SMS, WhatsApp, or other farmer message is sent by this system.</li>
+          </ul>
+        </div>
+
+        <form method="post" class="ar-decision-form">
+          {% csrf_token %}
+          <input type="hidden" name="content_version" value="{{ advisory.content_version }}">
+          {% for field in form %}
+            <div class="ar-form-row">
+              <label class="ar-form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.errors %}<div class="ar-form-errors">{{ field.errors }}</div>{% endif %}
+            </div>
+          {% endfor %}
+
+          <div class="ar-form-followup">
+            <label class="ar-form-checkbox">
+              <input type="checkbox" name="create_followup" class="h-4 w-4">
+              <span>On <strong>Approved</strong> only: also create an internal follow-up task</span>
+            </label>
+            <div class="ar-form-followup-grid">
+              <div>
+                <label class="ar-form-label ar-form-label--sm" for="task_type">Task type</label>
+                <select name="task_type" id="task_type" class="ar-form-select">
+                  <option value="field_visit">Field visit to cluster</option>
+                  <option value="cluster_meeting">Cluster meeting</option>
+                  <option value="re_evidence">Re-collect evidence</option>
+                  <option value="print_advisory">Print advisory for delivery</option>
+                </select>
+              </div>
+              <div>
+                <label class="ar-form-label ar-form-label--sm" for="deadline">Deadline</label>
+                <input name="deadline" id="deadline" type="date" class="ar-form-input">
+              </div>
+            </div>
+          </div>
+
+          <div class="ar-form-actions">
+            <button type="submit" class="ar-btn ar-btn--primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              Submit decision
+            </button>
+            <a href="{% url 'advisories:detail' advisory.id %}" class="ar-btn ar-btn--secondary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Cancel
+            </a>
+          </div>
+        </form>
+      </section>
+
+      {# ── 9. Generation and audit details ──────────────────────────── #}
+      <div class="ar-audit" aria-label="Generation and audit metadata">
+        <span class="ar-audit-item">
+          <span class="ar-audit-label">Created</span>
+          <time class="ar-audit-value" datetime="{{ advisory.created_at|date:'c' }}">{{ advisory.created_at|date:"Y-m-d H:i" }}</time>
+        </span>
+        {% if advisory.generation_seconds %}
+        <span class="ar-audit-item">
+          <span class="ar-audit-label">Run time</span>
+          <span class="ar-audit-value">{{ advisory.generation_seconds }}s</span>
+        </span>
+        {% endif %}
+        <span class="ar-audit-item">
+          <span class="ar-audit-label">By</span>
+          <span class="ar-audit-value">{{ advisory.created_by.display_name|default:"agent" }}</span>
+        </span>
       </div>
     </div>
-    <button type="submit" class="bg-emerald-700 text-white px-4 py-2 rounded text-sm hover:bg-emerald-800 min-h-[44px]">Submit decision</button>
-    <a href="{% url 'advisories:detail' advisory.id %}" class="ml-2 text-stone-600 text-sm">Cancel</a>
-  </form>
+  </main>
+
+  {# ── Aside: governance record / approval history ───────────────── #}
+  <aside class="ar-card ar-card--aside" aria-labelledby="governance-heading">
+    <div class="ar-aside-heading">
+      <p class="ar-section__kicker">Governance record</p>
+      <h2 id="governance-heading" class="ar-section__title">Approval history</h2>
+    </div>
+    {% if advisory.approvals.all %}
+      <ul class="ar-approval-list">
+      {% for ap in advisory.approvals.all %}
+        <li>
+          <span class="ar-approval-list__decision">
+            <span class="font-medium">{{ ap.officer.display_name }}</span> — {{ ap.get_decision_display }}
+          </span>
+          <span class="ar-approval-list__date">{{ ap.created_at|date:"Y-m-d H:i" }}</span>
+        </li>
+      {% endfor %}
+      </ul>
+    {% else %}
+      <p class="ar-empty-state">No decisions recorded yet.</p>
+    {% endif %}
+    <a href="{% url 'audit:list' %}" class="ar-aside-link">
+      Audit trail
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+  </aside>
+</div>
 </div>
 {% endblock %}
