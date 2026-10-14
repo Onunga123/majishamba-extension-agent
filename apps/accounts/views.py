@@ -4,6 +4,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import views as auth_views
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django import forms
 from django.core.exceptions import PermissionDenied
@@ -13,6 +14,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views import View
+from django.views.decorators.http import require_http_methods
 
 from apps.audit.service import log_audit_event
 
@@ -222,7 +224,20 @@ class LoginView(auth_views.LoginView):
         return super().form_invalid(form)
 
 
+@login_required
+@require_http_methods(["GET"])
 def profile(request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
+    """Display the authenticated user's own profile.
+
+    Phase C security:
+      - ``@login_required`` redirects anonymous users to /accounts/login/
+        (302), so the template never renders for an unauthenticated request.
+      - ``@require_http_methods(["GET"])`` rejects POST/PUT/PATCH/DELETE with
+        HTTP 405. The profile page is read-only; no mutation path exists.
+      - The view only ever uses ``request.user`` (never a URL parameter), so
+        there is no way to view or edit another user's profile through this
+        endpoint.
+    """
     return render(request, "accounts/profile.html", {"user": request.user})
 
 
