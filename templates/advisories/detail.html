@@ -9,19 +9,6 @@
 {% block content %}
 <div class="ar-page">
 
-{# ── Breadcrumb ─────────────────────────────────────────────────────── #}
-<nav class="ar-breadcrumb" aria-label="Breadcrumb">
-  <a href="{% url 'dashboard:home' %}">Dashboard</a>
-  <span class="ar-breadcrumb-sep" aria-hidden="true">
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-  </span>
-  <a href="{% url 'advisories:list' %}">Advisories</a>
-  <span class="ar-breadcrumb-sep" aria-hidden="true">
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-  </span>
-  <span aria-current="page">Review record #{{ advisory.id }}</span>
-</nav>
-
 {# ── Generation notice (kept slim) ──────────────────────────────────── #}
 {% if advisory.generation_mode == "fallback_template" %}
 <div class="ar-gen-notice ar-gen-notice--fallback" role="status">

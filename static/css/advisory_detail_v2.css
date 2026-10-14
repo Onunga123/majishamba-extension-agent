@@ -16,38 +16,6 @@
   color: var(--color-text);
 }
 
-/* ── Breadcrumb ─────────────────────────────────────────────────── */
-.ar-breadcrumb {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-3);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-}
-.ar-breadcrumb a {
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  border-radius: var(--radius-sm);
-  padding: 0.15rem 0.3rem;
-}
-.ar-breadcrumb a:hover { color: var(--color-text); text-decoration: underline; }
-.ar-breadcrumb a:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-.ar-breadcrumb [aria-current="page"] {
-  color: var(--color-text);
-  font-weight: 500;
-}
-.ar-breadcrumb .ar-breadcrumb-sep {
-  color: var(--color-text-muted);
-  display: inline-flex;
-  align-items: center;
-  user-select: none;
-}
-
 /* ── Generation notice (kept as a slim banner) ──────────────────── */
 .ar-gen-notice {
   margin-bottom: var(--space-3);
