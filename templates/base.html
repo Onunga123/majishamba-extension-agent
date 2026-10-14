@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  {% block extra_head %}{% endblock %}
 </head>
 <body class="min-h-screen flex flex-col" style="background-color: var(--color-background); color: var(--color-text);">
   <a href="#main-content" class="skip-link">Skip to main content</a>

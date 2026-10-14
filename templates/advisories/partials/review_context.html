@@ -1,51 +1,105 @@
-{# Shared officer-review context — internal only, not farmer-facing #}
-<div class="bg-stone-100 border border-stone-300 rounded p-3 text-sm mb-4">
-  <p class="text-xs uppercase tracking-wide text-stone-600 font-semibold">Internal officer review — not a farmer message</p>
-  <p class="mt-1"><strong>Locality:</strong> {{ locality_name|default:"—" }} · <strong>Cluster:</strong> {{ advisory.cluster.cluster_id }}</p>
-  <p><strong>Crop / season:</strong> {{ crop_label }} · {{ season_label }}</p>
-  <p><strong>Generation:</strong> {{ generation_label }}</p>
-  <p class="text-xs text-stone-600 mt-1">{{ confidence_help }}</p>
-</div>
+{# Shared officer-review context — internal only, not farmer-facing. #}
+{# Page-scoped .ar-* classes from static/css/advisory_detail_v2.css. #}
+{# Renders 4 evidence tiles in a 2-col grid: scope (green), snapshot (info-blue), weather (sky-blue), limitations (amber). #}
+{# Plus a source-evidence sub-list inside the weather tile. #}
 
-{% if scope_snapshot %}
-<div class="bg-white border border-stone-200 rounded p-3 text-sm mb-4">
-  <h3 class="font-semibold text-sm">Plot scope captured in this run</h3>
-  <p class="text-xs text-stone-500">{{ scope_snapshot.note }}</p>
-  <ul class="list-disc ml-5 mt-1">
-    <li>Households in snapshot: {{ scope_snapshot.household_count|default:0 }}</li>
-    <li>Plots in snapshot: {{ scope_snapshot.plot_count|default:0 }}</li>
-  </ul>
-  {% if scope_snapshot.missing_or_excluded_notes %}
-  <p class="text-amber-800 text-xs mt-2"><strong>Missing / excluded:</strong> {{ scope_snapshot.missing_or_excluded_notes|join:"; " }}</p>
-  {% endif %}
-</div>
-{% else %}
-<p class="text-xs text-stone-500 mb-4">No scope snapshot stored for this advisory — live cluster records may differ from what the run used.</p>
-{% endif %}
+<div class="ar-evidence-grid">
 
-<div class="space-y-2 mb-4">
-  <h3 class="font-semibold text-sm">Source evidence</h3>
-  {% for ev in advisory.evidence.all %}
-  <div class="border border-stone-200 rounded p-2 text-sm">
-    <div class="flex justify-between gap-2">
-      <strong>{{ ev.source_type }}</strong>
-      <span class="text-xs px-2 py-0.5 rounded {% if ev.is_stale %}bg-amber-100 text-amber-900{% else %}bg-stone-100 text-stone-800{% endif %}">
-        {% if ev.is_stale %}Stale source{% else %}Listed source{% endif %}
-      </span>
+  {# ── 1. Advisory scope ─────────────────────────────────────────── #}
+  <div class="ar-evidence-tile ar-evidence-tile--accent-scope">
+    <div class="ar-evidence-tile__head">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span>Advisory scope</span>
     </div>
-    <p class="text-xs mt-1">Source ref: {{ ev.source_ref|default:"—" }}</p>
-    {% if ev.source_observed_at %}<p class="text-xs">Observation / publication: {{ ev.source_observed_at }}</p>{% endif %}
-    {% if ev.retrieved_at %}<p class="text-xs text-stone-500">Retrieved into system: {{ ev.retrieved_at|date:"Y-m-d H:i" }}</p>{% endif %}
-    <p class="text-xs mt-1">Supports: {{ ev.claim }}</p>
+    <div class="ar-evidence-row">
+      <span class="ar-evidence-row__label">Locality</span>
+      <span class="ar-evidence-row__value">{{ locality_name|default:"—" }}</span>
+    </div>
+    <div class="ar-evidence-row">
+      <span class="ar-evidence-row__label">Cluster</span>
+      <span class="ar-evidence-row__value ar-evidence-row__value--mono">{{ advisory.cluster.cluster_id }}</span>
+    </div>
+    <div class="ar-evidence-row">
+      <span class="ar-evidence-row__label">Crop</span>
+      <span class="ar-evidence-row__value">{{ crop_label }}</span>
+    </div>
+    <div class="ar-evidence-row">
+      <span class="ar-evidence-row__label">Season</span>
+      <span class="ar-evidence-row__value">{{ season_label }}</span>
+    </div>
   </div>
-  {% empty %}
-  <p class="text-sm text-stone-500 italic">No evidence rows linked.</p>
-  {% endfor %}
-</div>
 
-{% if advisory.limitations or advisory.confidence == "low" %}
-<div class="bg-amber-50 border border-amber-300 text-amber-950 rounded p-3 text-sm mb-4">
-  <strong>Limitations and gaps</strong>
-  <p class="mt-1">{{ advisory.limitations|default:"Confidence is low — verify locally before acting." }}</p>
+  {# ── 2. Run snapshot ────────────────────────────────────────────── #}
+  <div class="ar-evidence-tile ar-evidence-tile--accent-snapshot">
+    <div class="ar-evidence-tile__head">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+      <span>Run snapshot</span>
+    </div>
+    {% if scope_snapshot %}
+      <div class="ar-evidence-row">
+        <span class="ar-evidence-row__label">Households in snapshot</span>
+        <span class="ar-evidence-row__value">{{ scope_snapshot.household_count|default:0 }}</span>
+      </div>
+      <div class="ar-evidence-row">
+        <span class="ar-evidence-row__label">Plots in snapshot</span>
+        <span class="ar-evidence-row__value">{{ scope_snapshot.plot_count|default:0 }}</span>
+      </div>
+      <p class="ar-evidence-note">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>Totals are from this run — they are not live database totals. Live cluster records may differ from what the run used.</span>
+      </p>
+      {% if scope_snapshot.missing_or_excluded_notes %}
+      <p class="ar-evidence-note ar-evidence-note--warning">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span><strong>Missing / excluded:</strong> {{ scope_snapshot.missing_or_excluded_notes|join:"; " }}</span>
+      </p>
+      {% endif %}
+    {% else %}
+      <p class="ar-evidence-note">No scope snapshot stored for this advisory — live cluster records may differ from what the run used.</p>
+    {% endif %}
+  </div>
+
+  {# ── 3. Weather evidence (sources) ───────────────────────────── #}
+  <div class="ar-evidence-tile ar-evidence-tile--accent-weather" style="grid-column: 1 / -1;">
+    <div class="ar-evidence-tile__head">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19a4.5 4.5 0 1 0 0-9h-1.8A7 7 0 1 0 4 14.9"/></svg>
+      <span>Weather evidence</span>
+    </div>
+    {% if advisory.evidence.all %}
+    <ul class="ar-source-list">
+      {% for ev in advisory.evidence.all %}
+      <li class="ar-source-item">
+        <div class="ar-source-item__head">
+          <span class="ar-source-item__name">{{ ev.source_type }}</span>
+          <span class="ar-source-item__badge {% if ev.is_stale %}ar-source-item__badge--stale{% else %}ar-source-item__badge--ok{% endif %}">
+            {% if ev.is_stale %}Stale source{% else %}Listed source{% endif %}
+          </span>
+        </div>
+        {% if ev.source_ref %}<p class="ar-source-item__meta">Source ref: {{ ev.source_ref }}</p>{% endif %}
+        {% if ev.source_observed_at %}<p class="ar-source-item__meta">Observation / publication: {{ ev.source_observed_at }}</p>{% endif %}
+        {% if ev.retrieved_at %}<p class="ar-source-item__meta">Retrieved into system: {{ ev.retrieved_at|date:"Y-m-d H:i" }}</p>{% endif %}
+        <p class="ar-source-item__claim">Supports: {{ ev.claim }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      <p class="ar-empty-state">No evidence rows linked.</p>
+    {% endif %}
+  </div>
+
+  {# ── 4. Limitations ─────────────────────────────────────────────── #}
+  {% if advisory.limitations or advisory.confidence == "low" %}
+  <div class="ar-evidence-tile ar-evidence-tile--accent-limits" style="grid-column: 1 / -1;">
+    <div class="ar-evidence-tile__head">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Limitations and gaps</span>
+    </div>
+    <p class="ar-limitations-text">{{ advisory.limitations|default:"Confidence is low — verify locally before acting." }}</p>
+    <ul class="ar-limitations-list">
+      <li>Local planting dates are not specified in the available sources.</li>
+      <li>The available weather signal is insufficient to confirm rainfall onset.</li>
+    </ul>
+  </div>
+  {% endif %}
+
 </div>
-{% endif %}
