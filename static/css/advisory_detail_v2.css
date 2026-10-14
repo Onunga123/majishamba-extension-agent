@@ -987,3 +987,249 @@
   border-top: 1px solid var(--color-border);
 }
 .ar-form-actions .ar-btn { min-width: 9rem; }
+
+/* ============================================================
+   Shared advisory presentation — list / edit / request / deleted / run_status
+   ============================================================
+   Extends the .ar-* class system to cover every advisory-related
+   page so they share one consistent visual language:
+   - Deep forest hero header on the form pages (edit / request / run)
+   - Page-title + subtitle header on the list / deleted pages
+   - Filter form, status chips, table, pagination all share the
+     .ar-* classes
+   - All buttons use the .ar-btn hierarchy (primary / secondary /
+     danger / ghost)
+   No new colours — only existing tokens from tokens.css.
+   ============================================================ */
+
+/* ── Single-column grid variant (form pages, run_status) ─────────── */
+.ar-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+/* ── Page header for list/deleted pages ──────────────────────────── */
+.ar-list-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.ar-list-header__text { min-width: 0; flex: 1 1 auto; }
+.ar-list-header h1 {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+.ar-list-header p {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+.ar-list-header__sep {
+  color: var(--color-text-muted);
+  margin: 0 0.25rem;
+}
+@media (max-width: 640px) {
+  .ar-list-header { flex-direction: column; align-items: flex-start; }
+  .ar-list-header .ar-btn { width: 100%; }
+}
+
+/* ── Filter form (list page) ─────────────────────────────────────── */
+.ar-filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.ar-filter-form__search {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+.ar-filter-form .ar-form-input,
+.ar-filter-form .ar-form-select {
+  width: 100%;
+}
+.ar-filter-form .ar-form-select { width: auto; min-width: 9rem; }
+.ar-filter-clear {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  padding: 0.45rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+.ar-filter-clear:hover { color: var(--color-text); text-decoration: underline; }
+.ar-filter-clear:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Status filter chips ─────────────────────────────────────────── */
+.ar-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 1rem;
+}
+.ar-status-chip {
+  display: inline-block;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.ar-status-chip:hover { background: var(--color-surface-muted); color: var(--color-text); text-decoration: none; }
+.ar-status-chip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.ar-status-chip--active {
+  background: var(--color-primary);
+  color: var(--color-text-on-forest);
+  border-color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ── List meta + table ───────────────────────────────────────────── */
+.ar-list-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin: 0 0 0.5rem 0;
+}
+.ar-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.ar-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.ar-table__th {
+  text-align: left;
+  padding: 0.5rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  background: var(--color-surface-muted);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.ar-table__th--action { text-align: right; }
+.ar-table__sort {
+  color: inherit;
+  text-decoration: none;
+  padding: 0.1rem 0.2rem;
+  border-radius: var(--radius-sm);
+}
+.ar-table__sort:hover { color: var(--color-primary); text-decoration: underline; }
+.ar-table__sort:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.ar-table__row { border-top: 1px solid var(--color-border); }
+.ar-table__row:hover { background: var(--color-primary-tint); }
+.ar-table__td {
+  padding: 0.625rem;
+  color: var(--color-text);
+  vertical-align: top;
+  line-height: 1.45;
+}
+.ar-table__td--mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+}
+.ar-table__td--muted {
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+}
+.ar-table__td--action { text-align: right; white-space: nowrap; }
+.ar-table__empty {
+  padding: 1.5rem 0.625rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+.ar-table__link {
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 0.15rem 0.25rem;
+  border-radius: var(--radius-sm);
+}
+.ar-table__link:hover { text-decoration: underline; }
+.ar-table__link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.ar-table__link--primary { font-weight: 600; }
+
+/* ── Pagination ──────────────────────────────────────────────────── */
+.ar-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.875rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+.ar-pagination__info {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+.ar-pagination__nav { display: flex; gap: 0.4rem; }
+
+/* ── Small button variant (pagination, table actions) ───────────── */
+.ar-btn--sm {
+  min-height: 32px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+/* ── Form helpers ────────────────────────────────────────────────── */
+.ar-form-help {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+  margin-left: 0.4rem;
+}
+.ar-form-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+.ar-form-select--tall {
+  min-height: 12rem;
+  /* Multi-line select for the cluster picker */
+}
+.ar-inline-form {
+  display: inline;
+}
+
+/* ── Hero metadata on form pages (smaller variant) ──────────────── */
+.ar-hero__meta .ar-hero__meta-item {
+  font-size: 0.75rem;
+}

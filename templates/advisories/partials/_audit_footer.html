@@ -1,0 +1,20 @@
+{# Reusable audit footer — Created / Run time / By as separate labelled chips. #}
+{# Uses <div> elements (block-level by default) so labels and values #}
+{# stack on separate lines even if the page-scoped CSS file fails. #}
+{# Required context: advisory. #}
+<div class="ar-audit" aria-label="Generation and audit metadata">
+  <div class="ar-audit-item">
+    <div class="ar-audit-label">Created</div>
+    <time class="ar-audit-value" datetime="{{ advisory.created_at|date:'c' }}">{{ advisory.created_at|date:"Y-m-d H:i" }}</time>
+  </div>
+  {% if advisory.generation_seconds %}
+  <div class="ar-audit-item">
+    <div class="ar-audit-label">Run time</div>
+    <div class="ar-audit-value">{{ advisory.generation_seconds }}s</div>
+  </div>
+  {% endif %}
+  <div class="ar-audit-item">
+    <div class="ar-audit-label">By</div>
+    <div class="ar-audit-value">{{ advisory.created_by.display_name|default:"agent" }}</div>
+  </div>
+</div>

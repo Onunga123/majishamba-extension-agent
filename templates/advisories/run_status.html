@@ -1,9 +1,45 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Advisory run — Kachieng’ AI Agent{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/advisory_detail_v2.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="max-w-2xl mx-auto">
-  <h1 class="text-lg font-semibold mb-1">Preparing advisory for {{ run.cluster.locality|default:run.cluster.name }} ({{ run.cluster.cluster_id }})</h1>
-  <p class="text-sm text-stone-600 mb-4">The agent is gathering plot, calendar, weather, pest and market evidence. Nothing is sent to farmers.</p>
-  {% include "advisories/partials/run_progress.html" %}
+<div class="ar-page">
+  <div class="ar-grid ar-grid--single">
+    <main class="ar-card">
+      <header class="ar-hero">
+        <p class="ar-hero__eyebrow">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/><polyline points="21 4 21 10 15 10"/></svg>
+          Advisory run in progress
+        </p>
+        <div class="ar-hero__row">
+          <h1 class="ar-hero__title">Preparing advisory for {{ run.cluster.locality|default:run.cluster.name }}</h1>
+          <span class="ar-status ar-status--draft">Running</span>
+        </div>
+        <p class="ar-hero__summary">
+          The agent is gathering plot, calendar, weather, pest and market evidence.
+          Nothing is sent to farmers.
+        </p>
+        <div class="ar-hero__meta" aria-label="Run metadata">
+          <div class="ar-hero__meta-item">
+            <div class="ar-hero__meta-label">Cluster</div>
+            <div class="ar-hero__meta-value">{{ run.cluster.cluster_id }}</div>
+          </div>
+          <div class="ar-hero__meta-sep" aria-hidden="true">·</div>
+          <div class="ar-hero__meta-item">
+            <div class="ar-hero__meta-label">Run ID</div>
+            <div class="ar-hero__meta-value" style="font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.7rem;">{{ run.run_id|slice:":8" }}</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="ar-card__body">
+        {% include "advisories/partials/run_progress.html" %}
+      </div>
+    </main>
+  </div>
 </div>
 {% endblock %}

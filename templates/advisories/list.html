@@ -1,152 +1,166 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Advisories — Kachieng’ AI Agent{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/advisory_detail_v2.css' %}">
+{% endblock %}
+
 {% block content %}
-{# Page header: Advisories h1 + Kachieng’ Ward · N advisories #}
-<header class="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-  <div>
-    <h1 class="text-2xl font-semibold text-stone-900">Advisories</h1>
-    <p class="text-sm text-stone-600 mt-1">
+<div class="ar-page">
+
+{# ── Page header ───────────────────────────────────────────────────── #}
+<header class="ar-list-header">
+  <div class="ar-list-header__text">
+    <h1>Advisories</h1>
+    <p>
       Kachieng’ Ward
-      <span class="text-stone-400 mx-1" aria-hidden="true">·</span>
-      {{ advisory_count|default:"" }}{% if advisory_count %} advisories{% else %}Climate-smart advisories{% endif %}
+      <span class="ar-list-header__sep" aria-hidden="true">·</span>
+      {{ advisory_count|default:"0" }}{% if advisory_count %} advisories{% else %}Climate-smart advisories{% endif %}
     </p>
   </div>
   {% if user_can_request_advisory %}
-  <a href="{% url 'advisories:request' %}" class="inline-flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] bg-emerald-700 text-white font-semibold rounded border border-emerald-700 shadow-sm hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 whitespace-nowrap self-start">
-    + Request advisory
+  <a href="{% url 'advisories:request' %}" class="ar-btn ar-btn--primary">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Request advisory
   </a>
   {% endif %}
 </header>
 
-{# Search + status filter #}
-<form method="get" class="flex flex-col sm:flex-row gap-2 mb-3" aria-label="Filter advisories">
-  <div class="flex-1">
+{# ── Search + status filter ──────────────────────────────────────── #}
+<form method="get" class="ar-filter-form" aria-label="Filter advisories">
+  <div class="ar-filter-form__search">
     <label for="advisory-search" class="sr-only">Search advisories</label>
     <input id="advisory-search" name="q" type="search" value="{{ search_q }}"
            placeholder="Search by advisory ID, locality, or KACH ID"
-           class="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition">
+           class="ar-form-input">
   </div>
-  <select name="status" class="border border-stone-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition">
+  <select name="status" class="ar-form-select" aria-label="Filter by status">
     <option value="">All statuses</option>
     {% for value, label in status_choices %}
       <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
     {% endfor %}
   </select>
   <input type="hidden" name="sort" value="{{ sort }}">
-  <button type="submit" class="px-4 py-2 min-h-[36px] text-sm bg-white border border-stone-300 rounded text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+  <button type="submit" class="ar-btn ar-btn--secondary">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     Search
   </button>
   {% if search_q or status_filter %}
-  <a href="?sort={{ sort }}"
-     class="px-3 py-2 text-sm text-stone-600 hover:text-stone-900 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded self-center"
-     aria-label="Clear active filters">
+  <a href="?sort={{ sort }}" class="ar-filter-clear" aria-label="Clear active filters">
     ✕ Clear filters
   </a>
   {% endif %}
 </form>
 
-{# Status filter chips #}
-<div class="flex flex-wrap gap-1 mb-4" role="group" aria-label="Advisory status filter">
+{# ── Status filter chips ─────────────────────────────────────────── #}
+<div class="ar-status-chips" role="group" aria-label="Advisory status filter">
   <a href="?{% if search_q %}q={{ search_q|urlencode }}&{% endif %}sort={{ sort }}"
-     class="inline-block px-3 py-1 text-xs rounded-full {% if not status_filter %}bg-emerald-700 text-white font-semibold{% else %}bg-white text-stone-700 border border-stone-200 hover:bg-stone-50{% endif %} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+     class="ar-status-chip {% if not status_filter %}ar-status-chip--active{% endif %}">
     All
   </a>
   {% for value, label in status_choices %}
     <a href="?status={{ value }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}&sort={{ sort }}"
-       class="inline-block px-3 py-1 text-xs rounded-full {% if status_filter == value %}bg-emerald-700 text-white font-semibold{% else %}bg-white text-stone-700 border border-stone-200 hover:bg-stone-50{% endif %} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+       class="ar-status-chip {% if status_filter == value %}ar-status-chip--active{% endif %}">
       {{ label }}
     </a>
   {% endfor %}
 </div>
 
-<div class="bg-white p-4 rounded shadow border border-stone-200">
-  {% if page_obj %}
-  <p class="text-xs text-stone-500 mb-2">
-    Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
-  </p>
-  {% endif %}
-  <div class="overflow-x-auto">
-  <table class="w-full text-sm">
-    <caption class="sr-only">All advisories</caption>
-    <thead class="bg-stone-100">
-      <tr>
-        <th class="text-left px-2 py-1">
-          <a href="?sort={% if sort == 'id' %}-id{% else %}id{% endif %}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
-             class="hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-            ID {% if sort == 'id' %}↑{% elif sort == '-id' %}↓{% endif %}
-          </a>
-        </th>
-        <th class="text-left px-2 py-1">
-          <a href="?sort={% if sort == 'cluster__locality' %}-cluster__locality{% else %}cluster__locality{% endif %}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
-             class="hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-            Locality {% if sort == 'cluster__locality' %}↑{% elif sort == '-cluster__locality' %}↓{% endif %}
-          </a>
-        </th>
-        <th class="text-left px-2 py-1">
-          <a href="?sort={% if sort == 'cluster__cluster_id' %}-cluster__cluster_id{% else %}cluster__cluster_id{% endif %}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
-             class="hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-            Cluster {% if sort == 'cluster__cluster_id' %}↑{% elif sort == '-cluster__cluster_id' %}↓{% endif %}
-          </a>
-        </th>
-        <th class="text-left px-2 py-1">Recommendation</th>
-        <th class="text-left px-2 py-1">
-          <a href="?sort={% if sort == 'status' %}-status{% else %}status{% endif %}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
-             class="hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">
-            Status {% if sort == 'status' %}↑{% elif sort == '-status' %}↓{% endif %}
-          </a>
-        </th>
-        <th class="text-left px-2 py-1">Draft source</th>
-        <th class="px-2 py-1">View</th>
-      </tr>
-    </thead>
-    <tbody>
-    {% for a in advisories %}
-      <tr class="border-t border-stone-200">
-        <td class="px-2 py-1 font-mono">Advisory {{ a.id }}</td>
-        <td class="px-2 py-1">{{ a.cluster.locality|default:"—" }}</td>
-        <td class="px-2 py-1 font-mono text-xs">{{ a.cluster.cluster_id }}</td>
-        <td class="px-2 py-1">{{ a.get_recommendation_type_display }}</td>
-        <td class="px-2 py-1">
-          <span class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium
-            {% if a.status == 'approved' %}bg-emerald-100 text-emerald-800
-            {% elif a.status == 'rejected' %}bg-red-100 text-red-800
-            {% elif a.status == 'draft' %}bg-amber-100 text-amber-900
-            {% elif a.status == 'needs_evidence' %}bg-amber-100 text-amber-900
-            {% else %}bg-stone-100 text-stone-700{% endif %}">
-            {% if a.status == 'needs_evidence' %}Needs evidence{% else %}{{ a.get_status_display }}{% endif %}
-          </span>
-        </td>
-        <td class="px-2 py-1 text-xs">{% if a.generation_mode == 'fallback_template' %}Template{% elif a.generation_mode == 'ollama_qwen' %}AI model{% else %}{{ a.generation_mode }}{% endif %}</td>
-        <td class="px-2 py-1 text-right"><a href="{% url 'advisories:detail' a.id %}" class="text-emerald-700 hover:underline">open</a></td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="7" class="px-2 py-3 text-stone-500 italic">No advisories match your filter.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  </div>
+{# ── Advisory list table ─────────────────────────────────────────── #}
+<div class="ar-card">
+  <div class="ar-card__body">
+    {% if page_obj %}
+    <p class="ar-list-meta">
+      Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+    </p>
+    {% endif %}
+    <div class="ar-table-wrap">
+    <table class="ar-table">
+      <caption class="sr-only">All advisories</caption>
+      <thead>
+        <tr>
+          <th class="ar-table__th">
+            <a href="?sort={% if sort == 'id' %}-id{% else %}id{% endif %}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="ar-table__sort">
+              ID {% if sort == 'id' %}↑{% elif sort == '-id' %}↓{% endif %}
+            </a>
+          </th>
+          <th class="ar-table__th">
+            <a href="?sort={% if sort == 'cluster__locality' %}-cluster__locality{% else %}cluster__locality{% endif %}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="ar-table__sort">
+              Locality {% if sort == 'cluster__locality' %}↑{% elif sort == '-cluster__locality' %}↓{% endif %}
+            </a>
+          </th>
+          <th class="ar-table__th">
+            <a href="?sort={% if sort == 'cluster__cluster_id' %}-cluster__cluster_id{% else %}cluster__cluster_id{% endif %}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="ar-table__sort">
+              Cluster {% if sort == 'cluster__cluster_id' %}↑{% elif sort == '-cluster__cluster_id' %}↓{% endif %}
+            </a>
+          </th>
+          <th class="ar-table__th">Recommendation</th>
+          <th class="ar-table__th">
+            <a href="?sort={% if sort == 'status' %}-status{% else %}status{% endif %}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="ar-table__sort">
+              Status {% if sort == 'status' %}↑{% elif sort == '-status' %}↓{% endif %}
+            </a>
+          </th>
+          <th class="ar-table__th">Draft source</th>
+          <th class="ar-table__th ar-table__th--action">View</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for a in advisories %}
+        <tr class="ar-table__row">
+          <td class="ar-table__td ar-table__td--mono">Advisory {{ a.id }}</td>
+          <td class="ar-table__td">{{ a.cluster.locality|default:"—" }}</td>
+          <td class="ar-table__td ar-table__td--mono">{{ a.cluster.cluster_id }}</td>
+          <td class="ar-table__td">{{ a.get_recommendation_type_display }}</td>
+          <td class="ar-table__td">
+            <span class="ar-status
+              {% if a.status == 'approved' %}ar-status--approved
+              {% elif a.status == 'rejected' %}ar-status--rejected
+              {% elif a.status == 'draft' %}ar-status--draft
+              {% elif a.status == 'needs_evidence' %}ar-status--draft
+              {% else %}ar-status--default{% endif %}">
+              {% if a.status == 'needs_evidence' %}Needs evidence{% else %}{{ a.get_status_display }}{% endif %}
+            </span>
+          </td>
+          <td class="ar-table__td ar-table__td--muted">
+            {% if a.generation_mode == 'fallback_template' %}Template
+            {% elif a.generation_mode == 'ollama_qwen' %}AI model
+            {% elif a.generation_mode|slice:':4' == 'llm_' %}AI model
+            {% else %}{{ a.generation_mode }}{% endif %}
+          </td>
+          <td class="ar-table__td ar-table__td--action">
+            <a href="{% url 'advisories:detail' a.id %}" class="ar-table__link">open</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="ar-table__empty">No advisories match your filter.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
 
-  {# Pagination #}
-  {% if page_obj.paginator.num_pages > 1 %}
-  <div class="flex items-center justify-between mt-3 pt-3 border-t border-stone-200">
-    <div class="text-xs text-stone-500">
-      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    {# ── Pagination ────────────────────────────────────────────── #}
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="ar-pagination">
+      <div class="ar-pagination__info">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      </div>
+      <div class="ar-pagination__nav">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}&sort={{ sort }}" class="ar-btn ar-btn--secondary ar-btn--sm">
+          ← Previous
+        </a>
+        {% endif %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}&sort={{ sort }}" class="ar-btn ar-btn--secondary ar-btn--sm">
+          Next →
+        </a>
+        {% endif %}
+      </div>
     </div>
-    <div class="flex gap-1">
-      {% if page_obj.has_previous %}
-      <a href="?page={{ page_obj.previous_page_number }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}&sort={{ sort }}"
-         class="px-3 py-1 text-xs rounded border border-stone-300 bg-white text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
-        ← Previous
-      </a>
-      {% endif %}
-      {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}&sort={{ sort }}"
-         class="px-3 py-1 text-xs rounded border border-stone-300 bg-white text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
-        Next →
-      </a>
-      {% endif %}
-    </div>
+    {% endif %}
   </div>
-  {% endif %}
+</div>
+
 </div>
 {% endblock %}

@@ -46,27 +46,7 @@
       {% if advisory.summary %}
       <p class="ar-hero__summary">{{ advisory.summary }}</p>
       {% endif %}
-      <div class="ar-hero__meta" aria-label="Advisory metadata">
-        <span class="ar-hero__meta-item">
-          <span class="ar-hero__meta-label">Cluster</span>
-          <span class="ar-hero__meta-value">{{ advisory.cluster.cluster_id }}</span>
-        </span>
-        <span class="ar-hero__meta-sep" aria-hidden="true">·</span>
-        <span class="ar-hero__meta-item">
-          <span class="ar-hero__meta-label">Crop</span>
-          <span class="ar-hero__meta-value">{{ crop_label }}</span>
-        </span>
-        <span class="ar-hero__meta-sep" aria-hidden="true">·</span>
-        <span class="ar-hero__meta-item">
-          <span class="ar-hero__meta-label">Season</span>
-          <span class="ar-hero__meta-value">{{ season_label }}</span>
-        </span>
-        <span class="ar-hero__meta-sep" aria-hidden="true">·</span>
-        <span class="ar-hero__meta-item">
-          <span class="ar-hero__meta-label">Version</span>
-          <span class="ar-hero__meta-value">{{ advisory.content_version }}</span>
-        </span>
-      </div>
+      {% include "advisories/partials/_hero_meta.html" %}
     </header>
 
     <div class="ar-card__body">
@@ -208,24 +188,7 @@
       {% endif %}
 
       {# ── G. Generation and audit details ──────────────────────── #}
-      <div class="ar-audit" aria-label="Generation and audit metadata">
-        <span class="ar-audit-item">
-          <span class="ar-audit-label">Created</span>
-          <time class="ar-audit-value" datetime="{{ advisory.created_at|date:'c' }}">{{ advisory.created_at|date:"Y-m-d H:i" }}</time>
-        </span>
-        {% if advisory.generation_seconds %}
-        <span class="ar-audit-sep" aria-hidden="true">·</span>
-        <span class="ar-audit-item">
-          <span class="ar-audit-label">Run time</span>
-          <span class="ar-audit-value">{{ advisory.generation_seconds }}s</span>
-        </span>
-        {% endif %}
-        <span class="ar-audit-sep" aria-hidden="true">·</span>
-        <span class="ar-audit-item">
-          <span class="ar-audit-label">By</span>
-          <span class="ar-audit-value">{{ advisory.created_by.display_name|default:"agent" }}</span>
-        </span>
-      </div>
+      {% include "advisories/partials/_audit_footer.html" %}
     </div>
   </main>
 

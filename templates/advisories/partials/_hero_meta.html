@@ -1,0 +1,25 @@
+{# Reusable hero metadata block — Cluster / Crop / Season / Version. #}
+{# Uses <div> elements (block-level by default) so labels and values #}
+{# stack on separate lines even if the page-scoped CSS file fails. #}
+{# Required context: advisory, crop_label, season_label. #}
+<div class="ar-hero__meta" aria-label="Advisory metadata">
+  <div class="ar-hero__meta-item">
+    <div class="ar-hero__meta-label">Cluster</div>
+    <div class="ar-hero__meta-value">{{ advisory.cluster.cluster_id }}</div>
+  </div>
+  <div class="ar-hero__meta-sep" aria-hidden="true">·</div>
+  <div class="ar-hero__meta-item">
+    <div class="ar-hero__meta-label">Crop</div>
+    <div class="ar-hero__meta-value">{{ crop_label }}</div>
+  </div>
+  <div class="ar-hero__meta-sep" aria-hidden="true">·</div>
+  <div class="ar-hero__meta-item">
+    <div class="ar-hero__meta-label">Season</div>
+    <div class="ar-hero__meta-value">{{ season_label }}</div>
+  </div>
+  <div class="ar-hero__meta-sep" aria-hidden="true">·</div>
+  <div class="ar-hero__meta-item">
+    <div class="ar-hero__meta-label">Version</div>
+    <div class="ar-hero__meta-value">{{ advisory.content_version }}</div>
+  </div>
+</div>
