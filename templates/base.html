@@ -35,14 +35,14 @@
 
           {# Application identity: Kachieng’ AI Agent / Climate-smart advisories (no geography) #}
           {% if user.is_authenticated %}
-          <a href="{% url 'dashboard:home' %}" class="flex items-baseline gap-2 min-w-0 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+          <a href="{% url 'dashboard:home' %}" class="flex flex-col min-w-0 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
             <span class="app-name text-base whitespace-nowrap">Kachieng’ AI Agent</span>
-            <span class="app-subtitle text-sm hidden sm:inline">Climate-smart advisories</span>
+            <span class="app-subtitle text-sm">Climate-smart advisories</span>
           </a>
           {% else %}
-          <span class="flex items-baseline gap-2 min-w-0">
+          <span class="flex flex-col min-w-0">
             <span class="app-name text-base whitespace-nowrap">Kachieng’ AI Agent</span>
-            <span class="app-subtitle text-sm hidden sm:inline">Climate-smart advisories</span>
+            <span class="app-subtitle text-sm">Climate-smart advisories</span>
           </span>
           {% endif %}
         </div>
@@ -79,7 +79,7 @@
               </a>
               {% if user.is_staff %}
               <a href="{% url 'agents:graph' %}" role="menuitem">
-                Agent graph <span class="text-xs" style="color: var(--color-text-muted);">(staff only)</span>
+                Agent graph
               </a>
               {% endif %}
               <div class="my-1" style="border-top: 1px solid var(--color-border);"></div>
@@ -220,9 +220,6 @@
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
       <span>Synthetic household &amp; plot data only — no real household records used.
         <a href="{% url 'dashboard:about' %}" class="text-stone-400 hover:text-stone-200 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-200 rounded">About / legal</a>
-        {% if user.is_authenticated and user.is_staff %}
-          · <a href="{% url 'agents:graph' %}" class="text-stone-400 hover:text-stone-200 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-200 rounded">Agent graph (staff only)</a>
-        {% endif %}
       </span>
     </div>
   </footer>
