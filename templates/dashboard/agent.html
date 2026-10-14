@@ -1,8 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Agent graph — Kachieng’ AI Agent{% endblock %}
 {% block content %}
+<header class="mb-6">
+  <h1 class="text-2xl font-semibold text-stone-900">LangGraph agent — workflow</h1>
+</header>
+
 <div class="bg-white p-4 rounded shadow border border-stone-200">
-  <h1 class="text-lg font-semibold mb-2">LangGraph agent — workflow</h1>
   <pre class="bg-stone-900 text-stone-100 p-3 rounded text-xs overflow-x-auto">
   validate_request
         │ (errors → officer_approval_gate)

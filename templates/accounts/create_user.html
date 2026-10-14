@@ -1,13 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Create user — Kachieng’ AI Agent{% endblock %}
 {% block content %}
+<header class="mb-6">
+  <h1 class="text-2xl font-semibold text-stone-900">Create user account</h1>
+  <p class="text-sm text-stone-600 mt-1">Provision an approved account for an operational role.</p>
+</header>
+
 <div class="max-w-2xl mx-auto bg-white p-6 rounded shadow border border-stone-200">
   <div class="flex items-start justify-between gap-4 mb-4">
-    <div>
-      <h1 class="text-lg font-semibold">Create user account</h1>
-      <p class="text-sm text-stone-600 mt-1">Provision an approved account for an operational role.</p>
-    </div>
-    <a href="{% url 'accounts:review' %}" class="text-sm text-emerald-700 hover:underline">Account review</a>
+    <p class="text-sm text-stone-600">All fields are required unless marked optional.</p>
+    <a href="{% url 'accounts:review' %}" class="text-sm text-emerald-700 hover:underline whitespace-nowrap">Account review</a>
   </div>
 
   {% if form.non_field_errors %}
@@ -28,9 +30,13 @@
         {% if field.errors %}<p class="mt-1 text-sm text-red-700" role="alert">{{ field.errors|join:", " }}</p>{% endif %}
       </div>
     {% endfor %}
-    <div class="flex items-center gap-3 pt-2">
-      <button type="submit" class="bg-emerald-700 text-white px-4 py-2 rounded hover:bg-emerald-800">Create account</button>
-      <a href="{% url 'accounts:review' %}" class="text-sm text-stone-600 hover:underline">Cancel</a>
+    <div class="flex flex-col sm:flex-row gap-2 pt-2">
+      <button type="submit" class="inline-flex items-center justify-center px-4 py-2 min-h-[44px] bg-emerald-700 text-white font-medium rounded border border-emerald-700 hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 transition">
+        Create account
+      </button>
+      <a href="{% url 'accounts:review' %}" class="inline-flex items-center justify-center px-4 py-2 min-h-[44px] text-sm bg-white border border-stone-300 rounded text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 transition">
+        Cancel
+      </a>
     </div>
   </form>
 

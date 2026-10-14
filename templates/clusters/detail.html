@@ -1,14 +1,36 @@
 {% extends "base.html" %}
 {% block title %}{{ cluster.locality|default:cluster.name }} — Kachieng’ AI Agent{% endblock %}
 {% block content %}
-<div class="bg-white p-4 rounded shadow border border-stone-200">
-  <h1 class="text-lg font-semibold">{{ cluster.name }} — {{ cluster.cluster_id }}</h1>
-  <p class="text-sm text-stone-600">Locality: <strong>{{ cluster.locality|default:"—" }}</strong> · Nyatike / Kachieng’ / Migori</p>
+<header class="mb-6">
+  <h1 class="text-2xl font-semibold text-stone-900">{{ cluster.name }} — {{ cluster.cluster_id }}</h1>
+  <p class="text-sm text-stone-600 mt-1">Cluster details for Kachieng’ Ward</p>
+</header>
+
+<div class="max-w-3xl mx-auto bg-white p-6 rounded shadow border border-stone-200">
+  <dl class="text-sm space-y-2 mb-4">
+    <div class="flex flex-col sm:flex-row sm:gap-4">
+      <dt class="font-medium text-stone-700 sm:w-32 sm:flex-shrink-0">Locality</dt>
+      <dd>{{ cluster.locality|default:"—" }}</dd>
+    </div>
+    <div class="flex flex-col sm:flex-row sm:gap-4">
+      <dt class="font-medium text-stone-700 sm:w-32 sm:flex-shrink-0">Cluster code</dt>
+      <dd class="font-mono">{{ cluster.cluster_id }}</dd>
+    </div>
+    <div class="flex flex-col sm:flex-row sm:gap-4">
+      <dt class="font-medium text-stone-700 sm:w-32 sm:flex-shrink-0">Sub-county</dt>
+      <dd>{{ cluster.ward.sub_county.name }}</dd>
+    </div>
+    <div class="flex flex-col sm:flex-row sm:gap-4">
+      <dt class="font-medium text-stone-700 sm:w-32 sm:flex-shrink-0">County</dt>
+      <dd>{{ cluster.ward.sub_county.county.name }}</dd>
+    </div>
+  </dl>
+
   <p class="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded p-2 mt-3">
     Synthetic demonstration data — farmer groups and plot histories are not real household records.
   </p>
 
-  <h2 class="font-semibold mt-5 mb-2">Households and plots</h2>
+  <h2 class="font-semibold mt-6 mb-3">Households and plots</h2>
   {% for hh in households %}
   <div class="border border-stone-200 rounded p-3 mb-2 text-sm">
     <strong>{{ hh.household_id }}</strong> — {{ hh.head_of_household|default:"Synthetic household" }}
@@ -24,17 +46,21 @@
   <p class="text-sm text-stone-500">No households loaded for this cluster.</p>
   {% endfor %}
 
-  <h2 class="font-semibold mt-5 mb-2">Recent advisories</h2>
+  <h2 class="font-semibold mt-6 mb-3">Recent advisories</h2>
   <ul class="text-sm list-disc ml-5">
     {% for a in recent_advisories %}
-    <li><a href="{% url 'advisories:detail' a.id %}" class="text-emerald-700 underline">Advisory {{ a.id }}</a> — {{ a.get_status_display }}</li>
+    <li><a href="{% url 'advisories:detail' a.id %}" class="text-emerald-700 hover:underline">Advisory {{ a.id }}</a> — {{ a.get_status_display }}</li>
     {% empty %}
     <li class="text-stone-500">None yet.</li>
     {% endfor %}
   </ul>
 
   {% if user_can_request_advisory %}
-  <a href="{% url 'advisories:request' %}?cluster={{ cluster.cluster_id }}" class="inline-block mt-5 bg-emerald-700 text-white px-4 py-2 rounded text-sm">Request advisory for this cluster</a>
+  <div class="mt-6">
+    <a href="{% url 'advisories:request' %}?cluster={{ cluster.cluster_id }}" class="inline-flex items-center justify-center px-4 py-2 min-h-[44px] bg-emerald-700 text-white font-medium rounded border border-emerald-700 hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 transition">
+      Request advisory for this cluster
+    </a>
+  </div>
   {% endif %}
 </div>
 {% endblock %}
