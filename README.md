@@ -1,8 +1,8 @@
-# Kachieng AI Agent
+# Kachieng' AI Agent
 
 > Climate-smart advisories. Extension officers decide.
 
-MajiShamba Extension Agent is a human-in-the-loop Django + LangGraph platform that helps agricultural extension officers create evidence-based, climate-smart advisories for farmers in Kachieng Ward, Nyatike Sub-County, Migori County, Kenya. It combines weather, pest, market, crop-calendar, and farm data through MCP tools, while ensuring every advisory is reviewed and approved by a qualified officer before follow-up actions are created.
+Kachieng' AI Extension Agent is a human-in-the-loop Django + LangGraph platform that helps agricultural extension officers create evidence-based, climate-smart advisories for farmers in Kachieng Ward, Nyatike Sub-County, Migori County, Kenya. It combines weather, pest, market, crop-calendar, and farm data through MCP tools, while ensuring every advisory is reviewed and approved by a qualified officer before follow-up actions are created.
 
 ## Prerequisites
 
