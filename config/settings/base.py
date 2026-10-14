@@ -92,6 +92,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
+    "apps.accounts.middleware.AccountStatusMiddleware",
     "apps.audit.middleware.AuditMiddleware",
 ]
 

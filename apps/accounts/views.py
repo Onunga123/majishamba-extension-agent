@@ -89,6 +89,7 @@ class RegistrationForm(forms.ModelForm):
         user.set_password(self.cleaned_data["password1"])
         user.role = User.Role.VIEWER  # Always start as viewer
         user.approval_status = User.ApprovalStatus.PENDING
+        user.is_active = False  # Cannot authenticate until admin approval
         user.is_staff = False
         user.is_superuser = False
         if commit:
@@ -191,6 +192,34 @@ class LoginView(auth_views.LoginView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         return ctx
+
+    def form_invalid(self, form):
+        """Override to show a specific message for pending accounts whose
+        credentials are valid, without disclosing account existence for
+        invalid credentials or non-pending accounts.
+        """
+        # form.cleaned_data is empty when the form is invalid — use form.data
+        # (the raw POST QueryDict) to get the submitted username and password.
+        username = form.data.get("username", "")
+        password = form.data.get("password", "")
+        if username and password:
+            try:
+                user = User.objects.get(username=username)
+                # Only show the pending message if the password is correct —
+                # this ensures we don't reveal account existence for someone
+                # who hasn't supplied valid credentials.
+                if user.check_password(password):
+                    if user.approval_status == User.ApprovalStatus.PENDING:
+                        form.add_error(None, (
+                            "Your account is awaiting administrator approval. "
+                            "You can sign in once your account has been approved."
+                        ))
+                    # For rejected/suspended accounts, fall through to the
+                    # generic "check your username and password" message.
+                    # We do NOT disclose that the account was rejected.
+            except User.DoesNotExist:
+                pass  # Generic error — do not disclose username existence
+        return super().form_invalid(form)
 
 
 def profile(request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:

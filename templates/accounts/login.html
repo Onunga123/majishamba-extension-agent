@@ -7,7 +7,19 @@
 
   <form method="post" class="auth-form" novalidate>
     {% csrf_token %}
-    {% if form.errors %}
+    {% if form.non_field_errors %}
+      <div class="auth-error-alert" role="alert" aria-live="assertive">
+        <p class="auth-error-title">Sign in failed</p>
+        {% for error in form.non_field_errors %}
+          {% if "awaiting administrator approval" in error %}
+            <p class="auth-error-detail">{{ error }}</p>
+          {% else %}
+            {# Django's default error — replace with our generic message #}
+            <p class="auth-error-detail">Please check your username and password and try again.</p>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% elif form.errors %}
       <div class="auth-error-alert" role="alert" aria-live="assertive">
         <p class="auth-error-title">Sign in failed</p>
         <p class="auth-error-detail">Please check your username and password and try again.</p>
