@@ -1,6 +1,11 @@
 # Kachieng AI Agent
 
 > Climate-smart advisories. Extension officers decide.
+
+## About
+
+MajiShamba Extension Agent is a human-in-the-loop Django and LangGraph platform that helps agricultural extension officers create evidence-based, climate-smart advisories for farmers in Kachieng Ward, Nyatike Sub-County, Migori County, Kenya. It combines weather, pest, market, crop-calendar, and farm data through MCP tools, while ensuring that every advisory is reviewed and approved by a qualified officer before follow-up actions are created.
+
 **Licence:** MIT (OSI-approved)
 
 ## Get running in one command
@@ -29,7 +34,7 @@ Both commands will:
 2. Install dependencies (Django, LangGraph, MCP Python SDK, Ollama client, Pydantic, etc.).
 3. Apply migrations (defaults to **SQLite** so the demo runs without PostgreSQL/PostGIS).
 4. Load synthetic Kachieng Ward fixtures (3 original clusters KACH-01..KACH-03 with 14 households/12 plots, plus weather/pest/market signals).
-5. **Seed 14 Kachieng pilot clusters** via the idempotent `seed_kachieng_clusters` management command (renames KACH-01..KACH-03 to the locally-confirmed register; creates KACH-04..KACH-14 with 3 households + 1 plot each).
+5. **Seed 14 Kachieng pilot clusters** via the idempotent `seed_kachieng_clusters` management command (renames KACH-01..KACH-03 to the locally-confirmed register; creates KACH-04..KACH-14 with 3 h[...]
 6. Select the configured provider: OpenRouter cloud inference is recommended for laptops; Ollama remains an optional local alternative; `none` selects deterministic fallback only.
 7. Start Django dev server on http://127.0.0.1:8000.
 
@@ -42,7 +47,7 @@ python manage.py changepassword jdoe
 
 Then open http://127.0.0.1:8000/accounts/login/ and sign in with the account you just created.
 
-> Provider failures never silently switch to another model. The advisory records `llm_openrouter`, `llm_ollama`, or `fallback_template`; an OpenRouter failure is still a fallback advisory, not a successful model run.
+> Provider failures never silently switch to another model. The advisory records `llm_openrouter`, `llm_ollama`, or `fallback_template`; an OpenRouter failure is still a fallback advisory, not a s[...]
 
 ## LLM execution modes
 
@@ -60,7 +65,7 @@ OPENROUTER_API_KEY=your_openrouter_api_key_here
 OPENROUTER_MODEL=openrouter/free
 ```
 
-You may instead set a specific available model ending in `:free`, for example `provider/model:free`. Free-model availability, rate limits, context limits and structured-output behavior vary. The application validates the response against `AdvisoryDraft`; empty, malformed, unauthorized, rate-limited or unavailable responses use the explicitly labelled deterministic fallback. The dashboard/database distinguishes the configured provider, actual returned model, status and fallback error without logging the key.
+You may instead set a specific available model ending in `:free`, for example `provider/model:free`. Free-model availability, rate limits, context limits and structured-output behavior vary. The a[...]
 
 For a one-session PowerShell setup without putting the key in a tracked file:
 
@@ -84,7 +89,7 @@ $env:OLLAMA_MODEL = "qwen2.5:7b-instruct"
 .\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
 ```
 
-Use `LLM_PROVIDER=none` for deterministic fallback-only operation. OpenRouter remote inference—even when the remote model has open weights—is **not automatically evidence** that the Agriculture Challenge's requirement to download and run an open-weights model yourself has been satisfied. Demonstrate Ollama separately if submitting that claim.
+Use `LLM_PROVIDER=none` for deterministic fallback-only operation. OpenRouter remote inference—even when the remote model has open weights—is **not automatically evidence** that the Agricultur[...]
 
 ## Stack
 
@@ -132,11 +137,11 @@ Each call logs: tool name, sanitised inputs, summarised outputs, timestamp, acto
 
 > We use the official filesystem MCP server to load approved crop-calendar documents during development because it provides safe, tested file access without building a custom document loader.
 
-Restricted to `docs/calendars/` in development; **never** exposed in production. The custom agent does not depend on it for the demo — the demo uses the calendar stored in the database via `get_crop_calendar`. It exists to satisfy the "borrowed MCP server" requirement and demonstrate MCP craft.
+Restricted to `docs/calendars/` in development; **never** exposed in production. The custom agent does not depend on it for the demo — the demo uses the calendar stored in the database via `get[...]
 
 ## Open-weights model statement
 
-The application supports a full advisory task through OpenRouter cloud inference and preserves **Qwen2.5-7B-Instruct via Ollama** as the local open-weights path. The `generation_mode` field distinguishes `llm_openrouter`, `llm_ollama`, and `fallback_template`. OpenRouter remote inference is not claimed as proof of the challenge requirement to download and run open weights yourself; that claim requires a separately verified local Ollama run.
+The application supports a full advisory task through OpenRouter cloud inference and preserves **Qwen2.5-7B-Instruct via Ollama** as the local open-weights path. The `generation_mode` field disti[...]
 
 See `EVALS.md` Task 10 for the degraded-mode test.
 ## Human approval gate 
@@ -151,7 +156,7 @@ The agent **never** sends advice, places orders, or issues credit flags. The wor
    - An optional `FollowUpTask` (field visit / cluster meeting / re-evidence / printed advisory).
 5. Officer decides delivery channel (SMS, USSD, call, visit, printed advisory). **The system does not automate this.**
 
-Enforced in code: `apps/tasks/service.py:create_follow_up_task_after_approval` checks for a valid `OfficerApproval(decision=APPROVED)` row before any `FollowUpTask` is created. The MCP action tool `create_follow_up_task_after_approval` calls this function; it cannot be bypassed.
+Enforced in code: `apps/tasks/service.py:create_follow_up_task_after_approval` checks for a valid `OfficerApproval(decision=APPROVED)` row before any `FollowUpTask` is created. The MCP action too[...]
 
 See `docs/governance/human_approval_policy.md` for the full policy.
 
