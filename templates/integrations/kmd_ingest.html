@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Ingest KMD bulletin — Kachieng’ AI Agent{% endblock %}
 {% block content %}
-<div class="max-w-2xl mx-auto bg-white p-4 rounded shadow border border-stone-200">
-  <h1 class="text-lg font-semibold mb-2">Ingest KMD bulletin</h1>
+<header class="mb-6">
+  <h1 class="text-2xl font-semibold text-stone-900">Ingest KMD bulletin</h1>
+  <p class="text-sm text-stone-600 mt-1">Transcribe metadata from a KMD forecast you have manually read.</p>
+</header>
+
+<div class="max-w-2xl mx-auto bg-white p-6 rounded shadow border border-stone-200">
   <p class="text-sm text-stone-600 mb-4">
     You've manually read a KMD forecast on <a href="https://meteo.go.ke/our-products/" target="_blank" rel="noopener" class="text-emerald-700 hover:underline">meteo.go.ke/our-products</a>.
-    Transcribe its metadata below. The system records the bulletin as a WeatherSignal with
+    The system records the bulletin as a WeatherSignal with
     full provenance and shows it on the dashboard as the current official forecast.
   </p>
 
@@ -15,19 +19,23 @@
     </div>
   {% endif %}
 
-  <form method="post" class="space-y-3">
+  <form method="post" class="space-y-4">
     {% csrf_token %}
     {% for field in form %}
       <div>
-        <label class="block text-sm font-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        <label class="block text-sm font-medium text-stone-700" for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
         {% if field.help_text %}<p class="text-xs text-stone-500 mt-1">{{ field.help_text }}</p>{% endif %}
         {% if field.errors %}<div class="text-red-700 text-xs mt-1">{{ field.errors|join:", " }}</div>{% endif %}
       </div>
     {% endfor %}
-    <div class="flex gap-2 pt-2">
-      <button type="submit" class="bg-emerald-700 text-white px-3 py-1 rounded text-sm hover:bg-emerald-800">Ingest bulletin</button>
-      <a href="{% url 'integrations:index' %}" class="text-stone-600 text-sm self-center">Cancel</a>
+    <div class="flex flex-col sm:flex-row gap-2 pt-2">
+      <button type="submit" class="inline-flex items-center justify-center px-4 py-2 min-h-[44px] bg-emerald-700 text-white font-medium rounded border border-emerald-700 hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 transition">
+        Ingest bulletin
+      </button>
+      <a href="{% url 'integrations:index' %}" class="inline-flex items-center justify-center px-4 py-2 min-h-[44px] text-sm bg-white border border-stone-300 rounded text-stone-700 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 transition">
+        Cancel
+      </a>
     </div>
   </form>
 </div>
