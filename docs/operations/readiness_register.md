@@ -28,7 +28,7 @@ Repository: https://github.com/Onunga123/majishamba-extension-agent
 | Pest notices | Manual officer upload; no public API exists | `apps/integrations/pests.py` | No public pest-alert API found | ✅ MANUAL (by design) |
 | Market data | Synthetic fixtures only | `data/fixtures/migori_market_prices.json` | No authorized live source identified | ⚠️ REAL DATA REQUIRED |
 | Officer provisioning | `python manage.py create_officer` command | `apps/accounts/management/commands/create_officer.py` | Owner must create accounts | ✅ IMPLEMENTED |
-| Health endpoint | `/health/health/` returns JSON status | `apps/dashboard/health.py` | None | ✅ IMPLEMENTED |
+| Health endpoint | `/health/` returns JSON status | `apps/dashboard/health.py` | None | ✅ IMPLEMENTED |
 | Production deploy script | No fixtures; starts empty; documents onboarding | `scripts/deploy_production.sh` | None | ✅ IMPLEMENTED |
 | Dockerfile + docker-compose | Production-ready with PostGIS, Valkey, Ollama | `Dockerfile`, `docker-compose.prod.yml` | None | ✅ IMPLEMENTED |
 | Tests | 119 tests (118 pass, 1 skip) | `tests/integration/`, `tests/security/` | Playwright browser test skipped | ✅ VERIFIED |

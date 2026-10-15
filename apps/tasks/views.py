@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -10,6 +11,7 @@ from django.views import View
 from django.views.generic import DetailView, ListView
 
 from apps.accounts.models import User
+from apps.audit.service import log_audit_event
 
 from .forms import FieldFindingForm, TaskStatusForm
 from .models import FieldFinding, FollowUpTask
@@ -153,9 +155,29 @@ class TaskFieldFindingView(LoginRequiredMixin, View):
             "pest_scouting_done": request.POST.get("pest_scouting_done") == "yes",
         }
         finding.save()
+        previous_status = task.status
         if task.status == FollowUpTask.Status.ASSIGNED:
             task.status = FollowUpTask.Status.IN_PROGRESS
             task.save(update_fields=["status"])
+        # F-12: semantic audit event for field-finding submission. The
+        # middleware excludes the /findings/ suffix, so this is the only
+        # audit record for this action. The event is logged AFTER the
+        # finding and any status transition are persisted, so a failed
+        # save would not produce a misleading success event. The metadata
+        # is minimal and non-sensitive (task id, finding id, previous
+        # status, transition) — observations and free-text fields are
+        # NOT included.
+        log_audit_event(
+            actor=request.user,
+            action="task:finding",
+            target=task,
+            metadata={
+                "task_id": task.id,
+                "finding_id": finding.id,
+                "previous_status": previous_status,
+                "transitioned_to": task.status,
+            },
+        )
         messages.success(request, "Field findings saved (internal record only).")
         return redirect("tasks:detail", pk=task.pk)
 
@@ -188,8 +210,24 @@ class TaskCompleteView(LoginRequiredMixin, View):
                 f"Cannot complete a task in '{task.status}' status. "
                 "Tasks can only be completed from 'assigned' or 'in_progress' status."
             )
+        previous_status = task.status
         task.status = FollowUpTask.Status.COMPLETED
         task.save(update_fields=["status"])
+        # F-12: semantic audit event for task completion. The middleware
+        # excludes the /complete/ suffix, so this is the only audit record
+        # for this action. Logged AFTER task.save() so a failed save would
+        # not produce a misleading success event. Metadata is minimal and
+        # non-sensitive (task id, previous status, new status).
+        log_audit_event(
+            actor=request.user,
+            action="task:complete",
+            target=task,
+            metadata={
+                "task_id": task.id,
+                "previous_status": previous_status,
+                "new_status": task.status,
+            },
+        )
         messages.success(request, "Task marked completed — awaiting supervisor verification if required.")
         return redirect("tasks:detail", pk=task.pk)
 
@@ -208,8 +246,26 @@ class TaskVerifyView(LoginRequiredMixin, View):
     the approved policy (P-07 deferred). The existing self-verification
     restriction (submitter cannot verify their own latest finding) is
     also preserved.
+
+    Phase 4 (atomicity): ``post`` is wrapped in ``@transaction.atomic``
+    so that the task status change (``task.save``) and the finding
+    verification metadata update (``finding.save``) commit or roll back
+    together. If ``finding.save`` fails after ``task.save`` succeeds,
+    the transaction rolls back the task status change — the task
+    remains COMPLETED and the finding's ``verified_by`` / ``verified_at``
+    remain unchanged. This addresses the partial-write risk identified
+    in the Phase 4 read-only review.
+
+    Limitation: ``log_audit_event`` swallows its own exceptions (per
+    the established "audit must never break the call" convention in
+    ``apps/audit/service.py``). The ``@transaction.atomic`` wrapper
+    cannot detect an audit-write failure to roll back on, so a
+    successful state change may still occur without a corresponding
+    audit record if the audit write fails internally. This is the
+    existing best-effort audit behaviour and is unchanged by Phase 4.
     """
 
+    @transaction.atomic
     def post(self, request: HttpRequest, pk: int) -> HttpResponseRedirect:
         if request.user.role != User.Role.SUPERVISOR and not request.user.is_superuser:
             raise PermissionDenied("Only a supervisor can verify field findings.")
@@ -234,5 +290,21 @@ class TaskVerifyView(LoginRequiredMixin, View):
         finding.verified_by = request.user
         finding.verified_at = timezone.now()
         finding.save(update_fields=["verified_by", "verified_at"])
+        # F-12: semantic audit event for task verification. The middleware
+        # excludes the /verify/ suffix, so this is the only audit record
+        # for this action. Logged AFTER both task.save() and finding.save()
+        # so a failed save would not produce a misleading success event.
+        # Metadata is minimal and non-sensitive (task id, finding id,
+        # verifier id) — observations are NOT included.
+        log_audit_event(
+            actor=request.user,
+            action="task:verify",
+            target=task,
+            metadata={
+                "task_id": task.id,
+                "finding_id": finding.id,
+                "verified_by_id": request.user.id,
+            },
+        )
         messages.success(request, "Task verified.")
         return redirect("tasks:detail", pk=task.pk)

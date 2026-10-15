@@ -508,3 +508,404 @@ def test_task_detail_viewer_sees_unassigned_label(viewer_client):
     assert r.status_code == 200
     html = r.content.decode("utf-8")
     assert "Unassigned" in html
+
+
+# ---------------------------------------------------------------------------
+# F-01: Dashboard activity feed — actor name redaction for Viewers
+#
+# Phase 1 remediation for audit finding F-01: the dashboard "Recent activity"
+# feed previously rendered the audit actor's username (via
+# ``event.actor.get_username()`` and ``{{ e.actor_name|title }}``) to all
+# authenticated users. Per docs/governance/synthetic_data_notice.md:31,76,
+# officer real names must NOT appear in any UI surface visible to a Viewer
+# role. Usernames can also identify officers (e.g. "alice_officer" →
+# title-case "Alice_Officer" → recognisable name). The redaction is applied
+# server-side: ``_audit_timeline(e, viewer=True)`` replaces ``actor_name``
+# with a role-appropriate label ("Officer"/"Supervisor"/"Administrator"/
+# "System") before the response is built, so the username string is never
+# present in the Viewer's response context.
+# ---------------------------------------------------------------------------
+def _make_audit_event(actor, action, target_type="Advisory", target_id="1"):
+    """Create a single AuditEvent row for the dashboard activity feed."""
+    from apps.audit.models import AuditEvent
+    return AuditEvent.objects.create(
+        actor=actor, action=action,
+        target_type=target_type, target_id=target_id,
+    )
+
+
+@pytest.mark.django_db
+def test_dashboard_activity_feed_viewer_does_not_see_officer_username(viewer_client, officer):
+    """F-01 regression: a Viewer's /dashboard/ response must NOT contain the
+    actor's username for any audit event the Viewer is allowed to see.
+    The actor_name field is replaced with a role label server-side.
+    """
+    _make_audit_event(actor=officer, action="advisory:approve")
+    r = viewer_client.get("/dashboard/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert officer.username not in html, (
+        f"Viewer must not see officer username '{officer.username}' in dashboard activity feed"
+    )
+    # Title-cased variants must also be absent (the template uses |title)
+    assert officer.username.title() not in html, (
+        f"Viewer must not see title-cased officer username in dashboard activity feed"
+    )
+
+
+@pytest.mark.django_db
+def test_dashboard_activity_feed_viewer_does_not_see_officer_full_name(viewer_client, officer):
+    """F-01 regression: a Viewer must NOT see the officer's full_name in
+    the dashboard activity feed. Only the role label should appear.
+    """
+    _make_audit_event(actor=officer, action="advisory:approve")
+    r = viewer_client.get("/dashboard/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert officer.full_name not in html, (
+        f"Viewer must not see officer full name '{officer.full_name}' in dashboard activity feed"
+    )
+
+
+@pytest.mark.django_db
+def test_dashboard_activity_feed_viewer_sees_role_label(viewer_client, officer):
+    """F-01 regression: a Viewer sees the role label "Officer" (not the
+    username) for an Extension Officer actor in the dashboard activity feed.
+    """
+    _make_audit_event(actor=officer, action="advisory:approve")
+    r = viewer_client.get("/dashboard/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    # The role label must appear (the redacted form)
+    assert "Officer" in html, (
+        "Viewer should see 'Officer' role label in dashboard activity feed"
+    )
+
+
+@pytest.mark.django_db
+def test_dashboard_activity_feed_viewer_sees_supervisor_role_label(viewer_client, supervisor):
+    """F-01 regression: a Viewer sees "Supervisor" (not the supervisor's
+    username) for a Supervisor actor in the dashboard activity feed.
+    """
+    _make_audit_event(actor=supervisor, action="advisory:approve")
+    r = viewer_client.get("/dashboard/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert supervisor.username not in html
+    assert supervisor.full_name not in html
+    assert "Supervisor" in html, (
+        "Viewer should see 'Supervisor' role label in dashboard activity feed"
+    )
+
+
+@pytest.mark.django_db
+def test_dashboard_activity_feed_viewer_sees_administrator_role_label(viewer_client, system_admin):
+    """F-01 regression: a Viewer sees "Administrator" (not the system
+    admin's username) for a System Administrator actor. Account-management
+    events are filtered out for Viewers (Phase B), so we use a non-account
+    event here.
+    """
+    _make_audit_event(actor=system_admin, action="advisory:approve")
+    r = viewer_client.get("/dashboard/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert system_admin.username not in html
+    assert system_admin.full_name not in html
+    # The Administrator role label should appear (advisory:approve is not
+    # in the account-management exclusion list).
+    assert "Administrator" in html, (
+        "Viewer should see 'Administrator' role label for system admin actor"
+    )
+
+
+@pytest.mark.django_db
+def test_dashboard_activity_feed_viewer_system_actor_label(viewer_client):
+    """F-01 regression: an audit event with actor=None (system-generated)
+    must show "System" to a Viewer, not 'None' or an empty string.
+    """
+    _make_audit_event(actor=None, action="agent_run:end")
+    r = viewer_client.get("/dashboard/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert "System" in html, (
+        "Viewer should see 'System' label for a system-generated audit event"
+    )
+
+
+@pytest.mark.django_db
+def test_dashboard_activity_feed_officer_still_sees_actor_username(officer_client, officer):
+    """F-01 regression: an Officer (authorised role) still sees the
+    actor's username in the dashboard activity feed. The redaction only
+    applies to Viewers.
+    """
+    _make_audit_event(actor=officer, action="advisory:approve")
+    r = officer_client.get("/dashboard/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    # Officer should still see the actor's username (title-cased by template)
+    assert officer.username.title() in html, (
+        "Officer should still see actor username in dashboard activity feed"
+    )
+
+
+@pytest.mark.django_db
+def test_dashboard_activity_feed_supervisor_still_sees_actor_username(supervisor_client, officer):
+    """F-01 regression: a Supervisor still sees the actor's username."""
+    _make_audit_event(actor=officer, action="advisory:approve")
+    r = supervisor_client.get("/dashboard/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert officer.username.title() in html
+
+
+@pytest.mark.django_db
+def test_dashboard_activity_feed_system_admin_still_sees_actor_username(system_admin_client, officer):
+    """F-01 regression: a System Administrator still sees the actor's
+    username (and also sees account-management events, but this test only
+    asserts the non-redaction of the actor name).
+    """
+    _make_audit_event(actor=officer, action="advisory:approve")
+    r = system_admin_client.get("/dashboard/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert officer.username.title() in html
+
+
+@pytest.mark.django_db
+def test_dashboard_activity_feed_viewer_still_sees_event_description(viewer_client, officer):
+    """F-01 regression: the redaction must NOT remove the activity
+    description or the object label — only the actor's identity is
+    replaced with a role label. The Viewer still sees 'approved an
+    advisory' and 'Advisory 1'.
+    """
+    _make_audit_event(actor=officer, action="advisory:approve", target_type="Advisory", target_id="1")
+    r = viewer_client.get("/dashboard/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert "approved an advisory" in html, (
+        "Viewer must still see the action description 'approved an advisory'"
+    )
+    assert "Advisory 1" in html, (
+        "Viewer must still see the object label 'Advisory 1'"
+    )
+
+
+@pytest.mark.django_db
+def test_dashboard_activity_feed_viewer_with_multiple_officer_actors(viewer_client, officer, supervisor):
+    """F-01 regression: multiple audit events with different officer
+    actors — none of their usernames/real names leak to the Viewer.
+    """
+    _make_audit_event(actor=officer, action="advisory:approve")
+    _make_audit_event(actor=supervisor, action="task:complete")
+    r = viewer_client.get("/dashboard/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert officer.username not in html
+    assert officer.full_name not in html
+    assert supervisor.username not in html
+    assert supervisor.full_name not in html
+    # Both role labels should be present
+    assert "Officer" in html
+    assert "Supervisor" in html
+
+
+@pytest.mark.django_db
+def test_dashboard_activity_feed_anonymous_redirected_to_login():
+    """F-01 regression: anonymous users are redirected to login (not 200 or 403)."""
+    c = Client()
+    r = c.get("/dashboard/")
+    assert r.status_code in {302, 301}
+    assert "/accounts/login/" in r["Location"]
+
+
+# ---------------------------------------------------------------------------
+# F-02: Advisory detail page — approval history officer name redaction
+#       for Viewers
+#
+# Phase 1 remediation for audit finding F-02: the advisory detail page
+# previously rendered ``{{ ap.officer.display_name }}`` (the officer's
+# real name) in the "Approval history" aside, visible to all authenticated
+# users. Per docs/governance/synthetic_data_notice.md:31,76, officer real
+# names must NOT appear in any UI surface visible to a Viewer. The
+# AdvisoryDetailView now passes an ``is_viewer`` context flag and a
+# server-prepared ``approvals_for_viewer`` list with role labels
+# ("Officer"/"Supervisor"/"Administrator") instead of the officer's
+# display_name. The template renders the redacted form for Viewers and
+# the original form for authorised roles.
+# ---------------------------------------------------------------------------
+def _make_advisory_with_approval(officer, decision="approved", advisory_status="approved"):
+    """Create an APPROVED Advisory with an OfficerApproval by ``officer``."""
+    from tests.factories.models import AdvisoryFactory
+    from apps.approvals.models import OfficerApproval
+    from apps.advisories.models import Advisory
+
+    adv = AdvisoryFactory(status=advisory_status)
+    OfficerApproval.objects.create(
+        advisory=adv, officer=officer,
+        decision=decision,
+    )
+    return adv
+
+
+@pytest.mark.django_db
+def test_advisory_detail_viewer_does_not_see_officer_username_in_approval_history(viewer_client, officer):
+    """F-02 regression: a Viewer's /advisories/<pk>/ response must NOT
+    contain the approving officer's username anywhere in the rendered
+    approval history.
+    """
+    adv = _make_advisory_with_approval(officer)
+    r = viewer_client.get(f"/advisories/{adv.id}/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert officer.username not in html, (
+        f"Viewer must not see officer username '{officer.username}' in advisory approval history"
+    )
+
+
+@pytest.mark.django_db
+def test_advisory_detail_viewer_does_not_see_officer_full_name_in_approval_history(viewer_client, officer):
+    """F-02 regression: a Viewer must NOT see the approving officer's
+    real name (full_name) anywhere in the advisory detail page.
+    """
+    adv = _make_advisory_with_approval(officer)
+    r = viewer_client.get(f"/advisories/{adv.id}/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert officer.full_name not in html, (
+        f"Viewer must not see officer full name '{officer.full_name}' in advisory approval history"
+    )
+
+
+@pytest.mark.django_db
+def test_advisory_detail_viewer_sees_officer_role_label_in_approval_history(viewer_client, officer):
+    """F-02 regression: a Viewer sees the role label "Officer" (not the
+    real name) in the advisory approval history.
+    """
+    adv = _make_advisory_with_approval(officer)
+    r = viewer_client.get(f"/advisories/{adv.id}/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    # The approval history section must contain the role label
+    assert "Approval history" in html
+    assert "Officer" in html, (
+        "Viewer should see 'Officer' role label in advisory approval history"
+    )
+
+
+@pytest.mark.django_db
+def test_advisory_detail_viewer_sees_supervisor_role_label_in_approval_history(viewer_client, supervisor):
+    """F-02 regression: when a Supervisor approves, a Viewer sees
+    "Supervisor" (not the supervisor's real name).
+    """
+    adv = _make_advisory_with_approval(supervisor)
+    r = viewer_client.get(f"/advisories/{adv.id}/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert supervisor.username not in html
+    assert supervisor.full_name not in html
+    assert "Supervisor" in html, (
+        "Viewer should see 'Supervisor' role label in advisory approval history"
+    )
+
+
+@pytest.mark.django_db
+def test_advisory_detail_viewer_still_sees_decision_and_timestamp(viewer_client, officer):
+    """F-02 regression: the redaction must NOT remove the approval
+    decision or timestamp — those are authorised for Viewer display.
+    Only the officer's identity is replaced with a role label.
+    """
+    adv = _make_advisory_with_approval(officer, decision="approved")
+    r = viewer_client.get(f"/advisories/{adv.id}/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    # The decision display must still appear
+    assert "Approved" in html, (
+        "Viewer must still see the approval decision 'Approved'"
+    )
+    # The approval history section must be present
+    assert "Approval history" in html
+
+
+@pytest.mark.django_db
+def test_advisory_detail_viewer_rejected_decision_still_displayed(viewer_client, officer):
+    """F-02 regression: a rejected approval's decision display is still
+    shown to the Viewer (the redaction is only on the officer name).
+    """
+    adv = _make_advisory_with_approval(officer, decision="rejected", advisory_status="rejected")
+    r = viewer_client.get(f"/advisories/{adv.id}/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert "Rejected" in html, (
+        "Viewer must still see the rejection decision display"
+    )
+    assert officer.username not in html
+    assert officer.full_name not in html
+
+
+@pytest.mark.django_db
+def test_advisory_detail_officer_still_sees_officer_full_name_in_approval_history(officer_client, officer):
+    """F-02 regression: an Officer viewing an advisory detail page still
+    sees the approving officer's full_name. The redaction only applies to
+    Viewers.
+    """
+    adv = _make_advisory_with_approval(officer)
+    r = officer_client.get(f"/advisories/{adv.id}/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert officer.full_name in html, (
+        "Officer should still see the approving officer's full name in advisory approval history"
+    )
+
+
+@pytest.mark.django_db
+def test_advisory_detail_supervisor_still_sees_officer_full_name(supervisor_client, officer):
+    """F-02 regression: a Supervisor viewing an advisory detail page still
+    sees the approving officer's full_name.
+    """
+    adv = _make_advisory_with_approval(officer)
+    r = supervisor_client.get(f"/advisories/{adv.id}/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert officer.full_name in html
+
+
+@pytest.mark.django_db
+def test_advisory_detail_system_admin_still_sees_officer_full_name(system_admin_client, officer):
+    """F-02 regression: a System Administrator viewing an advisory detail
+    page still sees the approving officer's full_name.
+    """
+    adv = _make_advisory_with_approval(officer)
+    r = system_admin_client.get(f"/advisories/{adv.id}/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert officer.full_name in html
+
+
+@pytest.mark.django_db
+def test_advisory_detail_no_approval_history_officer_still_works(viewer_client, officer):
+    """F-02 regression: an advisory with no approvals must not break the
+    Viewer's view — the "No decision yet" placeholder must still render.
+    """
+    from tests.factories.models import AdvisoryFactory
+
+    adv = AdvisoryFactory(status="approved")
+    r = viewer_client.get(f"/advisories/{adv.id}/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert "Approval history" in html
+    assert "No decision yet" in html, (
+        "Viewer should see 'No decision yet' placeholder for advisory with no approvals"
+    )
+
+
+@pytest.mark.django_db
+def test_advisory_detail_anonymous_redirected_to_login():
+    """F-02 regression: anonymous users are redirected to login (not 200)."""
+    from tests.factories.models import AdvisoryFactory
+
+    adv = AdvisoryFactory(status="approved")
+    c = Client()
+    r = c.get(f"/advisories/{adv.id}/")
+    assert r.status_code in {302, 301}
+    assert "/accounts/login/" in r["Location"]
+

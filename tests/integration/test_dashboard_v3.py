@@ -327,11 +327,20 @@ def test_activity_feed_humanises_login_logout(officer_client):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-def test_dashboard_has_audit_log_link_separate_from_activity(officer_client):
+def test_dashboard_has_audit_log_link_separate_from_activity(system_admin_client):
     """The dashboard must have a separate 'Audit log →' link (to /audit/)
     distinct from the 'Recent activity' section. Activity is human-readable;
-    audit is the technical record."""
-    r = officer_client.get("/dashboard/")
+    audit is the technical record.
+
+    F-07 (Phase 2 remediation): the 'Audit log →' link is now gated on
+    ``is_system_admin``. An Officer no longer sees the link (it leads to
+    a page restricted to System Administrators). This test switched from
+    ``officer_client`` to ``system_admin_client`` so the legitimate
+    presence of the link is verified for its intended audience. Officer
+    non-visibility is verified in
+    tests/security/test_phase2_nav_visibility.py.
+    """
+    r = system_admin_client.get("/dashboard/")
     html = r.content.decode("utf-8")
     assert "Recent activity" in html, "Recent activity section heading missing"
     assert 'href="/audit/"' in html, "Audit log link missing"

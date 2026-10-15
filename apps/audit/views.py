@@ -249,7 +249,18 @@ class AuditEventListView(LoginRequiredMixin, ListView):
         ctx["category_filter"] = self.request.GET.get("category", "")
         ctx["from_date"] = self.request.GET.get("from", "")
         ctx["to_date"] = self.request.GET.get("to", "")
-        ctx["is_staff"] = self.request.user.is_staff
+        # F-04: gate the technical-detail column on the application's
+        # System Administrator role (``can_review_accounts()``), not on
+        # Django's ``is_staff`` flag. A System Administrator provisioned
+        # via ``create_system_admin`` has ``is_staff=False`` but must
+        # still see the technical-detail column (raw action codes,
+        # tool_name). Other roles — even if ``is_staff=True`` were ever
+        # granted via the Django admin UI — must NOT see this column
+        # because the entire /audit/ page is already restricted to
+        # System Administrators by ``require_system_admin()`` above, so
+        # only the role check is meaningful here. The variable is named
+        # ``show_technical_detail`` to communicate intent.
+        ctx["show_technical_detail"] = bool(self.request.user.can_review_accounts())
         return ctx
 
 

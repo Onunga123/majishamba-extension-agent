@@ -10,6 +10,7 @@ from django.db.models import Count, Q
 from django.shortcuts import render
 from django.views import View
 
+from apps.accounts.models import User
 from apps.advisories.models import Advisory, AdvisoryEvidence
 from apps.audit.models import AuditEvent
 from apps.clusters.models import FarmerCluster
@@ -94,7 +95,31 @@ def _map_tile_url(tile_template: str, api_key: str) -> str:
     return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
 
-def _audit_timeline(event: AuditEvent) -> dict:
+def _actor_role_label(actor) -> str:
+    """Return a role-appropriate label for an audit event actor.
+
+    Used for the Viewer-facing activity feed so a Viewer never sees the
+    actor's username or real name (per docs/governance/synthetic_data_notice.md:31,76).
+    The label is the human-readable role of the actor:
+      - Extension Officer → "Officer"
+      - Supervisor → "Supervisor"
+      - System Administrator → "Administrator"
+      - Unknown / system actor → "System"
+    """
+    if actor is None or not isinstance(actor, User):
+        return "System"
+    if actor.role == User.Role.EXTENSION_OFFICER:
+        return "Officer"
+    if actor.role == User.Role.SUPERVISOR:
+        return "Supervisor"
+    if actor.role == User.Role.SYSTEM_ADMIN:
+        return "Administrator"
+    if actor.role == User.Role.VIEWER:
+        return "Viewer"
+    return "System"
+
+
+def _audit_timeline(event: AuditEvent, *, viewer: bool = False) -> dict:
     """Format one AuditEvent as a 'Who | What | Object | When | Result' row.
 
     Humanises internal action codes (including the http:METHOD:path pattern
@@ -102,6 +127,15 @@ def _audit_timeline(event: AuditEvent) -> dict:
     (e.g. 'Christopher completed Task 1 — Oct 8, 2026 · 09:46'), not raw
     API/HTTP text. Raw action codes are preserved in `raw_action` for the
     staff-only technical/audit view (progressive disclosure).
+
+    F-01 (Phase 1 remediation): when ``viewer=True``, the ``actor_name``
+    field is replaced with a role label ("Officer", "Supervisor",
+    "Administrator", or "System") so the Viewer's response never contains
+    an actor's username or real name. The redaction is server-side: the
+    username/full_name string is never placed in the response context for
+    a Viewer, so it cannot leak through the template layer. Authorised
+    roles (officer/supervisor/system_admin) receive the unchanged
+    ``actor_name`` (the actor's username, title-cased by the template).
     """
     # Map internal action codes to human-readable text.
     action_map = {
@@ -193,6 +227,11 @@ def _audit_timeline(event: AuditEvent) -> dict:
         result_badge = "failed"
 
     actor_name = event.actor.get_username() if event.actor else "system"
+    # F-01: For Viewer-facing responses, replace the actor's username with
+    # a role-appropriate label so the username / full name is never present
+    # in the response context (server-side redaction, not template-only).
+    if viewer:
+        actor_name = _actor_role_label(event.actor)
     return {
         "actor": event.actor,
         "actor_name": actor_name,
@@ -633,7 +672,11 @@ class DashboardHomeView(LoginRequiredMixin, View):
                 action__in=_ACCOUNT_MANAGEMENT_ACTIONS
             )
         recent_event_qs = recent_event_qs.order_by("-created_at")[:5]
-        recent_events = [_audit_timeline(e) for e in recent_event_qs]
+        # F-01: redact actor names for Viewer-facing responses. The Viewer
+        # receives role labels ("Officer", "Supervisor", "Administrator",
+        # "System") instead of the actor's username or real name.
+        is_viewer = request.user.role == User.Role.VIEWER
+        recent_events = [_audit_timeline(e, viewer=is_viewer) for e in recent_event_qs]
 
         # Badges for the nav and dashboard
         draft_advisory_count = needs_attention["drafts_count"]
@@ -789,19 +832,6 @@ class ClusterMapView(LoginRequiredMixin, View):
             "basemap_requires_key": is_carto,
             "max_zoom": cfg.get("MAP_MAX_ZOOM", 19),
             "can_request_advisory": bool(request.user.is_authenticated and request.user.is_officer()),
-        })
-
-
-class AuditTrailView(LoginRequiredMixin, View):
-    def get(self, request):
-        events_qs = AuditEvent.objects.select_related("actor").order_by("-created_at")[:200]
-        # Format as timeline for the audit page
-        events = [_audit_timeline(e) for e in events_qs]
-        # Staff-only: also expose raw audit events for technical view
-        raw_events = list(events_qs) if request.user.is_staff else None
-        return render(request, "dashboard/audit.html", {
-            "events": events,
-            "raw_events": raw_events,
         })
 
 

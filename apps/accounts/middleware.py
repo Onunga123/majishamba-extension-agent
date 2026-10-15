@@ -16,13 +16,22 @@ populated. It skips:
     can be redirected there without being caught in a loop)
   - Requests to /accounts/register/ and /accounts/registration/pending/
     (public pages)
-  - Static/media/health paths
+  - Static and media paths (prefix)
+  - The /health/ endpoint (exact path only — see F-10 below)
 
 NOTE: /admin/ is NOT exempt. A deactivated user must not be able to
 continue accessing the Django admin interface through an existing session.
 Django's admin has its own login page and authentication; if the user's
 account has been deactivated, they will be kicked out by this middleware
 and will need to re-authenticate (which will fail because is_active=False).
+
+F-10: Previously the exemption used "/health/" as a prefix, which
+exempted every URL under /health/ — including the entire dashboard app
+that was previously mounted there (/health/map/, /health/audit/, etc.).
+Now that /health/ is narrowed to a single HealthCheckView, the exemption
+is also narrowed to the exact path "/health/" so future route additions
+under /health/ (if any) would not inadvertently bypass eligibility
+checks.
 """
 from __future__ import annotations
 
@@ -35,12 +44,12 @@ _EXEMPT_PATHS = frozenset({
     "/accounts/logout/",
     "/accounts/register/",
     "/accounts/registration/pending/",
+    "/health/",  # F-10: exact path only, not prefix — see module docstring
 })
 
 _EXEMPT_PREFIXES = (
     "/static/",
     "/media/",
-    "/health/",
 )
 
 

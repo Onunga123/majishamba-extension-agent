@@ -4,8 +4,10 @@ page headers, and removal of duplicated location information.
 Covers the explicit v4 spec requirements:
   1. Global header shows 'Kachieng AI Agent' + 'Climate-smart advisories'
      (no geographic subtitle in the global header).
-  2. Primary nav: Dashboard / Map / Advisories / Tasks / Data & Sources /
-     Audit — 'Deleted' and 'Review' are NOT top-level nav items.
+  2. Primary nav: Dashboard / Map / Advisories / Tasks / Data & Sources
+     (officers + supervisors). Audit + User management are System
+     Administrator-only. 'Deleted' and 'Review' are NOT top-level nav
+     items.
   3. Advisory count badge is subtle + has accessible label.
   4. User identity moved to a user menu on the right (Profile + Logout).
      Logout is NOT a prominent primary action.
@@ -80,13 +82,19 @@ def test_global_header_does_not_repeat_geographic_subtitle(officer_client):
 
 @pytest.mark.django_db
 def test_primary_nav_has_correct_items(officer_client):
-    """Primary nav must contain: Dashboard, Map, Advisories, Tasks, Data & Sources,
-    Audit. NOT 'Deleted' or 'Review' as top-level items."""
+    """Primary nav must contain: Dashboard, Map, Advisories, Tasks, Data & Sources.
+    NOT 'Deleted' or 'Review' as top-level items.
+
+    F-06 (Phase 2 remediation): the 'Audit' nav link is now restricted to
+    System Administrators — an Officer no longer sees it. The 'Audit' link
+    visibility is verified in tests/security/test_phase2_nav_visibility.py.
+    """
     r = officer_client.get("/dashboard/")
     html = r.content.decode("utf-8")
 
-    # Required nav items must be present
-    for item in ("Dashboard", "Map", "Advisories", "Tasks", "Audit"):
+    # Required nav items must be present (Audit is gated on is_system_admin —
+    # not required for an officer).
+    for item in ("Dashboard", "Map", "Advisories", "Tasks"):
         assert item in html, f"Primary nav must contain {item!r}"
 
     # 'Data & Sources' (officers only — officer_client is an officer)

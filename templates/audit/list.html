@@ -54,7 +54,7 @@
         <th class="text-left px-2 py-1">Activity</th>
         <th class="text-left px-2 py-1">Object</th>
         <th class="text-left px-2 py-1">Approval</th>
-        {% if is_staff %}
+        {% if show_technical_detail %}
         <th class="text-left px-2 py-1">Technical detail</th>
         {% endif %}
       </tr>
@@ -86,7 +86,7 @@
           <span class="text-xs text-stone-400">{{ fe.approval_label }}</span>
           {% endif %}
         </td>
-        {% if is_staff %}
+        {% if show_technical_detail %}
         <td class="px-2 py-1 text-xs text-stone-500">
           <span class="font-mono">{{ fe.event.action }}</span>
           {% if fe.event.tool_name %}<span class="block mt-0.5">tool: {{ fe.event.tool_name }}</span>{% endif %}
@@ -95,7 +95,7 @@
         {% endif %}
       </tr>
     {% empty %}
-      <tr><td colspan="{% if is_staff %}6{% else %}5{% endif %}" class="px-2 py-3 text-stone-500 italic">No audit events match your filter.</td></tr>
+      <tr><td colspan="{% if show_technical_detail %}6{% else %}5{% endif %}" class="px-2 py-3 text-stone-500 italic">No audit events match your filter.</td></tr>
     {% endfor %}
     </tbody>
   </table>

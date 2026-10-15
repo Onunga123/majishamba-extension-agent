@@ -5,13 +5,26 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
 
+from apps.dashboard.health import HealthCheckView
+
 handler403 = "config.handlers.permission_denied"
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include(("apps.accounts.urls", "accounts"), namespace="accounts")),
     path("dashboard/", include(("apps.dashboard.urls", "dashboard"), namespace="dashboard")),
-    path("health/", include(("apps.dashboard.urls", "dashboard"), namespace="health")),
+    # F-10: narrow /health/ to a single health-check endpoint only.
+    # Previously this mounted the entire dashboard app under /health/,
+    # exposing /health/map/, /health/audit/, /health/about/, etc. as
+    # duplicates of the dashboard routes. Those duplicates were also
+    # exempt from AccountStatusMiddleware (which uses "/health/" as a
+    # prefix), bypassing session-eligibility enforcement for those
+    # shadow routes. The intended health endpoint is the JSON status
+    # check at GET /health/ (documented in
+    # docs/operations/readiness_register.md). The dashboard-internal
+    # named route "dashboard:health" at /dashboard/health/ remains
+    # available for any internal callers.
+    path("health/", HealthCheckView.as_view(), name="health"),
     path("advisories/", include(("apps.advisories.urls", "advisories"), namespace="advisories")),
     path("clusters/", include(("apps.clusters.urls", "clusters"), namespace="clusters")),
     path("approvals/", include(("apps.approvals.urls", "approvals"), namespace="approvals")),

@@ -200,22 +200,36 @@
     </div>
     {% if advisory.approvals.all %}
       <ul class="ar-approval-list">
-      {% for ap in advisory.approvals.all %}
-        <li>
-          <span class="ar-approval-list__decision">
-            <span class="font-medium">{{ ap.officer.display_name }}</span> — {{ ap.get_decision_display }}
-          </span>
-          <span class="ar-approval-list__date">{{ ap.created_at|date:"Y-m-d H:i" }}</span>
-        </li>
-      {% endfor %}
+      {% if is_viewer %}
+        {% comment %}F-02: Viewer-facing redaction — render role labels (server-side prepared in approvals_for_viewer) instead of ap.officer.display_name. Officer real names must not appear in any UI surface visible to a Viewer (docs/governance/synthetic_data_notice.md:31,76).{% endcomment %}
+        {% for ap in approvals_for_viewer %}
+          <li>
+            <span class="ar-approval-list__decision">
+              <span class="font-medium">{{ ap.officer_label }}</span> — {{ ap.decision_display }}
+            </span>
+            <span class="ar-approval-list__date">{{ ap.created_at|date:"Y-m-d H:i" }}</span>
+          </li>
+        {% endfor %}
+      {% else %}
+        {% for ap in advisory.approvals.all %}
+          <li>
+            <span class="ar-approval-list__decision">
+              <span class="font-medium">{{ ap.officer.display_name }}</span> — {{ ap.get_decision_display }}
+            </span>
+            <span class="ar-approval-list__date">{{ ap.created_at|date:"Y-m-d H:i" }}</span>
+          </li>
+        {% endfor %}
+      {% endif %}
       </ul>
     {% else %}
       <p class="ar-empty-state">No decision yet.</p>
     {% endif %}
+    {% if user.is_system_admin %}
     <a href="{% url 'audit:list' %}" class="ar-aside-link">
       Audit trail
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
     </a>
+    {% endif %}
   </aside>
 </div>
 </div>

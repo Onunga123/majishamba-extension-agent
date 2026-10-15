@@ -642,11 +642,13 @@
 <section class="mb-8" aria-labelledby="activity-heading">
   <div class="flex items-center justify-between mb-3">
     <h2 id="activity-heading" class="text-lg font-semibold" style="color: var(--color-text);">Recent activity</h2>
+    {% if user.is_system_admin %}
     <a href="{% url 'audit:list' %}"
        class="text-sm hover:underline font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded"
        style="color: var(--color-primary);">
       Audit log →
     </a>
+    {% endif %}
   </div>
   {% if recent_events %}
     <ul class="bg-white border border-stone-200 rounded divide-y divide-stone-100">

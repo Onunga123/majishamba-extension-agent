@@ -93,6 +93,39 @@ class AdvisoryDetailView(LoginRequiredMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx.update(advisory_review_context(self.object))
         ctx["is_deleted"] = self.object.is_deleted
+        # F-02: Viewers must not see officer real names in the approval
+        # history (per docs/governance/synthetic_data_notice.md:31,76).
+        # ``is_viewer`` is consumed by templates/advisories/detail.html to
+        # render a role-appropriate label ("Officer"/"Supervisor") instead
+        # of ``ap.officer.display_name``. The redaction is paired with a
+        # server-side annotation: ``approvals_with_label`` provides a
+        # ready-to-render ``officer_label`` field for each approval so the
+        # template never reads ``ap.officer.display_name`` for Viewers.
+        from apps.accounts.models import User
+        is_viewer = self.request.user.role == User.Role.VIEWER
+        ctx["is_viewer"] = is_viewer
+        if is_viewer:
+            approvals_with_label = []
+            for ap in self.object.approvals.all():
+                if ap.officer is not None and isinstance(ap.officer, User):
+                    if ap.officer.role == User.Role.SUPERVISOR:
+                        label = "Supervisor"
+                    elif ap.officer.role == User.Role.SYSTEM_ADMIN:
+                        label = "Administrator"
+                    elif ap.officer.role == User.Role.EXTENSION_OFFICER:
+                        label = "Officer"
+                    elif ap.officer.role == User.Role.VIEWER:
+                        label = "Viewer"
+                    else:
+                        label = "Officer"
+                else:
+                    label = "Officer"
+                approvals_with_label.append({
+                    "decision_display": ap.get_decision_display(),
+                    "created_at": ap.created_at,
+                    "officer_label": label,
+                })
+            ctx["approvals_for_viewer"] = approvals_with_label
         return ctx
 
 

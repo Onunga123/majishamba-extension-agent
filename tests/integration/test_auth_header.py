@@ -285,14 +285,23 @@ def test_no_demo_or_synthetic_references_on_auth_pages():
 @pytest.mark.django_db
 def test_authenticated_users_still_see_app_navbar(officer_client):
     """Authenticated users on operational pages must still see the full application navbar
-    with role-aware items (Dashboard, Advisories, Tasks, Audit, etc.)."""
+    with role-aware items (Dashboard, Advisories, Tasks, etc.).
+
+    F-06 (Phase 2 remediation): the 'Audit' nav link is now restricted
+    to System Administrators — an Officer no longer sees it. The
+    'Audit' link visibility for System Administrators is verified in
+    tests/security/test_phase2_nav_visibility.py. The previous assertion
+    of ``"Audit" in html`` was too loose (it could match the
+    'Audit trail' aside link on advisory pages or other incidental
+    occurrences); it has been removed in favour of the dedicated
+    Phase 2 nav visibility tests.
+    """
     r = officer_client.get("/dashboard/")
     assert r.status_code == 200
     html = r.content.decode("utf-8")
     assert "Dashboard" in html, "App navbar missing Dashboard link for authenticated officer"
     assert "Advisories" in html, "App navbar missing Advisories link for authenticated officer"
     assert "Tasks" in html, "App navbar missing Tasks link for authenticated officer"
-    assert "Audit" in html, "App navbar missing Audit link for authenticated officer"
     # Logo on app pages should link to dashboard (current behavior).
     assert 'href="/dashboard/"' in html, "App page logo should link to /dashboard/"
 

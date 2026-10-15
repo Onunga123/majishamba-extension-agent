@@ -72,7 +72,9 @@ SOFTWARE.</pre>
   <ul class="text-sm text-stone-700 list-disc ml-5 space-y-1">
     <li><a href="{% url 'dashboard:guidance' %}" class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Agronomic guidance — KALRO permission status</a></li>
     <li><a href="{% url 'dashboard:data_sources' %}" class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Data sources — weather, pest, market authorities</a></li>
+    {% if user.is_system_admin %}
     <li><a href="{% url 'audit:list' %}" class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Full audit log</a></li>
+    {% endif %}
     <li><a href="{% url 'dashboard:home' %}" class="text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 rounded">Back to dashboard</a></li>
   </ul>
 </div>

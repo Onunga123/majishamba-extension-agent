@@ -540,3 +540,171 @@ def _make_system_admin():
     user.approval_status = "approved"
     user.save()
     return user
+
+
+# ---------------------------------------------------------------------------
+# F-04: Audit technical-detail visibility (Phase 2 remediation)
+#
+# The audit list view previously passed ``ctx["is_staff"] = request.user.is_staff``
+# to gate the "Technical detail" column on Django admin access. The Phase B
+# authorisation check above restricts the entire /audit/ page to System
+# Administrators via ``require_system_admin()``, so the ``is_staff`` check
+# was a redundant UX inconsistency: a System Administrator provisioned via
+# ``create_system_admin`` has ``is_staff=False`` and lost the technical
+# column even though they are the authorised audience. F-04 renames the
+# context variable to ``show_technical_detail`` and bases it on
+# ``can_review_accounts()`` (the same role check used by the page access
+# gate), so an approved System Administrator sees the technical column
+# regardless of ``is_staff``, and no other role can reach the page at all.
+# ---------------------------------------------------------------------------
+def _make_system_admin_with_is_staff_false():
+    """A System Administrator provisioned via ``create_system_admin`` —
+    ``is_staff=False``, ``is_superuser=False``. This is the configuration
+    that exposed the F-04 regression: a real admin who lost the technical
+    column because the template gated on ``is_staff``.
+    """
+    user, _ = User.objects.get_or_create(
+        username="phase_b_admin_no_staff",
+        defaults={
+            "role": "system_admin",
+            "full_name": "Phase B Admin NoStaff",
+            "sub_county": "Nyatike",
+            "ward": "Kachieng",
+            "is_active": True,
+            "approval_status": "approved",
+            "is_staff": False,
+            "is_superuser": False,
+        },
+    )
+    user.is_active = True
+    user.approval_status = "approved"
+    user.is_staff = False
+    user.is_superuser = False
+    user.save()
+    return user
+
+
+@pytest.mark.django_db
+def test_audit_technical_detail_visible_to_system_admin_with_is_staff_false():
+    """F-04 regression: a System Administrator provisioned via
+    ``create_system_admin`` (``is_staff=False``) MUST see the technical-detail
+    column on /audit/. The column visibility is gated on the application
+    role (``can_review_accounts()``), not Django's ``is_staff``.
+    """
+    admin = _make_system_admin_with_is_staff_false()
+    from apps.audit.models import AuditEvent
+    AuditEvent.objects.create(actor=admin, action="agent_run:end")
+
+    c = Client()
+    c.force_login(admin)
+    r = c.get("/audit/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    # The "Technical detail" column header must be present
+    assert "Technical detail" in html, (
+        "System Administrator with is_staff=False must see the technical-detail column header"
+    )
+
+
+@pytest.mark.django_db
+def test_audit_technical_detail_includes_raw_action_for_system_admin():
+    """F-04 regression: the technical-detail column must render the raw
+    audit action code (e.g. ``agent_run:end``) for a System Administrator.
+    """
+    admin = _make_system_admin_with_is_staff_false()
+    from apps.audit.models import AuditEvent
+    AuditEvent.objects.create(actor=admin, action="agent_run:end")
+
+    c = Client()
+    c.force_login(admin)
+    r = c.get("/audit/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    # The raw action code must appear in the technical-detail column
+    assert "agent_run:end" in html, (
+        "System Administrator must see the raw action code 'agent_run:end' in the technical-detail column"
+    )
+
+
+@pytest.mark.django_db
+def test_audit_technical_detail_includes_tool_name_for_tool_call_events():
+    """F-04 regression: for a tool-call audit event, the technical-detail
+    column must also render the tool_name (e.g. ``get_cluster_plot_history``).
+    """
+    admin = _make_system_admin_with_is_staff_false()
+    from apps.audit.models import AuditEvent
+    AuditEvent.objects.create(
+        actor=admin,
+        action="tool_call:get_cluster_plot_history",
+        tool_name="get_cluster_plot_history",
+    )
+
+    c = Client()
+    c.force_login(admin)
+    r = c.get("/audit/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    assert "tool: get_cluster_plot_history" in html, (
+        "System Administrator must see the tool_name in the technical-detail column"
+    )
+
+
+@pytest.mark.django_db
+def test_audit_technical_detail_not_in_page_for_other_roles():
+    """F-04 regression: even though other roles never reach /audit/ (403),
+    we still assert that the technical-detail column header is NOT present
+    in their response. This guards against a regression where the column
+    header is rendered unconditionally. Other roles are denied access before
+    reaching the template, so this test primarily documents the
+    server-side denial and the absence of the column header.
+    """
+    officer = _make_officer()
+    c = Client()
+    c.force_login(officer)
+    r = c.get("/audit/")
+    # Phase B denies access for officers
+    assert r.status_code == 403
+    html = r.content.decode("utf-8")
+    assert "Technical detail" not in html, (
+        "Officer must not see the technical-detail column header (denied at /audit/)"
+    )
+
+
+@pytest.mark.django_db
+def test_audit_table_columns_preserved_for_system_admin():
+    """F-04 regression: the existing audit table structure must be preserved.
+    A System Administrator still sees the standard columns (Timestamp,
+    Actor, Activity, Object, Approval) in addition to the technical column.
+    """
+    admin = _make_system_admin_with_is_staff_false()
+    from apps.audit.models import AuditEvent
+    AuditEvent.objects.create(actor=admin, action="advisory:approve")
+
+    c = Client()
+    c.force_login(admin)
+    r = c.get("/audit/")
+    assert r.status_code == 200
+    html = r.content.decode("utf-8")
+    for col in ("Timestamp", "Actor", "Activity", "Object", "Approval", "Technical detail"):
+        assert col in html, f"Audit table must still include the {col!r} column"
+
+
+@pytest.mark.django_db
+def test_audit_csv_export_still_works_for_system_admin_with_is_staff_false():
+    """F-04 regression: the CSV export endpoint (separate from the list view)
+    must still work for a System Administrator with ``is_staff=False``.
+    The CSV does not gate any field on ``is_staff`` — this test confirms the
+    F-04 change did not accidentally affect the CSV export path.
+    """
+    admin = _make_system_admin_with_is_staff_false()
+    from apps.audit.models import AuditEvent
+    AuditEvent.objects.create(actor=admin, action="advisory:approve")
+
+    c = Client()
+    c.force_login(admin)
+    r = c.get("/audit/export.csv")
+    assert r.status_code == 200
+    assert r["Content-Type"].startswith("text/csv")
+    text = r.content.decode("utf-8")
+    # CSV header must include the standard columns
+    assert "action" in text and "human_readable_action" in text

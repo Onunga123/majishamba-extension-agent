@@ -227,12 +227,21 @@ def test_dashboard_has_view_all_advisories_link(officer_client):
 
 
 @pytest.mark.django_db
-def test_dashboard_has_full_audit_log_link(officer_client):
-    """The dashboard must have a 'Full audit log' link to /audit/."""
-    r = officer_client.get("/dashboard/")
+def test_dashboard_has_full_audit_log_link(system_admin_client):
+    """The dashboard must have a 'Full audit log' link to /audit/.
+
+    F-07 (Phase 2 remediation): the link is now gated on
+    ``is_system_admin``. An Officer no longer sees the link (it leads
+    to a page restricted to System Administrators). This test switched
+    from ``officer_client`` to ``system_admin_client`` so the legitimate
+    presence of the link is verified for its intended audience. Officer
+    non-visibility is verified in
+    tests/security/test_phase2_nav_visibility.py.
+    """
+    r = system_admin_client.get("/dashboard/")
     html = r.content.decode("utf-8")
     assert 'href="/audit/"' in html, (
-        "Dashboard is missing the 'Full audit log' link to /audit/"
+        "Dashboard is missing the 'Full audit log' link to /audit/ for the System Administrator"
     )
 
 

@@ -46,9 +46,19 @@ def test_create_officer_duplicate_rejected():
 
 @pytest.mark.django_db
 def test_health_endpoint():
-    """The health endpoint returns JSON with database and provider status."""
+    """The health endpoint returns JSON with database and provider status.
+
+    F-10 (Phase 3 remediation): the /health/ URL was narrowed to a single
+    HealthCheckView. Previously this test used /health/health/ (the
+    double-health path that only existed because the entire dashboard app
+    was mounted under /health/). The intended endpoint per the
+    HealthCheckView docstring (apps/dashboard/health.py:3) and the new
+    narrowed URL config (config/urls.py) is /health/ — the JSON status
+    endpoint for load balancers and monitoring. The readiness register
+    documentation was also updated to reflect the corrected URL.
+    """
     c = Client()
-    r = c.get("/health/health/")
+    r = c.get("/health/")
     assert r.status_code == 200
     data = r.json()
     assert data["status"] in ("ok", "degraded")
@@ -82,9 +92,13 @@ def test_deploy_script_does_not_load_fixtures():
 
 @pytest.mark.django_db
 def test_secrets_absent_from_health():
-    """The health endpoint does not expose API keys or secrets."""
+    """The health endpoint does not expose API keys or secrets.
+
+    F-10 (Phase 3 remediation): URL updated from /health/health/ to
+    /health/ — see test_health_endpoint docstring for the rationale.
+    """
     c = Client()
-    r = c.get("/health/health/")
+    r = c.get("/health/")
     html = r.content.decode("utf-8")
     assert "sk-or-v1" not in html
     assert "SECRET" not in html.upper() or "SECRET_KEY" not in html
