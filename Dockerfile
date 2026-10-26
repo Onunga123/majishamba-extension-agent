@@ -15,9 +15,7 @@ COPY . .
 RUN pip install --no-cache-dir -e ".[postgres]" \
     && pip install --no-cache-dir gunicorn
 
-# Render provides the public HTTP port
 EXPOSE 8000
 
-# Start Django with Gunicorn
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "1", "--timeout", "120"]
 ```
