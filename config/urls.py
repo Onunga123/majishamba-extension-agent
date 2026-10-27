@@ -1,7 +1,9 @@
+
 """Root URL configuration for MajiShamba Extension Agent."""
 from __future__ import annotations
 
 from django.contrib import admin
+from django.templatetags.static import static
 from django.urls import include, path
 from django.views.generic import RedirectView
 
@@ -11,6 +13,16 @@ handler403 = "config.handlers.permission_denied"
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+
+    # Serve the existing SVG logo when browsers request /favicon.ico.
+    path(
+        "favicon.ico",
+        RedirectView.as_view(
+            url=static("images/logo.svg"),
+            permanent=True,
+        ),
+    ),
+
     path("accounts/", include(("apps.accounts.urls", "accounts"), namespace="accounts")),
     path("dashboard/", include(("apps.dashboard.urls", "dashboard"), namespace="dashboard")),
     # F-10: narrow /health/ to a single health-check endpoint only.
