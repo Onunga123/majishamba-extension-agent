@@ -13,8 +13,11 @@ if not SECRET_KEY:
     raise RuntimeError("MAJISHAMBA_SECRET_KEY must be set in production")
 
 ALLOWED_HOSTS = (
-    [host.strip() for host in env_str("MAJISHAMBA_ALLOWED_HOSTS", "").split(",")
-     if host.strip()]
+    [
+        host.strip()
+        for host in env_str("MAJISHAMBA_ALLOWED_HOSTS", "").split(",")
+        if host.strip()
+    ]
     or ["*"]
 )
 
@@ -32,16 +35,20 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
 # --- Demo mode --------------------------------------------------------------
-# Keep the demo account selector disabled by default.
 MAJISHAMBA["DEMO_MODE"] = False
 
 # --- Static files -----------------------------------------------------------
-STATICFILES_STORAGE = (
-    "whitenoise.storage.CompressedManifestStaticFilesStorage"
-)
+# Django 5.0/5.1-compatible storage configuration.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # --- Database: SQLite by default, PostgreSQL optional -----------------------
-# SQLite avoids requiring a separately hosted database for the demo.
 # Render's local filesystem is ephemeral; SQLite data is not durable there.
 if env_bool("USE_POSTGRES", False):
     DATABASES = {
@@ -76,8 +83,7 @@ CACHES = {
     }
 }
 
-# --- Background jobs: execute inline for the demo ---------------------------
-# No Redis queue or separate worker is required by this configuration.
+# --- Background jobs: no separate worker required for this configuration ---
 RQ_QUEUES = {
     "default": {
         "HOST": "127.0.0.1",
