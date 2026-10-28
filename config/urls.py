@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from django.contrib import admin
+from django.conf import settings
+from django.http import FileResponse
+from django.views.decorators.http import require_GET
 from django.templatetags.static import static
 from django.urls import include, path
 from django.views.generic import RedirectView
@@ -11,7 +14,18 @@ from apps.dashboard.health import HealthCheckView
 
 handler403 = "config.handlers.permission_denied"
 
+
+@require_GET
+def service_worker(request):
+    worker_path = settings.BASE_DIR / "static" / "service-worker.js"
+    response = FileResponse(
+        worker_path.open("rb"),
+        content_type="application/javascript",
+    )
+    response["Cache-Control"] = "no-cache"
+    return response
 urlpatterns = [
+    path("service-worker.js", service_worker, name="service_worker"),
     path("admin/", admin.site.urls),
 
     # Serve the existing SVG logo when browsers request /favicon.ico.

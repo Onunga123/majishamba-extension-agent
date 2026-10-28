@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14532d">
+  <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
   <link rel="icon" type="image/svg+xml" href="{% static 'images/logo.svg' %}">
   <title>{% block title %}Kachieng’ AI Agent{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
@@ -206,10 +208,7 @@
     {% if messages %}
       <div class="mb-4 space-y-1" role="status" aria-live="polite">
         {% for m in messages %}
-          <div class="px-3 py-2 rounded text-sm"
-               style="{% if m.tags == 'error' %}background-color: var(--color-danger-soft); color: var(--color-danger-text); border: 1px solid var(--color-danger-border);
-                      {% elif m.tags == 'success' %}background-color: var(--color-success-soft); color: var(--color-success-text); border: 1px solid var(--color-success-border);
-                      {% else %}background-color: var(--color-surface-muted); color: var(--color-text-secondary); border: 1px solid var(--color-border);{% endif %}">
+          <div class="px-3 py-2 rounded text-sm {% if m.tags == 'error' %}message-alert--error{% elif m.tags == 'success' %}message-alert--success{% else %}message-alert--default{% endif %}">
             {{ m }}
           </div>
         {% endfor %}
@@ -249,6 +248,16 @@
       window.addEventListener('resize', applyMobileState);
       applyMobileState();
     })();
+  </script>
+<script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("/service-worker.js")
+          .catch(function (error) {
+            console.error("Service worker registration failed:", error);
+          });
+      });
+    }
   </script>
 </body>
 </html>

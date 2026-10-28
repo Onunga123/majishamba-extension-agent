@@ -270,3 +270,22 @@
     min-height: 2.75rem;
   }
 }
+
+/* Django flash messages */
+.message-alert--error {
+  background-color: var(--color-danger-soft);
+  color: var(--color-danger-text);
+  border: 1px solid var(--color-danger-border);
+}
+
+.message-alert--success {
+  background-color: var(--color-success-soft);
+  color: var(--color-success-text);
+  border: 1px solid var(--color-success-border);
+}
+
+.message-alert--default {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}

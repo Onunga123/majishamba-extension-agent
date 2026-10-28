@@ -1,6 +1,8 @@
-"""Follow-up tasks — created only after officer approval."""
+"""Follow-up tasks â€” created only after officer approval."""
 from __future__ import annotations
 
+
+import uuid
 import datetime as dt
 
 from django.conf import settings
@@ -58,7 +60,8 @@ class FollowUpTask(models.Model):
 
 
 class FieldFinding(models.Model):
-    """Officer field notes after an approved advisory — internal only."""
+    """Officer field notes after an approved advisory â€” internal only."""
+    client_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
     task = models.ForeignKey(FollowUpTask, on_delete=models.CASCADE, related_name="field_findings")
     visit_date = models.DateField()

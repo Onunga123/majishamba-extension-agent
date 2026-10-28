@@ -3,10 +3,12 @@ from __future__ import annotations
 from django.urls import path
 
 from . import views
+from .sync_views import field_findings_sync
 
 app_name = "tasks"
 
 urlpatterns = [
+    path("sync/findings/", field_findings_sync, name="sync_field_findings"),
     path("", views.FollowUpTaskListView.as_view(), name="list"),
     path("<int:pk>/", views.FollowUpTaskDetailView.as_view(), name="detail"),
     path("<int:pk>/findings/", views.TaskFieldFindingView.as_view(), name="findings"),

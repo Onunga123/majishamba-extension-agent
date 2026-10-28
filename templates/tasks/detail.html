@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Task {{ task.id }} — Kachieng’ AI Agent{% endblock %}
 {% block content %}
 <header class="mb-6">
@@ -121,4 +122,5 @@
   {% endfor %}
   {% endif %}
 </div>
+<script src="{% static 'js/offline-findings.js' %}" defer></script>
 {% endblock %}
