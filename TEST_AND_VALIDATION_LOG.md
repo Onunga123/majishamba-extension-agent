@@ -52,10 +52,46 @@ extraction preserved web behaviour.
 - `python manage.py makemigrations api` → created `apps/api/migrations/0001_initial.py`.
 - `python manage.py check` → `System check identified no issues (0 silenced).`
 
+## Phase 2 — Advisory integration (`feature/base44-api`)
+
+```
+837 passed, 1 skipped, 2 warnings in 103.14s
+```
+
+- **828 → 837 passed:** +9 new tests in `tests/integration/test_api.py`
+  covering the two new read endpoints, the canonical request path, audit
+  attribution, the run-status access rule, and the pipeline-failure path.
+- **0 failed; 1 skipped** (Playwright, unchanged).
+- **No migration:** the new `advisories:read` scope is a `Scope` enum value
+  stored in the existing `scopes` JSONField — no schema change
+  (`makemigrations --check` reports "No changes detected").
+
+### New endpoints (roadmap §11, Phase 2)
+
+- `POST /api/v1/advisories/` — endpoint 3 canonical path (alias
+  `/advisories/request/` retained). Each request is audited as
+  `advisory:request` with the token user as actor.
+- `GET /api/v1/runs/<uuid>/` — endpoint 4, run-status polling. Returns
+  `status` (`completed` / `completed_with_fallback` / `failed` …) and
+  `result_advisory_id`; access = owner / officer / system admin.
+- `GET /api/v1/advisories/<pk>/` — endpoint 5, advisory detail + serialized
+  evidence + `content_version`; soft-deleted advisories return 404.
+
+### Service / worker hardening (roadmap Phase 2 required work)
+
+- `request_advisory_run` is now `@transaction.atomic` and locks the
+  `FarmerCluster` row with `select_for_update`, closing the dedup TOCTOU.
+- `execute_advisory_run` catches pipeline exceptions and records a `FAILED`
+  run with `error_message` instead of propagating.
+
+### New scope
+
+`advisories:read` (eligibility: `is_officer() or is_system_admin()`).
+
 ## How to reproduce
 
 ```bash
 cd majishamba_fresh
 .venv/bin/python -m pytest -q                       # full suite
-.venv/bin/python -m pytest tests/integration/test_api.py -q   # Phase 1 only
+.venv/bin/python -m pytest tests/integration/test_api.py -q   # Phase 1 + Phase 2
 ```

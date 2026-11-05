@@ -43,3 +43,22 @@ Maps each requirement of the Base44-API phase to the artifact that fulfils it.
 | --- | --- |
 | Remove leaked credential from parent clone's remote URL | parent repo `origin` rewritten to clean `https://github.com/...` URL |
 | Push using a throwaway `http.extraheader` (no persistence, no echo) | push step (end of phase) |
+
+## Phase 2 — Advisory integration
+
+Maps the Phase 2 requirements (roadmap §11, Phase 2) to the artifacts that
+fulfil them.
+
+| requirement | artifact |
+| --- | --- |
+| Extract `request_advisory_run` with `@transaction.atomic` + `select_for_update` (TOCTOU) | `apps/advisories/services.py` — `request_advisory_run` (locks the `FarmerCluster` row) |
+| Endpoint 3 `POST /advisories/` (canonical path) | `apps/api/urls.py` — `path("advisories/", ...)`; `apps/api/views.py` — `request_advisory_view` |
+| Back-compat alias `POST /advisories/request/` | `apps/api/urls.py` — `path("advisories/request/", ...)` (same view) |
+| Endpoint 4 `GET /runs/<uuid>/` (run-status polling) | `apps/api/views.py` — `run_status_view`; `apps/api/urls.py` — `path("runs/<uuid:run_id>/", ...)` |
+| Endpoint 5 `GET /advisories/<pk>/` (advisory detail + evidence) | `apps/api/views.py` — `advisory_detail_view`; `apps/api/urls.py` — `path("advisories/<int:advisory_pk>/", ...)` |
+| `advisories:read` scope + eligibility (officer / system admin) | `apps/api/models.py` — `Scope.ADVISORIES_READ`; `apps/api/auth.py` — `_SCOPE_ELIGIBILITY` |
+| Run-status access rule (owner / officer / sysadmin) | `apps/api/views.py` — `run_status_view` (mirrors web `AdvisoryRunStatusView`) |
+| Soft-deleted advisories hidden from the API | `apps/api/views.py` — `advisory_detail_view` uses `Advisory.objects` (active manager) |
+| `FAILED` recorded on a pipeline exception | `apps/agents/run_worker.py` — `execute_advisory_run` try/except |
+| `AuditEvent.actor` equals the token user | `apps/api/views.py` — `request_advisory_view` logs `advisory:request` with `actor=request.user` |
+| Phase 2 tests | `tests/integration/test_api.py` — 9 new tests |

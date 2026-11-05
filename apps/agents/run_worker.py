@@ -23,14 +23,27 @@ def execute_advisory_run(run_pk: int) -> None:
     run.started_at = timezone.now()
     run.save(update_fields=["status", "started_at"])
 
-    result: dict[str, Any] = run_advisory_pipeline(
-        cluster_id=cluster.cluster_id,
-        ward=cluster.ward.name,
-        sub_county=cluster.ward.sub_county.name,
-        county=cluster.ward.sub_county.county.name,
-        actor=run.requested_by,
-        advisory_run_id=run.pk,
-    )
+    try:
+        result: dict[str, Any] = run_advisory_pipeline(
+            cluster_id=cluster.cluster_id,
+            ward=cluster.ward.name,
+            sub_county=cluster.ward.sub_county.name,
+            county=cluster.ward.sub_county.county.name,
+            actor=run.requested_by,
+            advisory_run_id=run.pk,
+        )
+    except Exception as exc:
+        # A pipeline exception must record a FAILED run rather than propagate
+        # to the caller (the sync request handler or the async worker thread).
+        logger.exception("Advisory run %s failed", run_pk)
+        run.status = AdvisoryRun.Status.FAILED
+        run.error_message = (str(exc) or "Advisory run failed.")[:500]
+        run.current_message = "Run failed — see message below"
+        run.finished_at = timezone.now()
+        run.save(
+            update_fields=["status", "error_message", "current_message", "finished_at"]
+        )
+        return
     run.refresh_from_db()
     mode = result.get("generation_mode") or ""
     if result.get("advisory_id"):
