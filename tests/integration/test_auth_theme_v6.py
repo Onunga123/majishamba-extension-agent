@@ -22,9 +22,15 @@ Covers the explicit v6 auth-theme spec:
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 import pytest
+from django.conf import settings
 from django.test import Client
+
+# Static CSS files live under <project>/static/css. Resolve via BASE_DIR so the
+# tests are portable across Linux/Windows and any checkout path.
+_DASHBOARD_CSS = Path(settings.BASE_DIR) / "static" / "css" / "dashboard.css"
 
 
 # ---------------------------------------------------------------------------
@@ -103,7 +109,7 @@ def test_auth_header_uses_forest_green_brand():
 
 def test_auth_brand_css_uses_forest_token():
     """The .auth-brand-name CSS class must use --color-forest (deep forest green)."""
-    with open("/home/z/my-project/majishamba_fresh/static/css/dashboard.css") as f:
+    with open(_DASHBOARD_CSS) as f:
         css = f.read()
     brand_name_block = re.search(r"\.auth-brand-name\s*\{[^}]+\}", css, re.S)
     assert brand_name_block is not None, ".auth-brand-name class must be defined"
@@ -379,7 +385,7 @@ def test_auth_pages_have_main_with_tabindex():
 @pytest.mark.django_db
 def test_auth_inputs_meet_touch_target_size():
     """The auth-input class must have min-height: 44px (WCAG 2.5.5 touch target)."""
-    with open("/home/z/my-project/majishamba_fresh/static/css/dashboard.css") as f:
+    with open(_DASHBOARD_CSS) as f:
         css = f.read()
     auth_input_block = re.search(r"\.auth-input\s*\{[^}]+\}", css, re.S)
     assert auth_input_block is not None

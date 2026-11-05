@@ -8,9 +8,17 @@ key dashboard sections (encouraging centralized token use).
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 import pytest
+from django.conf import settings
 from django.test import Client
+
+# Static CSS files live under <project>/static/css. Resolve via BASE_DIR so the
+# tests are portable across Linux/Windows and any checkout path.
+_CSS_DIR = Path(settings.BASE_DIR) / "static" / "css"
+_DASHBOARD_CSS = _CSS_DIR / "dashboard.css"
+_TOKENS_CSS = _CSS_DIR / "tokens.css"
 
 
 # ---------------------------------------------------------------------------
@@ -70,7 +78,7 @@ def test_global_header_uses_forest_dark_theme(officer_client):
 def test_app_header_css_class_defined():
     """The .app-header CSS class must be defined in dashboard.css with the
     forest color token."""
-    with open("/home/z/my-project/majishamba_fresh/static/css/dashboard.css") as f:
+    with open(_DASHBOARD_CSS) as f:
         css = f.read()
     assert ".app-header" in css, ".app-header class must be defined in dashboard.css"
     # The class must reference --color-forest
@@ -192,7 +200,7 @@ def test_btn_primary_css_uses_primary_token():
     The v5 definition (later in the file) overrides the v2 definition
     (which used hardcoded #047857). We check that AT LEAST ONE .btn-primary
     definition uses the token — the last one wins in CSS cascade."""
-    with open("/home/z/my-project/majishamba_fresh/static/css/dashboard.css") as f:
+    with open(_DASHBOARD_CSS) as f:
         css = f.read()
     # Find ALL .btn-primary definitions
     btn_blocks = re.findall(r"\.btn-primary\s*\{[^}]+\}", css, re.S)
@@ -267,7 +275,7 @@ def test_workflow_pills_use_semantic_classes(officer_client):
 
 def test_tokens_css_defines_all_required_tokens():
     """tokens.css must define all the required design tokens from the v5 spec."""
-    with open("/home/z/my-project/majishamba_fresh/static/css/tokens.css") as f:
+    with open(_TOKENS_CSS) as f:
         css = f.read()
     required_tokens = [
         "--color-primary",
@@ -305,7 +313,7 @@ def test_tokens_css_defines_all_required_tokens():
 def test_tokens_css_uses_specified_palette_values():
     """The design tokens must use the exact palette values from the v5 spec
     (primary green #176B45, deep forest #0F3D2E, soft sage #E8F3ED, etc.)."""
-    with open("/home/z/my-project/majishamba_fresh/static/css/tokens.css") as f:
+    with open(_TOKENS_CSS) as f:
         css = f.read()
     # Check a few key tokens to confirm the palette is the v5 agricultural theme
     assert "#176B45" in css, "Primary green must be #176B45"
@@ -325,7 +333,7 @@ def test_status_pill_classes_defined():
     """The .status-pill + modifier classes must be defined in dashboard.css
     for all semantic statuses (draft, approved, field-verification, rejected,
     deferred, neutral)."""
-    with open("/home/z/my-project/majishamba_fresh/static/css/dashboard.css") as f:
+    with open(_DASHBOARD_CSS) as f:
         css = f.read()
     required = [
         ".status-pill",
@@ -343,7 +351,7 @@ def test_status_pill_classes_defined():
 def test_status_pills_have_dot_indicator_and_text_label():
     """Status pills must have a ::before dot (non-color signal) so colour is
     never the only signal (WCAG 1.4.1 Use of Color)."""
-    with open("/home/z/my-project/majishamba_fresh/static/css/dashboard.css") as f:
+    with open(_DASHBOARD_CSS) as f:
         css = f.read()
     assert ".status-pill::before" in css, (
         "Status pills must have a ::before pseudo-element (non-color signal)"

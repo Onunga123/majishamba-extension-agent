@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -295,6 +296,10 @@ class TestProviderAndGraphDeterministic(unittest.TestCase):
             client.__enter__.return_value = client
             client.post.return_value = response
             client_class.return_value = client
+            # Drop any ambient token-budget override (e.g. from a local .env)
+            # so the request body reflects the agreed 1200-token default rather
+            # than a machine-specific value. patch.dict restores it on exit.
+            os.environ.pop("OPENROUTER_MAX_OUTPUT_TOKENS", None)
             from apps.agents.llm_provider import call_llm
 
             result = call_llm("Return JSON")

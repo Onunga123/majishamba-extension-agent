@@ -21,6 +21,8 @@ authoritative answer.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from django.test import Client
 
@@ -125,7 +127,7 @@ def test_login_template_origin_is_base_auth_html():
 
     login_tmpl = get_template("accounts/login.html")
     login_path = login_tmpl.origin.name
-    assert login_path.endswith("templates/accounts/login.html"), (
+    assert Path(login_path).as_posix().endswith("templates/accounts/login.html"), (
         f"Login template resolved to unexpected path: {login_path}"
     )
 
@@ -138,6 +140,6 @@ def test_login_template_origin_is_base_auth_html():
     # And base_auth.html must exist at templates/base_auth.html
     base_tmpl = get_template("base_auth.html")
     base_path = base_tmpl.origin.name
-    assert base_path.endswith("templates/base_auth.html"), (
+    assert Path(base_path).as_posix().endswith("templates/base_auth.html"), (
         f"base_auth.html resolved to unexpected path: {base_path}"
     )

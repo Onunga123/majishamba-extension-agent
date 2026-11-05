@@ -573,18 +573,28 @@ def draft_advisory(state: AgentState) -> AgentState:
             # Do not expose malformed or incomplete provider text as an LLM
             # success. Preserve the attempted provider and retry diagnostics so
             # the fallback metadata remains truthful.
+            initial = out or {}
+            initial_status = initial.get("status", "")
+            initial_error = initial.get("error", "")
+            # A transport/provider failure (status="failed" with a real error
+            # code such as rate_limited, timeout, or authentication_error) is
+            # not malformed model output. Preserve the original failure reason
+            # instead of relabelling it "invalid_output", which is reserved for
+            # status="success" responses that failed JSON/schema validation.
+            is_provider_failure = initial_status == "failed" and bool(initial_error)
+            preserved_error = initial_error if is_provider_failure else "invalid_output"
             out = {
-                **(retry_out or out),
+                **(retry_out or initial),
                 "text": "",
                 "status": "failed",
-                "error": "invalid_output",
+                "error": preserved_error,
                 "retry_count": retry_count,
                 "retry_error": retry_error,
-                "initial_error": (out or {}).get("error", ""),
-                "initial_status": (out or {}).get("status", ""),
-                "initial_model": (out or {}).get("model", ""),
-                "initial_finish_reason": (out or {}).get("finish_reason", ""),
-                "initial_incomplete_details": (out or {}).get("incomplete_details", {}),
+                "initial_error": initial_error,
+                "initial_status": initial_status,
+                "initial_model": initial.get("model", ""),
+                "initial_finish_reason": initial.get("finish_reason", ""),
+                "initial_incomplete_details": initial.get("incomplete_details", {}),
             }
             valid = False
     elapsed_s = round(time.time() - started, 2)
