@@ -456,6 +456,19 @@ def test_guidance_does_not_invent_data_sources(officer_client):
     """The page must not claim endorsements or integrations that don't exist."""
     r = officer_client.get("/dashboard/guidance/")
     html = r.content.decode("utf-8")
+    import re
+
+    # The base template renders a per-request CSRF token in the logout form
+    # ({% csrf_token %}). It is a random ~64-char string that can coincidentally
+    # contain any short letter sequence — e.g. "FAO" or "ICIPE" — which would
+    # false-positive the assertions below. Blank its value before checking the
+    # page does not name organisations it does not integrate with; real mentions
+    # in visible text or links are unaffected.
+    html = re.sub(
+        r'name="csrfmiddlewaretoken"\s+value="[^"]*"',
+        'name="csrfmiddlewaretoken" value=""',
+        html,
+    )
     assert "FAO" not in html
     assert "ICIPE" not in html
     assert "KALRO has endorsed" not in html

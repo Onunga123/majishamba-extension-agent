@@ -365,9 +365,9 @@ Copy `.env.example` to `.env` and adjust as needed. **Never commit `.env` to ver
 | `MAJISHAMBA_SECRET_KEY` | Production | `change-me-in-production` | Django secret key (set a real value in production) |
 | `LLM_PROVIDER` | No | `none` | LLM provider: `openrouter`, `ollama`, or `none` |
 | `OPENROUTER_API_KEY` | If `openrouter` | — | API key from [openrouter.ai/keys](https://openrouter.ai/keys) |
-| `OPENROUTER_MODEL` | No | `qwen/qwen-2.5-7b-instruct` | OpenRouter model identifier |
+| `OPENROUTER_MODEL` | No | `openrouter/free` | OpenRouter model identifier (`openrouter/free` auto-routes to a free model) |
 | `OPENROUTER_TIMEOUT_SECONDS` | No | `120` | Request timeout |
-| `OPENROUTER_MAX_OUTPUT_TOKENS` | No | `1500` | Max output tokens |
+| `OPENROUTER_MAX_OUTPUT_TOKENS` | No | `1200` | Max output tokens |
 | `OLLAMA_HOST` | If `ollama` | `http://127.0.0.1:11434` | Ollama server URL |
 | `OLLAMA_MODEL` | No | `qwen2.5:7b-instruct` | Ollama model name |
 | `CARTO_BASEMAP_API_KEY` | No | — | CARTO basemap API key (visible in browser, not a backend secret) |
