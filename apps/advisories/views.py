@@ -1,19 +1,22 @@
 """Views for advisories."""
-from __future__ import annotations
 
-from datetime import timedelta
+from __future__ import annotations
 
 from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, HttpResponseRedirect
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseForbidden,
+    HttpResponseRedirect,
+)
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
 from django.views.generic import DetailView, ListView, View
 
 from apps.accounts.permissions import require_officer
 from apps.agents.models import AdvisoryRun
-from apps.agents.run_worker import start_advisory_run_async
 from apps.audit.service import log_audit_event
 from apps.clusters.models import FarmerCluster
 
@@ -51,11 +54,16 @@ class AdvisoryListView(LoginRequiredMixin, ListView):
         # --- Sorting ---
         sort = self.request.GET.get("sort") or "-created_at"
         valid_sorts = {
-            "-created_at", "created_at",
-            "id", "-id",
-            "cluster__locality", "-cluster__locality",
-            "cluster__cluster_id", "-cluster__cluster_id",
-            "status", "-status",
+            "-created_at",
+            "created_at",
+            "id",
+            "-id",
+            "cluster__locality",
+            "-cluster__locality",
+            "cluster__cluster_id",
+            "-cluster__cluster_id",
+            "status",
+            "-status",
         }
         if sort not in valid_sorts:
             sort = "-created_at"
@@ -102,6 +110,7 @@ class AdvisoryDetailView(LoginRequiredMixin, DetailView):
         # ready-to-render ``officer_label`` field for each approval so the
         # template never reads ``ap.officer.display_name`` for Viewers.
         from apps.accounts.models import User
+
         is_viewer = self.request.user.role == User.Role.VIEWER
         ctx["is_viewer"] = is_viewer
         if is_viewer:
@@ -120,11 +129,13 @@ class AdvisoryDetailView(LoginRequiredMixin, DetailView):
                         label = "Officer"
                 else:
                     label = "Officer"
-                approvals_with_label.append({
-                    "decision_display": ap.get_decision_display(),
-                    "created_at": ap.created_at,
-                    "officer_label": label,
-                })
+                approvals_with_label.append(
+                    {
+                        "decision_display": ap.get_decision_display(),
+                        "created_at": ap.created_at,
+                        "officer_label": label,
+                    }
+                )
             ctx["approvals_for_viewer"] = approvals_with_label
         return ctx
 
@@ -146,7 +157,10 @@ class AdvisorySoftDeleteView(LoginRequiredMixin, View):
             target=advisory,
             metadata={"reason": reason[:200], "advisory_id": advisory.id},
         )
-        messages.success(request, f"Advisory {advisory.id} has been soft-deleted. It is preserved in the audit trail.")
+        messages.success(
+            request,
+            f"Advisory {advisory.id} has been soft-deleted. It is preserved in the audit trail.",
+        )
         return redirect("advisories:list")
 
 
@@ -155,6 +169,7 @@ class AdvisoryRestoreView(LoginRequiredMixin, View):
 
     def post(self, request: HttpRequest, pk: int) -> HttpResponse:
         from apps.accounts.permissions import require_approver
+
         require_approver(request.user)
         advisory = get_object_or_404(Advisory.all_objects, pk=pk)
         if not advisory.is_deleted:
@@ -173,6 +188,7 @@ class AdvisoryRestoreView(LoginRequiredMixin, View):
 
 class DeletedAdvisoryListView(LoginRequiredMixin, ListView):
     """Shows soft-deleted advisories. Supervisors and staff only."""
+
     template_name = "advisories/deleted.html"
     context_object_name = "advisories"
     paginate_by = 25
@@ -183,7 +199,11 @@ class DeletedAdvisoryListView(LoginRequiredMixin, ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        return Advisory.all_objects.filter(deleted_at__isnull=False).select_related("cluster", "deleted_by").order_by("-deleted_at")
+        return (
+            Advisory.all_objects.filter(deleted_at__isnull=False)
+            .select_related("cluster", "deleted_by")
+            .order_by("-deleted_at")
+        )
 
 
 class AdvisoryEditView(LoginRequiredMixin, View):
@@ -196,7 +216,10 @@ class AdvisoryEditView(LoginRequiredMixin, View):
             return render(
                 request,
                 "advisories/edit.html",
-                {"advisory": advisory, "blocked": "Only DRAFT advisories can be edited. Create a new request instead."},
+                {
+                    "advisory": advisory,
+                    "blocked": "Only DRAFT advisories can be edited. Create a new request instead.",
+                },
             )
         from .forms import AdvisoryReviewForm
 
@@ -230,40 +253,20 @@ class RequestAdvisoryView(LoginRequiredMixin, View):
         require_officer(request.user)
         clusters = FarmerCluster.objects.all().order_by("cluster_id")
         preselect = request.GET.get("cluster")
-        return render(request, "advisories/request.html", {"clusters": clusters, "preselect": preselect})
+        return render(
+            request, "advisories/request.html", {"clusters": clusters, "preselect": preselect}
+        )
 
     def post(self, request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
+        from apps.advisories.services import ClusterNotFound, request_advisory_run
+
         require_officer(request.user)
         cluster_id = request.POST.get("cluster_id")
-        cluster = get_object_or_404(FarmerCluster, cluster_id=cluster_id)
-
-        cutoff = timezone.now() - timedelta(minutes=30)
-        existing = (
-            AdvisoryRun.objects.filter(
-                requested_by=request.user,
-                cluster=cluster,
-                status__in=[
-                    AdvisoryRun.Status.QUEUED,
-                    AdvisoryRun.Status.RUNNING,
-                    AdvisoryRun.Status.WAITING_FOR_MODEL,
-                    AdvisoryRun.Status.VALIDATING,
-                ],
-                created_at__gte=cutoff,
-            )
-            .order_by("-created_at")
-            .first()
-        )
-        if existing:
-            return redirect("advisories:run_status", run_id=existing.run_id)
-
-        run = AdvisoryRun.objects.create(
-            requested_by=request.user,
-            cluster=cluster,
-            status=AdvisoryRun.Status.QUEUED,
-            current_message="Queued — starting shortly",
-        )
-        start_advisory_run_async(run.pk)
-        return redirect("advisories:run_status", run_id=run.run_id)
+        try:
+            result = request_advisory_run(actor=request.user, cluster_id=cluster_id)
+        except ClusterNotFound:
+            raise Http404("No cluster with that cluster_id.")
+        return redirect("advisories:run_status", run_id=result.run_id)
 
 
 class AdvisoryRunStatusView(LoginRequiredMixin, View):
@@ -276,8 +279,14 @@ class AdvisoryRunStatusView(LoginRequiredMixin, View):
     """
 
     def get(self, request: HttpRequest, run_id) -> HttpResponse:
-        run = get_object_or_404(AdvisoryRun.objects.select_related("cluster", "result_advisory"), run_id=run_id)
-        if run.requested_by_id != request.user.id and not request.user.is_officer() and not request.user.is_system_admin():
+        run = get_object_or_404(
+            AdvisoryRun.objects.select_related("cluster", "result_advisory"), run_id=run_id
+        )
+        if (
+            run.requested_by_id != request.user.id
+            and not request.user.is_officer()
+            and not request.user.is_system_admin()
+        ):
             return HttpResponseForbidden("You cannot view this run.")
         return render(request, "advisories/run_status.html", {"run": run})
 
@@ -289,7 +298,13 @@ class AdvisoryRunProgressPartialView(LoginRequiredMixin, View):
     """
 
     def get(self, request: HttpRequest, run_id) -> HttpResponse:
-        run = get_object_or_404(AdvisoryRun.objects.select_related("cluster", "result_advisory"), run_id=run_id)
-        if run.requested_by_id != request.user.id and not request.user.is_officer() and not request.user.is_system_admin():
+        run = get_object_or_404(
+            AdvisoryRun.objects.select_related("cluster", "result_advisory"), run_id=run_id
+        )
+        if (
+            run.requested_by_id != request.user.id
+            and not request.user.is_officer()
+            and not request.user.is_system_admin()
+        ):
             return HttpResponseForbidden("You cannot view this run.")
         return render(request, "advisories/partials/run_progress.html", {"run": run})

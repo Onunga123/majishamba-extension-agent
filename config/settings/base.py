@@ -3,6 +3,7 @@
 Defaults are tuned so the demo runs without PostgreSQL/PostGIS/Ollama.
 Override via environment variables (see `env_bool`, `env_str`).
 """
+
 from __future__ import annotations
 
 import os
@@ -17,6 +18,7 @@ _env_file = BASE_DIR / ".env"
 if _env_file.exists():
     try:
         from dotenv import load_dotenv
+
         load_dotenv(_env_file)
     except ImportError:
         pass  # python-dotenv not installed — rely on real env vars
@@ -79,6 +81,7 @@ INSTALLED_APPS = [
     "apps.agents",
     "apps.mcp_tools",
     "apps.integrations",
+    "apps.api",
     "apps.dashboard",
 ]
 
@@ -124,8 +127,14 @@ ASGI_APPLICATION = "config.asgi.application"
 if env_bool("USE_POSTGRES", False):
     DATABASES = {
         "default": {
-            "ENGINE": env_str("MAJISHAMBA_DB_ENGINE", "django.contrib.gis.db.backends.postgis"
-            if env_bool("USE_POSTGIS", False) else "django.db.backends.postgresql"),
+            "ENGINE": env_str(
+                "MAJISHAMBA_DB_ENGINE",
+                (
+                    "django.contrib.gis.db.backends.postgis"
+                    if env_bool("USE_POSTGIS", False)
+                    else "django.db.backends.postgresql"
+                ),
+            ),
             "NAME": env_str("MAJISHAMBA_DB_NAME", "majishamba"),
             "USER": env_str("MAJISHAMBA_DB_USER", "majishamba"),
             "PASSWORD": env_str("MAJISHAMBA_DB_PASSWORD", "majishamba"),
@@ -146,8 +155,10 @@ AUTH_USER_MODEL = "accounts.User"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-     "OPTIONS": {"min_length": 10}},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 10},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
@@ -261,6 +272,11 @@ MAJISHAMBA = {
     "WEATHER_REQUEST_TIMEOUT": int(env_str("WEATHER_REQUEST_TIMEOUT", "30")),  # HTTP timeout
     "WEATHER_DAILY_BUDGET": int(env_str("WEATHER_DAILY_BUDGET", "100")),  # max API calls per day
     "OPEN_METEO_ATTRIBUTION": "Forecast from Open-Meteo (CC-BY 4.0)",
+    # --- Public API token config (Base44 / external integrations) ---
+    # Tokens are stored as SHA-256 hashes; the raw token is shown only at
+    # creation time. See apps/api/models.py and docs/implementation/.
+    "API_TOKEN_NAME_PREFIX": env_str("MAJISHAMBA_API_TOKEN_NAME_PREFIX", "majishamba_"),
+    "API_TOKEN_EXPIRY_DAYS": int(env_str("MAJISHAMBA_API_TOKEN_EXPIRY_DAYS", "90")),
 }
 
 # --- Caching / queues (demo falls back to local memory) ---------------------
