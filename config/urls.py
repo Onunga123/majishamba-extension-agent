@@ -1,5 +1,5 @@
-
 """Root URL configuration for MajiShamba Extension Agent."""
+
 from __future__ import annotations
 
 from django.contrib import admin
@@ -24,10 +24,11 @@ def service_worker(request):
     )
     response["Cache-Control"] = "no-cache"
     return response
+
+
 urlpatterns = [
     path("service-worker.js", service_worker, name="service_worker"),
     path("admin/", admin.site.urls),
-
     # Serve the existing SVG logo when browsers request /favicon.ico.
     path(
         "favicon.ico",
@@ -36,7 +37,6 @@ urlpatterns = [
             permanent=True,
         ),
     ),
-
     path("accounts/", include(("apps.accounts.urls", "accounts"), namespace="accounts")),
     path("dashboard/", include(("apps.dashboard.urls", "dashboard"), namespace="dashboard")),
     # F-10: narrow /health/ to a single health-check endpoint only.
@@ -58,8 +58,12 @@ urlpatterns = [
     path("audit/", include(("apps.audit.urls", "audit"), namespace="audit")),
     path("mcp/", include(("apps.mcp_tools.urls", "mcp_tools"), namespace="mcp_tools")),
     path("agents/", include(("apps.agents.urls", "agents"), namespace="agents")),
-    path("integrations/", include(("apps.integrations.urls", "integrations"), namespace="integrations")),
+    path(
+        "integrations/",
+        include(("apps.integrations.urls", "integrations"), namespace="integrations"),
+    ),
     path("geo/", include(("apps.geography.urls", "geography"), namespace="geography")),
+    path("api/v1/", include(("apps.api.urls", "api"), namespace="api")),
     path("", RedirectView.as_view(url="/dashboard/", permanent=False)),
 ]
 
