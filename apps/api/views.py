@@ -14,10 +14,12 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.http import require_http_methods
 
+from apps.advisories.models import Advisory
 from apps.advisories.services import (
     ClusterNotFound,
     request_advisory_run,
 )
+from apps.agents.models import AdvisoryRun
 from apps.approvals.models import OfficerApproval
 from apps.approvals.services import (
     AdvisoryNotDraft,
@@ -69,6 +71,18 @@ def request_advisory_view(request: HttpRequest) -> JsonResponse:
         )
     except ClusterNotFound:
         return _json_error(404, "cluster_not_found", f"No cluster with cluster_id '{cluster_id}'.")
+    # Attribute the request to the token user so the API path is auditable
+    # (roadmap Phase 2 gate: AuditEvent.actor equals the token user).
+    log_audit_event(
+        actor=request.user,
+        action="advisory:request",
+        target=None,
+        metadata={
+            "cluster_id": str(cluster_id),
+            "run_id": result.run_id,
+            "created": result.created,
+        },
+    )
     return JsonResponse(
         {"run_id": result.run_id, "status": result.status, "created": result.created},
         status=201 if result.created else 200,
@@ -185,3 +199,97 @@ def token_revoke_view(request: HttpRequest) -> JsonResponse:
         metadata={"name": token.name},
     )
     return JsonResponse({"revoked": True, "name": token.name})
+
+
+@require_http_methods(["GET"])
+@token_required(ApiToken.Scope.ADVISORIES_READ)
+def run_status_view(request: HttpRequest, run_id) -> JsonResponse:
+    """Return the status of an advisory run (endpoint 4: GET /runs/<uuid>/).
+
+    A Base44 client polls this after ``POST /advisories/`` until ``status``
+    reaches ``completed`` / ``completed_with_fallback`` (then fetches the
+    draft via ``GET /advisories/<pk>/`` using ``result_advisory_id``) or
+    ``failed`` (with ``error_message``). Access mirrors the web
+    ``AdvisoryRunStatusView``: the run owner, any officer, or a system admin.
+    """
+    run = (
+        AdvisoryRun.objects.select_related("cluster", "result_advisory")
+        .filter(run_id=run_id)
+        .first()
+    )
+    if run is None:
+        return _json_error(404, "run_not_found", f"No run with run_id '{run_id}'.")
+    user = request.user
+    if (
+        run.requested_by_id != user.id
+        and not user.is_officer()
+        and not user.is_system_admin()
+    ):
+        return _json_error(403, "not_eligible", "You cannot view this run.")
+    return JsonResponse(
+        {
+            "run_id": str(run.run_id),
+            "status": run.status,
+            "cluster_id": run.cluster.cluster_id,
+            "current_message": run.current_message,
+            "created_at": run.created_at.isoformat(),
+            "started_at": run.started_at.isoformat() if run.started_at else None,
+            "finished_at": run.finished_at.isoformat() if run.finished_at else None,
+            "result_advisory_id": run.result_advisory_id,
+            "error_message": run.error_message,
+            "generation_mode": run.generation_mode,
+        }
+    )
+
+
+@require_http_methods(["GET"])
+@token_required(ApiToken.Scope.ADVISORIES_READ)
+def advisory_detail_view(request: HttpRequest, advisory_pk: int) -> JsonResponse:
+    """Return an advisory draft and its evidence (endpoint 5: GET /advisories/<pk>/).
+
+    Soft-deleted advisories are hidden (404) — the default manager excludes
+    them. Access mirrors the web ``AdvisoryDetailView``: any officer or system
+    admin with the ``advisories:read`` scope.
+    """
+    advisory = (
+        Advisory.objects.select_related("cluster", "created_by")
+        .filter(pk=advisory_pk)
+        .first()
+    )
+    if advisory is None:
+        return _json_error(404, "advisory_not_found", f"No advisory with id {advisory_pk}.")
+    evidence = [
+        {
+            "source_type": e.source_type,
+            "source_ref": e.source_ref,
+            "claim": e.claim,
+            "is_stale": e.is_stale,
+            "retrieved_at": e.retrieved_at.isoformat() if e.retrieved_at else None,
+            "source_observed_at": e.source_observed_at,
+            "source_url": e.source_url,
+        }
+        for e in advisory.evidence.all()
+    ]
+    return JsonResponse(
+        {
+            "id": advisory.id,
+            "status": advisory.status,
+            "cluster_id": advisory.cluster.cluster_id,
+            "recommendation_type": advisory.recommendation_type,
+            "summary": advisory.summary,
+            "body": advisory.body,
+            "confidence": advisory.confidence,
+            "limitations": advisory.limitations,
+            "content_version": advisory.content_version,
+            "evidence": evidence,
+            "crop": advisory.crop,
+            "season": advisory.season,
+            "county": advisory.county,
+            "sub_county": advisory.sub_county,
+            "ward": advisory.ward,
+            "model_name": advisory.model_name,
+            "generation_mode": advisory.generation_mode,
+            "created_at": advisory.created_at.isoformat(),
+            "updated_at": advisory.updated_at.isoformat(),
+        }
+    )

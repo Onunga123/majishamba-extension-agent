@@ -31,6 +31,7 @@ class ApiToken(models.Model):
 
     class Scope(models.TextChoices):
         ADVISORIES_REQUEST = "advisories:request", "Request advisory runs"
+        ADVISORIES_READ = "advisories:read", "Read advisory runs and drafts"
         APPROVALS_RECORD = "approvals:record", "Record officer approvals"
         TOKEN_INTROSPECT = "token:introspect", "Introspect own token"
         TOKEN_REVOKE = "token:revoke", "Revoke own token"

@@ -29,6 +29,7 @@ logger = logging.getLogger("majishamba.api")
 # qualifies for the scope's action.
 _SCOPE_ELIGIBILITY = {
     ApiToken.Scope.ADVISORIES_REQUEST: lambda user: user.is_officer(),
+    ApiToken.Scope.ADVISORIES_READ: lambda user: user.is_officer() or user.is_system_admin(),
     ApiToken.Scope.APPROVALS_RECORD: lambda user: user.can_approve(),
     ApiToken.Scope.TOKEN_INTROSPECT: lambda user: bool(user.is_active),
     ApiToken.Scope.TOKEN_REVOKE: lambda user: bool(user.is_active),

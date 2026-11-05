@@ -3,9 +3,11 @@
 Mounted at `path("api/v1/", include(("apps.api.urls", "api"), namespace="api"))`
 in `config/urls.py`. All endpoints are JSON in/out and require a Bearer token.
 
-## `POST /api/v1/advisories/request/` — scope `advisories:request`
+## `POST /api/v1/advisories/` — scope `advisories:request`
 
-Request a draft advisory run for a cluster.
+Request a draft advisory run for a cluster (endpoint 3). The alias
+`POST /api/v1/advisories/request/` is kept for earlier clients and maps to the
+same handler.
 
 **Request body**
 ```json
@@ -22,9 +24,10 @@ Request a draft advisory run for a cluster.
 | 403 | revoked/expired/ineligible/no-scope | see `02_auth_and_eligibility.md` |
 | 404 | unknown `cluster_id` | `cluster_not_found` |
 
-`status` is the `AdvisoryRun.Status` value at creation time. The caller polls
-the existing web status page at `/advisories/runs/<run_id>/` (a dedicated API
-polling endpoint is intentionally deferred — see `00_overview.md`).
+`status` is the `AdvisoryRun.Status` value at creation time (`queued`); poll
+`GET /api/v1/runs/<run_id>/` (endpoint 4) until it reaches `completed` /
+`completed_with_fallback` or `failed`. Each request is logged as an
+`advisory:request` audit event with the token user as the actor.
 
 ## `POST /api/v1/approvals/` — scope `approvals:record`
 
@@ -75,3 +78,56 @@ Revokes the token making the request. Body ignored.
 {"revoked": true, "name": "..."}
 ```
 Logged as `api_token:revoke` via `log_audit_event`.
+
+## `GET /api/v1/runs/<run_id>/` — scope `advisories:read`
+
+Return the status of an advisory run (endpoint 4). A caller polls this after
+`POST /advisories/` until `status` settles.
+
+**Responses**
+| status | meaning | body / code |
+| --- | --- | --- |
+| 200 | run found | see below |
+| 401/403 | auth (as above); a viewer token is `not_eligible` | |
+| 404 | unknown run | `run_not_found` |
+
+```json
+{
+  "run_id": "...", "status": "completed_with_fallback",
+  "cluster_id": "KACH-01", "current_message": "Draft ready for officer review",
+  "created_at": "...", "started_at": "...", "finished_at": "...",
+  "result_advisory_id": 42, "error_message": "", "generation_mode": "fallback_template"
+}
+```
+`status` ∈ `{queued, running, waiting_for_model, validating, completed,
+completed_with_fallback, failed}`. When `status` is `completed[_with_fallback]`,
+fetch the draft via endpoint 5 using `result_advisory_id`; when `failed`,
+`error_message` carries the reason. Access mirrors the web
+`AdvisoryRunStatusView`: the run owner, any officer, or a system admin.
+
+## `GET /api/v1/advisories/<advisory_pk>/` — scope `advisories:read`
+
+Return an advisory draft and its evidence (endpoint 5).
+
+**Responses**
+| status | meaning | body / code |
+| --- | --- | --- |
+| 200 | advisory found | see below |
+| 401/403 | auth (as above) | |
+| 404 | unknown or soft-deleted advisory | `advisory_not_found` |
+
+```json
+{
+  "id": 42, "status": "draft", "cluster_id": "KACH-01",
+  "recommendation_type": "plant", "summary": "...", "body": "...",
+  "confidence": "medium", "limitations": "...", "content_version": 3,
+  "evidence": [{"source_type", "source_ref", "claim", "is_stale",
+                "retrieved_at", "source_observed_at", "source_url"}],
+  "crop": "maize", "season": "short_rains",
+  "county": "Migori", "sub_county": "Nyatike", "ward": "Kachieng",
+  "model_name": "...", "generation_mode": "fallback_template",
+  "created_at": "...", "updated_at": "..."
+}
+```
+Soft-deleted advisories are hidden (404) — the default manager excludes them.
+`content_version` is the optimistic-concurrency guard an approval must match.

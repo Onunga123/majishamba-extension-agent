@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timedelta
 
+from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.permissions import require_officer
@@ -46,16 +47,24 @@ class AdvisoryRequestResult:
     created: bool
 
 
+@transaction.atomic
 def request_advisory_run(*, actor, cluster_id: str) -> AdvisoryRequestResult:
     """Create (or reuse) an advisory run for ``actor`` on ``cluster_id``.
 
     Raises ``PermissionDenied`` if the actor is not an officer, and
     ``ClusterNotFound`` if no cluster matches. Returns the run id;
     ``created=False`` means a recent in-flight run was reused.
+
+    The dedup check, run creation, and async dispatch run inside a
+    ``transaction.atomic`` block, and the cluster row is locked with
+    ``select_for_update`` so two concurrent requests for the same cluster
+    cannot both pass the "no in-flight run" check and create duplicate runs
+    (the TOCTOU the roadmap flags for this phase). On SQLite (dev) the row
+    lock is a no-op; on Postgres (production) it is a real row lock.
     """
     require_officer(actor)
     try:
-        cluster = FarmerCluster.objects.get(cluster_id=cluster_id)
+        cluster = FarmerCluster.objects.select_for_update().get(cluster_id=cluster_id)
     except FarmerCluster.DoesNotExist as exc:
         raise ClusterNotFound(f"No cluster with cluster_id '{cluster_id}'.") from exc
 

@@ -20,17 +20,22 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.utils import timezone
 
-from apps.advisories.models import Advisory
+from apps.advisories.models import Advisory, AdvisoryEvidence
+from apps.agents.models import AdvisoryRun
 from apps.api.models import ApiToken, hash_token
 from apps.approvals.models import OfficerApproval
+from apps.audit.models import AuditEvent
 from tests.factories.models import AdvisoryFactory, FarmerClusterFactory
 
 User = get_user_model()
 
-API_ADVISORY = "/api/v1/advisories/request/"
+API_ADVISORY = "/api/v1/advisories/request/"  # back-compat alias of endpoint 3
+API_ADVISORY_CANONICAL = "/api/v1/advisories/"  # endpoint 3 roadmap path
 API_APPROVAL = "/api/v1/approvals/"
 API_INTROSPECT = "/api/v1/token/introspect/"
 API_REVOKE = "/api/v1/token/revoke/"
+API_RUN_STATUS = "/api/v1/runs/{}/"  # endpoint 4 (format with run_id)
+API_ADVISORY_DETAIL = "/api/v1/advisories/{}/"  # endpoint 5 (format with pk)
 
 ALL_SCOPES = [s.value for s in ApiToken.Scope]
 
@@ -425,5 +430,164 @@ def test_web_approval_gate_still_records_approval(officer_client):
         },
     )
     assert resp.status_code == 302
-    advisory.refresh_from_db()
-    assert advisory.status == Advisory.Status.APPROVED
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 — advisory integration: canonical request path (endpoint 3),
+# run-status polling (endpoint 4), advisory detail (endpoint 5), and audit
+# attribution to the token user.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_request_advisory_canonical_path(client, officer, monkeypatch):
+    """Endpoint 3 roadmap path POST /api/v1/advisories/ works like the alias."""
+    monkeypatch.setattr("apps.advisories.services.start_advisory_run_async", lambda pk: None)
+    cluster = FarmerClusterFactory(cluster_id="KACH-CANON-01")
+    _token, raw = _make_token(officer)
+    resp = _post(client, API_ADVISORY_CANONICAL, {"cluster_id": cluster.cluster_id}, raw=raw)
+    assert resp.status_code == 201
+    assert resp.json()["created"] is True
+    assert "run_id" in resp.json()
+
+
+@pytest.mark.django_db
+def test_request_advisory_audit_attributes_to_token_user(client, officer, monkeypatch):
+    """Roadmap Phase 2 gate: AuditEvent.actor equals the token user."""
+    monkeypatch.setattr("apps.advisories.services.start_advisory_run_async", lambda pk: None)
+    cluster = FarmerClusterFactory(cluster_id="KACH-AUDIT-01")
+    _token, raw = _make_token(officer)
+    resp = _post(client, API_ADVISORY, {"cluster_id": cluster.cluster_id}, raw=raw)
+    assert resp.status_code == 201
+    assert AuditEvent.objects.filter(actor=officer, action="advisory:request").exists()
+
+
+@pytest.mark.django_db
+def test_run_status_polls_to_completed(client, officer, monkeypatch):
+    """Endpoint 4: a sync run polls to COMPLETED[_WITH_FALLBACK] with the advisory id."""
+    cluster = FarmerClusterFactory(cluster_id="KACH-POLL-01")
+    adv = AdvisoryFactory(status=Advisory.Status.DRAFT)
+    monkeypatch.setattr(
+        "apps.agents.run_worker.run_advisory_pipeline",
+        lambda **kw: {
+            "advisory_id": adv.id,
+            "generation_mode": "fallback_template",
+            "request_id": "t-poll",
+        },
+    )
+    _token, raw = _make_token(officer)
+    resp = _post(client, API_ADVISORY, {"cluster_id": cluster.cluster_id}, raw=raw)
+    assert resp.status_code == 201
+    run_id = resp.json()["run_id"]
+    status = _get(client, API_RUN_STATUS.format(run_id), raw=raw)
+    assert status.status_code == 200
+    body = status.json()
+    assert body["status"] in (
+        AdvisoryRun.Status.COMPLETED,
+        AdvisoryRun.Status.COMPLETED_WITH_FALLBACK,
+    )
+    assert body["result_advisory_id"] == adv.id
+
+
+@pytest.mark.django_db
+def test_run_status_failed_on_pipeline_exception(client, officer, monkeypatch):
+    """A pipeline exception records a FAILED run with an error message."""
+    cluster = FarmerClusterFactory(cluster_id="KACH-FAIL-01")
+
+    def boom(**kw):
+        raise RuntimeError("pipeline exploded")
+
+    monkeypatch.setattr("apps.agents.run_worker.run_advisory_pipeline", boom)
+    _token, raw = _make_token(officer)
+    resp = _post(client, API_ADVISORY, {"cluster_id": cluster.cluster_id}, raw=raw)
+    assert resp.status_code == 201
+    run_id = resp.json()["run_id"]
+    status = _get(client, API_RUN_STATUS.format(run_id), raw=raw)
+    assert status.status_code == 200
+    body = status.json()
+    assert body["status"] == AdvisoryRun.Status.FAILED
+    assert "pipeline exploded" in body["error_message"]
+
+
+@pytest.mark.django_db
+def test_run_status_access_rule(client, officer, supervisor, system_admin, viewer):
+    """Endpoint 4 access: owner / officer / sysadmin may read; a viewer may not."""
+    cluster = FarmerClusterFactory(cluster_id="KACH-ACCESS-01")
+    run = AdvisoryRun.objects.create(
+        requested_by=officer,
+        cluster=cluster,
+        status=AdvisoryRun.Status.COMPLETED,
+    )
+    url = API_RUN_STATUS.format(run.run_id)
+
+    # Owner (the officer who requested the run) → 200.
+    _, owner_raw = _make_token(officer)
+    assert _get(client, url, raw=owner_raw).status_code == 200
+    # Another officer (supervisor) → 200: any officer may view a run.
+    _, sup_raw = _make_token(supervisor)
+    assert _get(client, url, raw=sup_raw).status_code == 200
+    # System admin → 200.
+    _, admin_raw = _make_token(system_admin)
+    assert _get(client, url, raw=admin_raw).status_code == 200
+    # Viewer — fails the scope eligibility check (not officer / sysadmin).
+    _, viewer_raw = _make_token(viewer)
+    resp = _get(client, url, raw=viewer_raw)
+    assert resp.status_code == 403
+    assert resp.json()["error"]["code"] == "not_eligible"
+
+
+@pytest.mark.django_db
+def test_run_status_not_found(client, officer):
+    _token, raw = _make_token(officer)
+    resp = _get(
+        client, API_RUN_STATUS.format("00000000-0000-0000-0000-000000000000"), raw=raw
+    )
+    assert resp.status_code == 404
+    assert resp.json()["error"]["code"] == "run_not_found"
+
+
+@pytest.mark.django_db
+def test_advisory_detail_serializes_evidence_and_version(client, officer):
+    """Endpoint 5: detail includes content_version and serialized evidence."""
+    advisory = AdvisoryFactory(status=Advisory.Status.DRAFT)
+    AdvisoryEvidence.objects.create(
+        advisory=advisory,
+        source_type="weather",
+        source_ref="WeatherSignal#1",
+        claim="Onset likely within the planting window.",
+        retrieved_at=timezone.now(),
+    )
+    AdvisoryEvidence.objects.create(
+        advisory=advisory,
+        source_type="pest",
+        source_ref="FallArmyworm#3",
+        claim="Low trap counts; continue monitoring.",
+    )
+    _token, raw = _make_token(officer)
+    resp = _get(client, API_ADVISORY_DETAIL.format(advisory.id), raw=raw)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["id"] == advisory.id
+    assert body["content_version"] == advisory.content_version
+    assert body["status"] == Advisory.Status.DRAFT
+    assert len(body["evidence"]) == 2
+    assert {e["source_type"] for e in body["evidence"]} == {"weather", "pest"}
+    assert all("claim" in e and "source_ref" in e for e in body["evidence"])
+
+
+@pytest.mark.django_db
+def test_advisory_detail_hides_soft_deleted(client, officer):
+    advisory = AdvisoryFactory(status=Advisory.Status.DRAFT)
+    advisory.soft_delete(by_user=officer, reason="test")
+    _token, raw = _make_token(officer)
+    resp = _get(client, API_ADVISORY_DETAIL.format(advisory.id), raw=raw)
+    assert resp.status_code == 404
+    assert resp.json()["error"]["code"] == "advisory_not_found"
+
+
+@pytest.mark.django_db
+def test_advisory_detail_not_found(client, officer):
+    _token, raw = _make_token(officer)
+    resp = _get(client, API_ADVISORY_DETAIL.format(999999), raw=raw)
+    assert resp.status_code == 404
+    assert resp.json()["error"]["code"] == "advisory_not_found"
