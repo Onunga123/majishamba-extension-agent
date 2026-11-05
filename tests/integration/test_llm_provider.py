@@ -213,6 +213,10 @@ def test_api_key_not_in_response():
 def test_provider_status_report():
     """provider_status() returns the current provider configuration."""
     with patch.dict("os.environ", {"LLM_PROVIDER": "openrouter", "OPENROUTER_API_KEY": "test"}, clear=False):
+        # Drop any ambient model override (e.g. from a local .env copied from
+        # .env.example) so the status reflects the free default rather than a
+        # pinned deployment model. patch.dict restores it on exit.
+        os.environ.pop("OPENROUTER_MODEL", None)
         from apps.agents.llm_provider import provider_status
         status = provider_status()
         assert status["provider"] == "openrouter"
@@ -229,8 +233,11 @@ def test_ollama_still_selectable():
 
 
 @pytest.mark.django_db
-def test_paid_model_not_selected_automatically():
+def test_paid_model_not_selected_automatically(monkeypatch):
     """The default model is the free one, not a paid model."""
+    # Ignore any ambient OPENROUTER_MODEL (e.g. from a local .env) so this
+    # exercises the free default rather than an explicit deployment pin.
+    monkeypatch.delenv("OPENROUTER_MODEL", raising=False)
     from apps.agents.llm_provider import get_openrouter_model
     model = get_openrouter_model()
     assert ":free" in model or model == "openrouter/free", f"Default model should be free, got: {model}"
