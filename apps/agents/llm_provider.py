@@ -40,13 +40,13 @@ def get_openrouter_api_key() -> str:
 
 
 def get_openrouter_model() -> str:
-    """Return the configured OpenRouter instruction-following model ID.
+    """Return the configured OpenRouter model ID.
 
-    The former ``:free`` variant now returns HTTP 404 because it is no longer
-    available for free routing. Keep the model configurable, but default to the
-    currently usable catalog slug.
+    Defaults to ``openrouter/free``, which auto-routes to the best available
+    free model so a paid model is never selected silently. Override with the
+    ``OPENROUTER_MODEL`` env var to pin a specific model for a deployment.
     """
-    default = "qwen/qwen-2.5-7b-instruct"
+    default = "openrouter/free"
     return os.environ.get("OPENROUTER_MODEL", default).strip() or default
 
 

@@ -7,12 +7,19 @@ cleanup) by asserting the v2 user-experience and security requirements.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client
 
 
 User = get_user_model()
+
+# Static CSS files live under <project>/static/css. Resolve via BASE_DIR so the
+# tests are portable across Linux/Windows and any checkout path.
+_DASHBOARD_CSS = Path(settings.BASE_DIR) / "static" / "css" / "dashboard.css"
 
 
 # ---------------------------------------------------------------------------
@@ -764,7 +771,7 @@ def test_dashboard_color_is_not_the_only_signal(officer_client):
     pseudo-element OR the text label) so colour isn't the only signal.
     The .status-badge::before CSS rule creates a dot — we verify the CSS
     file contains it."""
-    with open("/home/z/my-project/majishamba_fresh/static/css/dashboard.css") as f:
+    with open(_DASHBOARD_CSS) as f:
         css = f.read()
     assert ".status-badge::before" in css, "Status badges need a non-colour signal"
     assert "content:" in css

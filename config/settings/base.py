@@ -260,7 +260,7 @@ MAJISHAMBA = {
     "LLM_PROVIDER": env_str("LLM_PROVIDER", "none"),
     "OPENROUTER_MODEL": env_str("OPENROUTER_MODEL", "openrouter/free"),
     "OPENROUTER_TIMEOUT_SECONDS": int(env_str("OPENROUTER_TIMEOUT_SECONDS", "60")),
-    "OPENROUTER_MAX_OUTPUT_TOKENS": int(env_str("OPENROUTER_MAX_OUTPUT_TOKENS", "1500")),
+    "OPENROUTER_MAX_OUTPUT_TOKENS": int(env_str("OPENROUTER_MAX_OUTPUT_TOKENS", "1200")),
     # Ollama (optional, for judges/local use)
     "OLLAMA_HOST": env_str("OLLAMA_HOST", "http://127.0.0.1:11434"),
     "OLLAMA_MODEL": env_str("OLLAMA_MODEL", "qwen2.5:7b-instruct"),
