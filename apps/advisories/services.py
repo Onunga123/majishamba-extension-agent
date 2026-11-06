@@ -92,5 +92,5 @@ def request_advisory_run(*, actor, cluster_id: str) -> AdvisoryRequestResult:
         status=AdvisoryRun.Status.QUEUED,
         current_message="Queued — starting shortly",
     )
-    start_advisory_run_async(run.pk)
+    transaction.on_commit(lambda: start_advisory_run_async(run.pk))
     return AdvisoryRequestResult(run_id=str(run.run_id), status=run.status, created=True)
