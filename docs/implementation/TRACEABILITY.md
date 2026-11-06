@@ -62,3 +62,21 @@ fulfil them.
 | `FAILED` recorded on a pipeline exception | `apps/agents/run_worker.py` — `execute_advisory_run` try/except |
 | `AuditEvent.actor` equals the token user | `apps/api/views.py` — `request_advisory_view` logs `advisory:request` with `actor=request.user` |
 | Phase 2 tests | `tests/integration/test_api.py` — 9 new tests |
+
+## Phase 1 completion — endpoints 1 & 2 (health, clusters)
+
+The roadmap's nine-endpoint contract (§A1 Table 2) numbers health and clusters
+as endpoints 1 and 2. The initial Phase 1 cut built the token machinery and
+endpoints 3–5; this step closes the gap so Phase 3's acceptance criteria (which
+call `GET /api/v1/health/` and `GET /api/v1/clusters/`) have live targets.
+
+| requirement | artifact |
+| --- | --- |
+| Endpoint 1 `GET /health/` (no auth, reuses `HealthCheckView`) | `apps/api/urls.py` — `path("health/", HealthCheckView.as_view(), ...)` |
+| Endpoint 2 `GET /clusters/` (token: any active) | `apps/api/views.py` — `clusters_list_view`; `apps/api/urls.py` — `path("clusters/", ...)` |
+| "token (any active)" auth path (no scope, no role gate) | `apps/api/auth.py` — `any_active_token_required` |
+| Page-based pagination (default 25, ceiling 100) | `apps/api/views.py` — `_parse_int`, `_page_url`, `clusters_list_view` |
+| `?q` filter on cluster_id / name / locality | `apps/api/views.py` — `clusters_list_view` (mirrors the HTML `q` filter) |
+| Response fields per roadmap §A4 (7 fields) | `apps/api/views.py` — `clusters_list_view` result dict |
+| Flat response shape (no `{"ok","data"}` envelope) | `docs/implementation/03_endpoints.md` — response-shape note |
+| Tests | `tests/integration/test_api.py` — 11 new tests (3 health, 8 clusters) |

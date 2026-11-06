@@ -36,6 +36,8 @@ API_INTROSPECT = "/api/v1/token/introspect/"
 API_REVOKE = "/api/v1/token/revoke/"
 API_RUN_STATUS = "/api/v1/runs/{}/"  # endpoint 4 (format with run_id)
 API_ADVISORY_DETAIL = "/api/v1/advisories/{}/"  # endpoint 5 (format with pk)
+API_HEALTH = "/api/v1/health/"  # endpoint 1 (no auth)
+API_CLUSTERS = "/api/v1/clusters/"  # endpoint 2 (any active token)
 
 ALL_SCOPES = [s.value for s in ApiToken.Scope]
 
@@ -591,3 +593,141 @@ def test_advisory_detail_not_found(client, officer):
     resp = _get(client, API_ADVISORY_DETAIL.format(999999), raw=raw)
     assert resp.status_code == 404
     assert resp.json()["error"]["code"] == "advisory_not_found"
+
+
+# ---------------------------------------------------------------------------
+# Phase 1 completion — endpoint 1 (health) and endpoint 2 (clusters list).
+# Roadmap §A1 Table 2: health is unauthenticated and reuses HealthCheckView;
+# clusters is "token (any active)" and returns reference data with page-based
+# pagination (default 25, ceiling 100).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_health_endpoint_requires_no_token(client):
+    """Endpoint 1: GET /api/v1/health/ succeeds with no Authorization header."""
+    resp = client.get(API_HEALTH)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] in ("ok", "degraded")
+    assert "database" in body
+    assert "version" in body
+
+
+@pytest.mark.django_db
+def test_health_endpoint_does_not_expose_secrets(client):
+    """The health endpoint never echoes API keys, the secret key, or a token prefix."""
+    resp = client.get(API_HEALTH)
+    assert resp.status_code == 200
+    text = resp.content.decode()
+    for needle in ("OPENROUTER_API_KEY", "SECRET_KEY", "majishamba_", "Bearer"):
+        assert needle not in text
+
+
+@pytest.mark.django_db
+def test_health_endpoint_rejects_post(client):
+    """Health is GET-only (HealthCheckView defines no POST handler)."""
+    resp = client.post(API_HEALTH)
+    assert resp.status_code == 405
+
+
+@pytest.mark.django_db
+def test_clusters_list_no_token_returns_401(client):
+    resp = client.get(API_CLUSTERS)
+    assert resp.status_code == 401
+    assert resp.json()["error"]["code"] == "missing_token"
+
+
+@pytest.mark.django_db
+def test_clusters_list_any_active_token_including_viewer(client, viewer):
+    """Endpoint 2 auth is 'any active token' — a viewer (non-officer) may read clusters."""
+    _token, raw = _make_token(viewer)
+    resp = _get(client, API_CLUSTERS, raw=raw)
+    assert resp.status_code == 200
+
+
+@pytest.mark.django_db
+def test_clusters_list_works_with_empty_scopes(client, officer):
+    """No specific scope is required — a token with zero scopes still reads clusters."""
+    _token, raw = _make_token(officer, scopes=[])
+    resp = _get(client, API_CLUSTERS, raw=raw)
+    assert resp.status_code == 200
+
+
+@pytest.mark.django_db
+def test_clusters_list_revoked_token_returns_403(client, officer):
+    token, raw = _make_token(officer)
+    token.revoke()
+    resp = _get(client, API_CLUSTERS, raw=raw)
+    assert resp.status_code == 403
+    assert resp.json()["error"]["code"] == "token_revoked"
+
+
+@pytest.mark.django_db
+def test_clusters_list_serializes_fields(client, officer):
+    """Endpoint 2 returns exactly the seven roadmap §A4 cluster fields per item."""
+    cluster = FarmerClusterFactory(cluster_id="KACH-LIST-01", name="Sori", locality="Sori")
+    _token, raw = _make_token(officer)
+    resp = _get(client, API_CLUSTERS, raw=raw)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["count"] >= 1
+    item = next(c for c in body["results"] if c["cluster_id"] == "KACH-LIST-01")
+    assert set(item) == {
+        "cluster_id", "name", "locality", "ward",
+        "centroid_lat", "centroid_lon", "coordinates_verified",
+    }
+    assert item["name"] == "Sori"
+    assert item["locality"] == "Sori"
+    assert item["ward"] == cluster.ward.name
+    assert item["centroid_lat"] == cluster.centroid_lat
+    assert item["centroid_lon"] == cluster.centroid_lon
+    assert item["coordinates_verified"] == cluster.coordinates_verified
+
+
+@pytest.mark.django_db
+def test_clusters_list_pagination(client, officer):
+    """Page-based pagination: page_size splits results, next/previous are set."""
+    for i in range(3):
+        FarmerClusterFactory(cluster_id=f"KACH-PAGE-{i:02d}")
+    _token, raw = _make_token(officer)
+    page1 = _get(client, API_CLUSTERS + "?page_size=2", raw=raw)
+    assert page1.status_code == 200
+    body = page1.json()
+    assert body["count"] == 3
+    assert body["page"] == 1
+    assert body["page_size"] == 2
+    assert len(body["results"]) == 2
+    assert body["next"] is not None
+    assert body["previous"] is None
+
+    page2 = _get(client, API_CLUSTERS + "?page=2&page_size=2", raw=raw)
+    body2 = page2.json()
+    assert body2["page"] == 2
+    assert len(body2["results"]) == 1
+    assert body2["next"] is None
+    assert body2["previous"] is not None
+
+
+@pytest.mark.django_db
+def test_clusters_list_page_size_ceiling(client, officer):
+    """page_size is capped at the roadmap ceiling of 100."""
+    FarmerClusterFactory(cluster_id="KACH-CEIL-01")
+    _token, raw = _make_token(officer)
+    resp = _get(client, API_CLUSTERS + "?page_size=500", raw=raw)
+    assert resp.status_code == 200
+    assert resp.json()["page_size"] == 100
+
+
+@pytest.mark.django_db
+def test_clusters_list_filter_q(client, officer):
+    """?q filters on cluster_id / name / locality (mirrors the HTML list filter)."""
+    FarmerClusterFactory(cluster_id="KACH-Q-01", name="Sori", locality="Sori")
+    FarmerClusterFactory(cluster_id="KACH-Q-02", name="Kiranda", locality="Kiranda")
+    _token, raw = _make_token(officer)
+    resp = _get(client, API_CLUSTERS + "?q=Sori", raw=raw)
+    assert resp.status_code == 200
+    body = resp.json()
+    ids = {c["cluster_id"] for c in body["results"]}
+    assert "KACH-Q-01" in ids
+    assert "KACH-Q-02" not in ids

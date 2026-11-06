@@ -1,7 +1,74 @@
 # API endpoints — `apps/api/views.py`, `apps/api/urls.py`
 
 Mounted at `path("api/v1/", include(("apps.api.urls", "api"), namespace="api"))`
-in `config/urls.py`. All endpoints are JSON in/out and require a Bearer token.
+in `config/urls.py`. All endpoints are JSON in/out. All except `GET /health/`
+require a Bearer token.
+
+> **Response shape.** The roadmap (§A1) describes a uniform
+> `{"ok": true, "data": ...}` / `{"ok": false, "error": {...}}` envelope. The
+> implementation deliberately uses **flat** success payloads (the resource
+> object directly) and a bare `{"error": {"code", "message", ...}}` on failure,
+> applied uniformly across every endpoint. This keeps each response a single
+> typed object and avoids a wrapper a Base44 client must unwrap at every call
+> site; the deviation is consistent across the whole `/api/v1/` surface.
+
+## `GET /api/v1/health/` — no auth (endpoint 1)
+
+Unauthenticated health/readiness check for load balancers and monitoring.
+Reuses the existing `HealthCheckView` (`apps/dashboard/health.py`), also served
+at `/health/health/`, so the API and operational health checks share one
+implementation.
+
+**Response** (200, no auth)
+```json
+{
+  "status": "ok",
+  "database": "ok",
+  "migrations_pending": false,
+  "llm_provider": "openrouter",
+  "weather_provider": "open_meteo",
+  "version": "0.1.0"
+}
+```
+`status` is `"ok"` or `"degraded"` (degraded if the database is unreachable or
+migrations are pending). No secrets or tokens are exposed. GET-only; other
+methods return 405.
+
+## `GET /api/v1/clusters/` — token (any active) (endpoint 2)
+
+List farmer clusters — the reference data Base44 retrieves to browse clusters
+and submit advisory requests. Any valid, non-expired, non-revoked token bound
+to an active user may call this; no specific scope or role is required (the
+roadmap's "token (any active)" path, `any_active_token_required` in
+`apps/api/auth.py`).
+
+**Query parameters**
+| param | default | notes |
+| --- | --- | --- |
+| `page` | 1 | 1-based page number |
+| `page_size` | 25 | capped at 100 (roadmap §A1 ceiling) |
+| `q` | — | case-insensitive substring on `cluster_id`, `name`, `locality` |
+
+**Responses**
+| status | meaning | body / code |
+| --- | --- | --- |
+| 200 | page of clusters | see below |
+| 401 | no token | `missing_token` |
+| 403 | revoked / expired / inactive user | `token_revoked` / `token_expired` / `user_inactive` |
+
+```json
+{
+  "count": 14, "page": 1, "page_size": 25,
+  "next": null, "previous": null,
+  "results": [
+    {"cluster_id": "KACH-01", "name": "Sori", "locality": "Sori",
+     "ward": "Kachieng", "centroid_lat": -0.963, "centroid_lon": 34.445,
+     "coordinates_verified": true}
+  ]
+}
+```
+Each result carries exactly the seven roadmap §A4 fields. `next`/`previous` are
+absolute URLs for the adjacent page, or `null` at the boundary.
 
 ## `POST /api/v1/advisories/` — scope `advisories:request`
 
