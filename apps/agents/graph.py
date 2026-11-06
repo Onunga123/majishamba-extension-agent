@@ -741,24 +741,61 @@ def save_draft(state: AgentState) -> AgentState:
     cc = state.get("crop_calendar") or {}
     weather = (state.get("weather") or {}).get("last_30_days") or {}
 
-    def _observed_at(source_type: str) -> str:
-        if source_type == "crop_calendar":
-            return str(cc.get("season_year") or cc.get("source_date") or "")
-        if source_type == "weather":
-            return str(weather.get("period_end") or weather.get("as_of") or "")
-        return ""
-
-    evidence_links = [
-        {
-            "source_type": e.source_type,
-            "source_ref": e.source_ref,
-            "claim": e.claim,
-            "source_url": e.source_url,
-            "is_stale": e.is_stale,
-            "source_observed_at": _observed_at(e.source_type),
-        }
-        for e in draft.evidence
-    ]
+    # Build evidence rows from the retrieved state data rather than the LLM's
+    # JSON output: the LLM only echoes what it sees in the prompt example, so it
+    # reliably omits pest/market/calendar evidence. Grounding the evidence in the
+    # actual retrieval results guarantees one row per source with real values.
+    from django.utils import timezone
+    retrieved_at = timezone.now()
+    evidence_links = []
+    if weather:
+        evidence_links.append({
+            "source_type": "weather",
+            "source_ref": weather.get("source", "") or weather.get("source_authority", "") or "weather signal",
+            "claim": f"Last 30 days rainfall: {weather.get('rainfall_mm', '?')}mm, onset={weather.get('onset_status', 'unknown')}; forecast: {weather.get('forecast_summary', 'n/a')}",
+            "source_url": weather.get("source_url", ""),
+            "is_stale": not weather.get("is_fresh", True),
+            "source_observed_at": str(weather.get("source_date") or weather.get("valid_to") or ""),
+            "retrieved_at": retrieved_at,
+        })
+    if cc:
+        evidence_links.append({
+            "source_type": "crop_calendar",
+            "source_ref": cc.get("source", "") or cc.get("source_authority", "") or "crop calendar",
+            "claim": cc.get("planting_window_display", "Planting window") or "Planting window",
+            "source_url": cc.get("source_url", ""),
+            "is_stale": bool(cc.get("is_stale", False)),
+            "source_observed_at": str(cc.get("source_date") or cc.get("season_year") or ""),
+            "retrieved_at": retrieved_at,
+        })
+    pest_alerts = state.get("pest_alerts") or []
+    if pest_alerts:
+        pests = ", ".join(
+            f"{a.get('pest', 'pest')} ({a.get('severity_display', a.get('severity', '?'))})"
+            for a in pest_alerts
+        )
+        evidence_links.append({
+            "source_type": "pest",
+            "source_ref": pest_alerts[0].get("source", "") or "pest alert",
+            "claim": f"Active alerts: {pests}",
+            "source_url": pest_alerts[0].get("source_url", ""),
+            "is_stale": False,
+            "source_observed_at": str(pest_alerts[0].get("source_date") or ""),
+            "retrieved_at": retrieved_at,
+        })
+    market_prices = state.get("market_prices") or []
+    if market_prices:
+        latest = market_prices[0]
+        price_val = latest.get("price_kes_per_90kg")
+        evidence_links.append({
+            "source_type": "market",
+            "source_ref": f"{latest.get('source', '') or 'market'} — maize",
+            "claim": f"Maize: {price_val} KES/90kg, trend {latest.get('trend', 'n/a')}" if price_val is not None else "Maize market price signal",
+            "source_url": "",
+            "is_stale": False,
+            "source_observed_at": str(latest.get("observation_date") or ""),
+            "retrieved_at": retrieved_at,
+        })
     res = create_draft_advisory_record(
         advisory_text=draft.body,
         summary=draft.summary,
