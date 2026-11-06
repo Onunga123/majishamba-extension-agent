@@ -9,12 +9,15 @@ from __future__ import annotations
 
 import json
 import logging
+from urllib.parse import urlencode
 
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.http import require_http_methods
 
 from apps.advisories.models import Advisory
+from apps.clusters.models import FarmerCluster
 from apps.advisories.services import (
     ClusterNotFound,
     request_advisory_run,
@@ -29,7 +32,7 @@ from apps.approvals.services import (
 )
 from apps.audit.service import log_audit_event
 
-from .auth import token_required
+from .auth import any_active_token_required, token_required
 from .models import ApiToken
 
 logger = logging.getLogger("majishamba.api")
@@ -291,5 +294,79 @@ def advisory_detail_view(request: HttpRequest, advisory_pk: int) -> JsonResponse
             "generation_mode": advisory.generation_mode,
             "created_at": advisory.created_at.isoformat(),
             "updated_at": advisory.updated_at.isoformat(),
+        }
+    )
+
+
+def _parse_int(value, *, default, min_value=1, max_value=None):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    parsed = max(parsed, min_value)
+    if max_value is not None:
+        parsed = min(parsed, max_value)
+    return parsed
+
+
+def _page_url(request: HttpRequest, page: int, page_size: int) -> str | None:
+    if page < 1:
+        return None
+    qs = request.GET.copy()
+    qs["page"] = page
+    qs["page_size"] = page_size
+    return f"{request.path}?{qs.urlencode()}"
+
+
+@require_http_methods(["GET"])
+@any_active_token_required
+def clusters_list_view(request: HttpRequest) -> JsonResponse:
+    """List farmer clusters (endpoint 2: GET /api/v1/clusters/).
+
+    Reference data Base44 retrieves to browse clusters and submit advisory
+    requests. Auth is the roadmap's "token (any active)" path — any valid,
+    non-expired, non-revoked token bound to an active user, regardless of
+    scope or role (roadmap §A1 Table 2, endpoint 2).
+
+    Page-based pagination: default page size 25, ceiling 100 (roadmap §A1).
+    Optional ``?q=<term>`` filters on cluster_id / name / locality (mirrors the
+    HTML list ``q`` filter). Response is a flat paginated object (no envelope)
+    for consistency with the other /api/v1/ endpoints.
+    """
+    qs = FarmerCluster.objects.select_related("ward").order_by("cluster_id")
+    q = request.GET.get("q", "").strip()
+    if q:
+        qs = qs.filter(
+            Q(cluster_id__icontains=q) | Q(name__icontains=q) | Q(locality__icontains=q)
+        )
+
+    total = qs.count()
+    page = _parse_int(request.GET.get("page", "1"), default=1, min_value=1)
+    page_size = _parse_int(
+        request.GET.get("page_size", "25"), default=25, min_value=1, max_value=100
+    )
+    offset = (page - 1) * page_size
+    clusters = list(qs[offset : offset + page_size])
+
+    results = [
+        {
+            "cluster_id": c.cluster_id,
+            "name": c.name,
+            "locality": c.locality,
+            "ward": c.ward.name if c.ward_id else None,
+            "centroid_lat": c.centroid_lat,
+            "centroid_lon": c.centroid_lon,
+            "coordinates_verified": c.coordinates_verified,
+        }
+        for c in clusters
+    ]
+    return JsonResponse(
+        {
+            "count": total,
+            "page": page,
+            "page_size": page_size,
+            "next": _page_url(request, page + 1, page_size) if offset + page_size < total else None,
+            "previous": _page_url(request, page - 1, page_size) if page > 1 else None,
+            "results": results,
         }
     )

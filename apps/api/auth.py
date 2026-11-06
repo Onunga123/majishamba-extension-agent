@@ -103,3 +103,50 @@ def token_required(scope: str):
         return _wrapped
 
     return decorator
+
+
+def any_active_token_required(view_func):
+    """Require any valid, active token — no specific scope, no role gate.
+
+    This is the roadmap's "token (any active)" path (§A1 Table 2,
+    endpoints 2 / 5 / 6 / 8): read-list and reference-data endpoints that any
+    authenticated API client may call. A token is accepted if it is recognised,
+    not revoked, not expired, and bound to an active user. Neither the token's
+    scopes nor the bound user's role are checked — a viewer-scoped token, or a
+    token with no scopes at all, may read reference data. On success,
+    ``request.user`` is set to the bound user and ``request.api_token`` to the
+    token, exactly as ``token_required`` does.
+    """
+
+    @csrf_exempt
+    @functools.wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        raw = _extract_bearer_token(request)
+        if not raw:
+            return _error(
+                401, "missing_token", "Authorization: Bearer <token> header required."
+            )
+
+        token = (
+            ApiToken.objects.select_related("user").filter(token_hash=hash_token(raw)).first()
+        )
+        if token is None:
+            return _error(401, "invalid_token", "Token not recognized.")
+
+        if token.revoked_at is not None:
+            return _error(403, "token_revoked", "This token has been revoked.")
+        if token.expires_at is not None and token.expires_at <= timezone.now():
+            return _error(403, "token_expired", "This token has expired.")
+
+        user = token.user
+        if not (user and user.is_active):
+            return _error(
+                403, "user_inactive", "The account bound to this token is not active."
+            )
+
+        request.user = user
+        request.api_token = token
+        token.touch()
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped

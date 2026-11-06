@@ -2,11 +2,17 @@
 
 from django.urls import path
 
+from apps.dashboard.health import HealthCheckView
+
 from . import views
 
 app_name = "api"
 
 urlpatterns = [
+    # Endpoint 1 — unauthenticated health check (reuses HealthCheckView).
+    path("health/", HealthCheckView.as_view(), name="health"),
+    # Endpoint 2 — list farmer clusters (reference data; any active token).
+    path("clusters/", views.clusters_list_view, name="clusters_list"),
     # Endpoint 3 — request an advisory run (roadmap canonical path).
     path("advisories/", views.request_advisory_view, name="request_advisory"),
     # Back-compat alias for earlier clients; same view, same handler.

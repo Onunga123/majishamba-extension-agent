@@ -88,6 +88,43 @@ extraction preserved web behaviour.
 
 `advisories:read` (eligibility: `is_officer() or is_system_admin()`).
 
+## Phase 1 completion — endpoints 1 & 2 (`feature/base44-api`)
+
+```
+848 passed, 1 skipped, 2 warnings in 107.12s
+```
+
+- **837 → 848 passed:** +11 new tests in `tests/integration/test_api.py`
+  (3 for the health endpoint, 8 for the clusters list).
+- **0 failed; 1 skipped** (Playwright, unchanged); 2 pre-existing
+  `RemovedInDjango60Warning`s in `apps/integrations/forms.py`.
+- **No migration:** endpoints 1 & 2 add no model fields — health reuses the
+  existing `HealthCheckView` and clusters reads `FarmerCluster` rows
+  (`makemigrations --check` → "No changes detected"; `manage.py check` →
+  0 issues).
+
+### New endpoints (roadmap §A1 Table 2, endpoints 1 & 2)
+
+- `GET /api/v1/health/` — endpoint 1, no auth. Reuses `HealthCheckView`
+  (also served at `/health/health/`); returns status / database /
+  migrations_pending / provider config; GET-only (405 otherwise); no secrets.
+- `GET /api/v1/clusters/` — endpoint 2, "token (any active)". Page-based
+  pagination (default 25, ceiling 100) and a `?q` filter on cluster_id /
+  name / locality; returns the seven roadmap §A4 fields per cluster.
+
+### New auth path
+
+`any_active_token_required` (`apps/api/auth.py`) — the roadmap's "token (any
+active)" path for read-list / reference-data endpoints: a valid, non-expired,
+non-revoked token bound to an active user, with no scope check and no role
+gate (a viewer-scoped or empty-scope token may read clusters).
+
+### Response-shape note
+
+The roadmap (§A1) specifies a `{"ok": true, "data": ...}` envelope; the
+implementation uses flat payloads + `{"error": {...}}` uniformly across all
+endpoints. Documented in `docs/implementation/03_endpoints.md`.
+
 ## How to reproduce
 
 ```bash
