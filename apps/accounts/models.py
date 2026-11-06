@@ -93,6 +93,29 @@ class User(AbstractUser):
     def is_system_admin(self) -> bool:
         return self.role == self.Role.SYSTEM_ADMIN and self.is_active and self.is_approved()
 
+    def is_viewer(self) -> bool:
+        return self.role == self.Role.VIEWER and self.is_active and self.is_approved()
+
+    def is_token_eligible(self) -> bool:
+        """Broad API-token-holder eligibility: officer, supervisor, admin, or viewer.
+
+        Broader than ``is_officer()`` (which guards officer-only web views and
+        approval flows and stays strict). Used for API token issuance and the
+        per-request eligibility re-check, so the Base44 role switcher can
+        present admin and viewer roles alongside officer and supervisor.
+        """
+        return bool(
+            self.is_active
+            and self.is_approved()
+            and self.role
+            in {
+                self.Role.EXTENSION_OFFICER,
+                self.Role.SUPERVISOR,
+                self.Role.SYSTEM_ADMIN,
+                self.Role.VIEWER,
+            }
+        )
+
     def can_review_accounts(self) -> bool:
         return self.is_system_admin()
 

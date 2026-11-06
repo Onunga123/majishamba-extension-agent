@@ -392,18 +392,26 @@ def test_generate_api_token_command(officer):
 
 
 @pytest.mark.django_db
-def test_generate_api_token_rejects_non_officer(viewer):
-    with pytest.raises(CommandError):
-        call_command(
-            "generate_api_token",
-            "--user",
-            viewer.get_username(),
-            "--name",
-            "bad",
-            "--scopes",
-            "advisories:request",
-            stdout=StringIO(),
-        )
+def test_generate_api_token_accepts_viewer_readonly(viewer):
+    """A viewer may hold a token, but only the read scope — write scopes
+    requested on the command line are overridden to advisories:read."""
+    out = StringIO()
+    call_command(
+        "generate_api_token",
+        "--user",
+        viewer.get_username(),
+        "--name",
+        "viewer-readonly",
+        "--scopes",
+        "advisories:request",
+        "advisories:read",
+        stdout=out,
+    )
+    output = out.getvalue()
+    raw = [ln for ln in output.splitlines() if ln.strip() and ln.strip() != "Store this raw token now — it will not be shown again."][-1]
+    token = ApiToken.objects.get(token_hash=hash_token(raw))
+    assert token.scopes == ["advisories:read"]
+    assert "overridden" in output
 
 
 # ---------------------------------------------------------------------------
@@ -513,7 +521,7 @@ def test_run_status_failed_on_pipeline_exception(client, officer, monkeypatch):
 
 @pytest.mark.django_db
 def test_run_status_access_rule(client, officer, supervisor, system_admin, viewer):
-    """Endpoint 4 access: owner / officer / sysadmin may read; a viewer may not."""
+    """Endpoint 4 access: owner / officer / sysadmin / viewer may all read a run."""
     cluster = FarmerClusterFactory(cluster_id="KACH-ACCESS-01")
     run = AdvisoryRun.objects.create(
         requested_by=officer,
@@ -531,11 +539,9 @@ def test_run_status_access_rule(client, officer, supervisor, system_admin, viewe
     # System admin → 200.
     _, admin_raw = _make_token(system_admin)
     assert _get(client, url, raw=admin_raw).status_code == 200
-    # Viewer — fails the scope eligibility check (not officer / sysadmin).
-    _, viewer_raw = _make_token(viewer)
-    resp = _get(client, url, raw=viewer_raw)
-    assert resp.status_code == 403
-    assert resp.json()["error"]["code"] == "not_eligible"
+    # Viewer → 200: a viewer holds the read scope and is now eligible for reads.
+    _, viewer_raw = _make_token(viewer, scopes=[ApiToken.Scope.ADVISORIES_READ.value])
+    assert _get(client, url, raw=viewer_raw).status_code == 200
 
 
 @pytest.mark.django_db

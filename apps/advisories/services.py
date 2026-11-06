@@ -15,7 +15,7 @@ from datetime import timedelta
 from django.db import transaction
 from django.utils import timezone
 
-from apps.accounts.permissions import require_officer
+from apps.accounts.permissions import require_advisory_requester
 from apps.agents.models import AdvisoryRun
 from apps.agents.run_worker import start_advisory_run_async
 from apps.clusters.models import FarmerCluster
@@ -62,7 +62,7 @@ def request_advisory_run(*, actor, cluster_id: str) -> AdvisoryRequestResult:
     (the TOCTOU the roadmap flags for this phase). On SQLite (dev) the row
     lock is a no-op; on Postgres (production) it is a real row lock.
     """
-    require_officer(actor)
+    require_advisory_requester(actor)
     try:
         cluster = FarmerCluster.objects.select_for_update().get(cluster_id=cluster_id)
     except FarmerCluster.DoesNotExist as exc:
