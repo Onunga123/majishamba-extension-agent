@@ -26,11 +26,13 @@ logger = logging.getLogger("majishamba.api")
 # Each scope maps to the eligibility check the bound user must STILL pass.
 # This is independent of the token's own validity: even a non-expired,
 # non-revoked token is rejected if the officer it belongs to no longer
-# qualifies for the scope's action.
+# qualifies for the scope's action. Admin (system_admin) is admitted to the
+# write scopes so the Base44 role switcher's admin role can drive the full
+# flow; viewer is admitted to read-only scopes only.
 _SCOPE_ELIGIBILITY = {
-    ApiToken.Scope.ADVISORIES_REQUEST: lambda user: user.is_officer(),
-    ApiToken.Scope.ADVISORIES_READ: lambda user: user.is_officer() or user.is_system_admin(),
-    ApiToken.Scope.APPROVALS_RECORD: lambda user: user.can_approve(),
+    ApiToken.Scope.ADVISORIES_REQUEST: lambda user: user.is_officer() or user.is_system_admin(),
+    ApiToken.Scope.ADVISORIES_READ: lambda user: user.is_officer() or user.is_system_admin() or user.is_viewer(),
+    ApiToken.Scope.APPROVALS_RECORD: lambda user: user.can_approve() or user.is_system_admin(),
     ApiToken.Scope.TOKEN_INTROSPECT: lambda user: bool(user.is_active),
     ApiToken.Scope.TOKEN_REVOKE: lambda user: bool(user.is_active),
 }

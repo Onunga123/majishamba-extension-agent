@@ -227,6 +227,7 @@ def run_status_view(request: HttpRequest, run_id) -> JsonResponse:
         run.requested_by_id != user.id
         and not user.is_officer()
         and not user.is_system_admin()
+        and not user.is_viewer()
     ):
         return _json_error(403, "not_eligible", "You cannot view this run.")
     return JsonResponse(

@@ -43,6 +43,31 @@ def require_approver(user) -> None:
         raise PermissionDenied("Only approvers (officers/supervisors) can perform this action.")
 
 
+def require_advisory_requester(user) -> None:
+    """An extension officer (or supervisor) or a system admin may request advisory runs.
+
+    Broader than ``require_officer`` so an admin token (bound to a system admin)
+    can drive the full advisory flow from the Base44 role switcher. Web views
+    that must stay officer-only still use ``require_officer`` directly.
+    """
+    if not (
+        user
+        and user.is_authenticated
+        and (user.is_officer() or user.is_system_admin())
+    ):
+        raise PermissionDenied("Only extension officers or admins can request advisory runs.")
+
+
+def require_approver_or_admin(user) -> None:
+    """An approver (officer/supervisor) or a system admin may record approvals."""
+    if not (
+        user
+        and user.is_authenticated
+        and (user.can_approve() or user.is_system_admin())
+    ):
+        raise PermissionDenied("Only approvers or admins can record approvals.")
+
+
 def require_system_admin(user) -> None:
     if not (user and user.is_authenticated and user.can_review_accounts()):
         raise PermissionDenied("Only a System Administrator can manage account registrations.")

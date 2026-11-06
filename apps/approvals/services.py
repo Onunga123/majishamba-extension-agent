@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 from django.db import transaction
 
-from apps.accounts.permissions import require_approver
+from apps.accounts.permissions import require_approver_or_admin
 from apps.advisories.models import Advisory
 from apps.audit.service import log_audit_event
 from apps.tasks.service import create_follow_up_task_after_approval
@@ -69,7 +69,7 @@ def record_approval(
 
     Raises ``AdvisoryNotFound``, ``AdvisoryNotDraft``, or ``VersionMismatch``.
     """
-    require_approver(actor)
+    require_approver_or_admin(actor)
     try:
         advisory = Advisory.objects.select_related("cluster").get(pk=advisory_pk)
     except Advisory.DoesNotExist as exc:

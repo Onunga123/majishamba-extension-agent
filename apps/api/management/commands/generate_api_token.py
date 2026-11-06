@@ -54,18 +54,33 @@ class Command(BaseCommand):
             user = User.objects.get_by_natural_key(username)
         except User.DoesNotExist:
             raise CommandError(f"User '{username}' does not exist.")
-        if not user.is_officer():
+        if not user.is_token_eligible():
             raise CommandError(
-                f"User '{username}' is not an active officer; "
-                "tokens must bind to an eligible officer account."
+                f"User '{username}' is not eligible for an API token; "
+                "tokens bind to an active, approved officer, supervisor, "
+                "system admin, or viewer account."
             )
+        # A viewer may only ever hold the read scope, regardless of what was
+        # requested on the command line — this is the load-bearing guard that
+        # keeps the role switcher's "viewer" role strictly read-only.
+        scopes = list(options["scopes"])
+        if user.is_viewer():
+            requested = ", ".join(scopes)
+            scopes = [ApiToken.Scope.ADVISORIES_READ.value]
+            if requested and requested != ApiToken.Scope.ADVISORIES_READ.value:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Viewer accounts are read-only; requested scopes "
+                        f"[{requested}] overridden with [{scopes[0]}]."
+                    )
+                )
 
         days = options["days"]
         expires_at = None if days == 0 else timezone.now() + timedelta(days=days)
         _token, raw = ApiToken.create_token(
             user=user,
             name=options["name"],
-            scopes=options["scopes"],
+            scopes=scopes,
             created_by=user,
             expires_at=expires_at,
         )
