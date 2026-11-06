@@ -80,3 +80,21 @@ call `GET /api/v1/health/` and `GET /api/v1/clusters/`) have live targets.
 | Response fields per roadmap §A4 (7 fields) | `apps/api/views.py` — `clusters_list_view` result dict |
 | Flat response shape (no `{"ok","data"}` envelope) | `docs/implementation/03_endpoints.md` — response-shape note |
 | Tests | `tests/integration/test_api.py` — 11 new tests (3 health, 8 clusters) |
+
+## Phase 3 — Base44 integration
+
+Phase 3 is Base44-side work (roadmap §11, Phase 3): *"Base44 project (outside
+this repo); Render dashboard; no Kachieng' repository changes beyond
+environment."* This repo's Phase 3 contribution is the authoritative hand-off
+(contract + reference client) and the API-side acceptance validation proving
+the flow the Base44 Superagent drives actually works.
+
+| requirement | artifact |
+| --- | --- |
+| Authoritative Base44 integration contract (real API + §A4 deviation table) | `docs/implementation/09_phase3_base44_integration.md` |
+| Reference Deno client (types / apiClient / superagent + README) | `docs/implementation/base44_reference/` |
+| Phase 3 acceptance — full Superagent flow (health → clusters → request → poll → detail) | `tests/integration/test_phase3_superagent_flow.py` — `test_phase3_superagent_flow_health_clusters_request_poll_display` |
+| Phase 3 acceptance — "second human (supervisor) is configurable" | `tests/integration/test_phase3_superagent_flow.py` — `test_phase3_flow_second_human_supervisor_configurable` |
+| Demo token provisioning (officer + supervisor) | `scripts/provision_base44_tokens.{ps1,sh}` |
+| Render env notes (`MAJISHAMBA_SYNC_RUN=1`, `gunicorn --timeout 180`, `USE_POSTGRES=1`) | `docs/implementation/09_phase3_base44_integration.md` → "Render environment" |
+| Decision: align API to §A4 vs. document the real contract | `docs/implementation/09_phase3_base44_integration.md` → deviation table + decision note (chose: document) |

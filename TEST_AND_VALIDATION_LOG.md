@@ -125,10 +125,51 @@ The roadmap (§A1) specifies a `{"ok": true, "data": ...}` envelope; the
 implementation uses flat payloads + `{"error": {...}}` uniformly across all
 endpoints. Documented in `docs/implementation/03_endpoints.md`.
 
+## Phase 3 — Base44 integration (`feature/base44-api`)
+
+```
+850 passed, 1 skipped, 2 warnings in 103.87s
+```
+
+- **848 → 850 passed:** +2 end-to-end tests in
+  `tests/integration/test_phase3_superagent_flow.py`.
+- **0 failed; 1 skipped** (Playwright, unchanged); 2 pre-existing
+  `RemovedInDjango60Warning`s in `apps/integrations/forms.py`.
+- **No migration, no change to existing endpoints:** Phase 3 is Base44-side work
+  (roadmap §11, Phase 3: *"Base44 project (outside this repo); Render dashboard;
+  no Kachieng' repository changes beyond environment"*). The in-repo Phase 3
+  artifacts are docs + a reference client + an E2E acceptance test.
+
+### New artifacts
+
+- `docs/implementation/09_phase3_base44_integration.md` — the authoritative
+  Base44 integration contract: real auth, the endpoint catalog actually built
+  (1–5 + introspect/revoke/approvals; 6/8/9 deferred), the §A4 deviation table,
+  the Superagent flow with real request/response, token provisioning, Render
+  env, and a "what Base44 must build" checklist.
+- `docs/implementation/base44_reference/` — a copy-paste-ready Deno client
+  (`types.ts`, `apiClient.ts`, `superagent.ts`, `README.md`) matching the real
+  API; no external dependencies.
+- `scripts/provision_base44_tokens.{ps1,sh}` — create the demo officer +
+  supervisor tokens Phase 3 needs.
+- `tests/integration/test_phase3_superagent_flow.py` — 2 E2E tests validating
+  the Phase 3 acceptance (the full flow; the second-human/supervisor path).
+
+### Phase 3 acceptance (API side)
+
+- *"Base44 retrieves clusters, submits an advisory, polls to completion, and
+  displays the draft with evidence"* —
+  `test_phase3_superagent_flow_health_clusters_request_poll_display`. ✅
+- *"a second human (supervisor) is configurable"* —
+  `test_phase3_flow_second_human_supervisor_configurable`. ✅
+
+The Base44 Superagent app that drives this flow is built outside this repo.
+
 ## How to reproduce
 
 ```bash
 cd majishamba_fresh
-.venv/bin/python -m pytest -q                       # full suite
-.venv/bin/python -m pytest tests/integration/test_api.py -q   # Phase 1 + Phase 2
+.venv/bin/python -m pytest -q                                              # full suite
+.venv/bin/python -m pytest tests/integration/test_api.py -q                # Phase 1 + Phase 2
+.venv/bin/python -m pytest tests/integration/test_phase3_superagent_flow.py -q   # Phase 3 E2E
 ```
